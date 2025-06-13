@@ -1,4 +1,4 @@
-use wgame::{runtime::enter, window::Window};
+use wgame::{executor::enter, window::Window};
 
 async fn main_(mut window: Window) {
     while !window.closed() {
