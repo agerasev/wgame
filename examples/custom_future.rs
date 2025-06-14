@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use wgame::{executor::enter, window::Window};
+use wgame::{executor::enter, runtime::Runtime};
 
 #[derive(Default)]
 struct LoaderInfo {
@@ -49,14 +49,10 @@ impl Future for Loader {
     }
 }
 
-async fn main_(mut window: Window) {
-    println!("Started");
+async fn main_(_rt: Runtime) {
+    println!("Going to sleep");
     Loader::new(Duration::from_secs(1)).await;
-    println!("Loaded");
-    while let Some(_render) = window.request_render().await {
-        println!("Rendered");
-    }
-    println!("Closed");
+    println!("Awakened");
 }
 
 fn main() {
