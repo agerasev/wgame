@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wgame::{executor::enter, runtime::Runtime};
+use wgame::{App, Runtime};
 
 async fn main_(rt: Runtime) {
     println!("Spawning new task");
@@ -17,5 +17,8 @@ async fn main_(rt: Runtime) {
 }
 
 fn main() {
-    enter(main_);
+    let app = App::new().unwrap();
+    let rt = Runtime::new(app.proxy());
+    app.proxy().spawn(main_(rt));
+    app.run().unwrap();
 }

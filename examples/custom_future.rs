@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use wgame::{executor::enter, runtime::Runtime};
+use wgame::{App, Runtime};
 
 #[derive(Default)]
 struct LoaderInfo {
@@ -56,5 +56,8 @@ async fn main_(_rt: Runtime) {
 }
 
 fn main() {
-    enter(main_);
+    let app = App::new().unwrap();
+    let rt = Runtime::new(app.proxy());
+    app.proxy().spawn(main_(rt));
+    app.run().unwrap();
 }

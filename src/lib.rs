@@ -1,3 +1,9 @@
 mod app;
-pub mod executor;
-pub mod runtime;
+mod executor;
+mod runtime;
+
+pub use crate::{
+    app::{App, AppProxy},
+    runtime::*,
+};
+pub use winit::error::EventLoopError;

@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    app::AppState,
+    app::{AppProxy, AppState},
     executor::{ExecutorProxy, TaskId, Timer},
 };
 
@@ -16,23 +16,26 @@ use crate::{
 #[derive(Clone)]
 pub struct Runtime {
     executor: Rc<RefCell<ExecutorProxy>>,
-    app: Rc<RefCell<AppState>>,
+    state: Rc<RefCell<AppState>>,
 }
 
 impl Runtime {
-    pub(crate) fn new(executor: Rc<RefCell<ExecutorProxy>>, app: Rc<RefCell<AppState>>) -> Self {
-        Self { executor, app }
+    pub fn new(app: AppProxy) -> Self {
+        Self {
+            executor: app.executor,
+            state: app.state,
+        }
     }
 
     pub fn request_render(&self) -> RequestRenderFuture<'_> {
-        if let Some(window) = self.app.borrow().window.as_ref() {
+        if let Some(window) = self.state.borrow().window.as_ref() {
             window.request_redraw();
         }
-        RequestRenderFuture { app: &self.app }
+        RequestRenderFuture { state: &self.state }
     }
 
     pub fn is_closed(&self) -> bool {
-        self.app.borrow().close_requested
+        self.state.borrow().close_requested
     }
 
     pub fn spawn<T: 'static, F: Future<Output = T> + 'static>(&self, future: F) -> JoinHandle<T> {
@@ -64,18 +67,22 @@ impl Runtime {
 }
 
 pub struct RequestRenderFuture<'a> {
-    app: &'a RefCell<AppState>,
+    state: &'a RefCell<AppState>,
 }
 
 impl<'a> Future for RequestRenderFuture<'a> {
     type Output = Option<()>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut app = self.app.borrow_mut();
-        if mem::replace(&mut app.redraw_requested, false) || app.close_requested {
-            Poll::Ready(if !app.close_requested { Some(()) } else { None })
+        let mut state = self.state.borrow_mut();
+        if mem::replace(&mut state.redraw_requested, false) || state.close_requested {
+            Poll::Ready(if !state.close_requested {
+                Some(())
+            } else {
+                None
+            })
         } else {
-            app.redraw_waker = Some(cx.waker().clone());
+            state.redraw_waker = Some(cx.waker().clone());
             Poll::Pending
         }
     }

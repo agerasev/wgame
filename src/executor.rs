@@ -16,10 +16,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 
 type FutureObj = Pin<Box<dyn Future<Output = ()>>>;
 
-use crate::{
-    app::{App, UserEvent},
-    runtime::Runtime,
-};
+use crate::app::UserEvent;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
 pub struct TaskId(u64);
@@ -79,7 +76,7 @@ impl Task {
 }
 
 #[derive(Clone)]
-pub(crate) struct Timer {
+pub struct Timer {
     pub timestamp: Instant,
     pub waker: Rc<Cell<Option<Waker>>>,
 }
@@ -107,7 +104,7 @@ impl Ord for Timer {
     }
 }
 
-pub(crate) struct Executor {
+pub struct Executor {
     event_loop: EventLoopProxy<UserEvent>,
     tasks: HashMap<TaskId, Task>,
     tasks_to_poll: HashSet<TaskId>,
@@ -116,14 +113,14 @@ pub(crate) struct Executor {
 }
 
 #[derive(Default)]
-pub(crate) struct ExecutorProxy {
+pub struct ExecutorProxy {
     task_counter: TaskId,
     new_tasks: Vec<(TaskId, FutureObj)>,
     new_timers: Vec<Timer>,
 }
 
 impl Executor {
-    fn new(event_loop: EventLoopProxy<UserEvent>) -> Self {
+    pub fn new(event_loop: EventLoopProxy<UserEvent>) -> Self {
         Self {
             event_loop,
             tasks: HashMap::default(),
@@ -211,17 +208,4 @@ impl ExecutorProxy {
         self.new_timers.push(timer.clone());
         timer
     }
-}
-
-pub fn enter<F: AsyncFnOnce(Runtime) + 'static>(main: F) {
-    let app = App::new();
-
-    let executor = Executor::new(app.event_loop());
-    let proxy = executor.proxy();
-
-    let runtime = Runtime::new(proxy.clone(), app.shared_state());
-
-    proxy.borrow_mut().spawn(main(runtime));
-
-    app.run(executor).unwrap();
 }

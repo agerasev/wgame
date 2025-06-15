@@ -8,11 +8,11 @@ use winit::{
     application::ApplicationHandler,
     error::EventLoopError,
     event::WindowEvent,
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy},
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{Window, WindowId},
 };
 
-use crate::executor::{Executor, TaskId};
+use crate::executor::{Executor, ExecutorProxy, TaskId};
 
 #[derive(Debug)]
 pub struct UserEvent {
@@ -29,41 +29,50 @@ pub struct AppState {
 
 pub struct App {
     event_loop: EventLoop<UserEvent>,
+    executor: Executor,
     state: Rc<RefCell<AppState>>,
 }
 
-struct AppRuntime {
+#[derive(Clone)]
+pub struct AppProxy {
+    pub state: Rc<RefCell<AppState>>,
+    pub executor: Rc<RefCell<ExecutorProxy>>,
+}
+
+struct AppHandler {
     state: Rc<RefCell<AppState>>,
     executor: Executor,
 }
 
 impl App {
-    pub fn new() -> Self {
-        let event_loop = EventLoop::<UserEvent>::with_user_event().build().unwrap();
-        Self {
+    pub fn new() -> Result<Self, EventLoopError> {
+        let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;
+        let executor = Executor::new(event_loop.create_proxy());
+        Ok(Self {
             event_loop,
+            executor,
             state: Default::default(),
+        })
+    }
+
+    pub fn proxy(&self) -> AppProxy {
+        AppProxy {
+            state: self.state.clone(),
+            executor: self.executor.proxy(),
         }
     }
 
-    pub fn shared_state(&self) -> Rc<RefCell<AppState>> {
-        self.state.clone()
-    }
-    pub fn event_loop(&self) -> EventLoopProxy<UserEvent> {
-        self.event_loop.create_proxy()
-    }
-
-    pub fn run(self, executor: Executor) -> Result<(), EventLoopError> {
-        let mut app = AppRuntime {
+    pub fn run(self) -> Result<(), EventLoopError> {
+        let mut app = AppHandler {
             state: self.state,
-            executor,
+            executor: self.executor,
         };
         self.event_loop.set_control_flow(ControlFlow::Wait);
         self.event_loop.run_app(&mut app)
     }
 }
 
-impl ApplicationHandler<UserEvent> for AppRuntime {
+impl ApplicationHandler<UserEvent> for AppHandler {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.state.borrow_mut().window = Some(
             event_loop
@@ -101,5 +110,11 @@ impl ApplicationHandler<UserEvent> for AppRuntime {
             Poll::Pending => (),
             Poll::Ready(()) => event_loop.exit(),
         }
+    }
+}
+
+impl AppProxy {
+    pub fn spawn<F: Future<Output = ()> + 'static>(&mut self, future: F) {
+        self.executor.borrow_mut().spawn(future);
     }
 }
