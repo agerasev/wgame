@@ -41,7 +41,7 @@ pub struct App {
 
 struct AppRuntime {
     state: Rc<RefCell<AppState>>,
-    executor: Rc<RefCell<Executor>>,
+    executor: Executor,
     tasks_to_poll: HashSet<TaskId>,
 }
 
@@ -61,7 +61,7 @@ impl App {
         }
     }
 
-    pub fn run(self, executor: Rc<RefCell<Executor>>) -> Result<(), EventLoopError> {
+    pub fn run(self, executor: Executor) -> Result<(), EventLoopError> {
         let mut app = AppRuntime {
             state: self.state,
             executor,
@@ -83,11 +83,7 @@ impl ApplicationHandler<UserEvent> for AppRuntime {
 
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         if let StartCause::Init = cause {
-            match self
-                .executor
-                .borrow_mut()
-                .poll(event_loop, [TaskId::default()])
-            {
+            match self.executor.poll(event_loop, [TaskId::default()]) {
                 Poll::Pending => (),
                 Poll::Ready(()) => event_loop.exit(),
             }
@@ -124,7 +120,6 @@ impl ApplicationHandler<UserEvent> for AppRuntime {
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         let poll = self
             .executor
-            .borrow_mut()
             .poll(event_loop, self.tasks_to_poll.iter().copied());
         self.tasks_to_poll.clear();
         match poll {

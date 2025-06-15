@@ -1,8 +1,8 @@
 use std::{
-    cell::RefCell,
-    collections::{BTreeMap, hash_map::Entry},
+    cell::{Cell, RefCell},
+    cmp::Reverse,
+    collections::{BinaryHeap, binary_heap::PeekMut, hash_map::Entry},
     future::Future,
-    mem,
     pin::Pin,
     rc::Rc,
     sync::Arc,
@@ -13,6 +13,8 @@ use std::{
 use futures::task::{ArcWake, waker};
 use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
+
+type FutureObj = Pin<Box<dyn Future<Output = ()>>>;
 
 use crate::{
     app::{App, AppProxy, UserEvent},
@@ -82,24 +84,48 @@ impl Task {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone)]
 pub(crate) struct Timer {
-    pub waker: Option<Waker>,
+    pub timestamp: Instant,
+    pub waker: Rc<Cell<Option<Waker>>>,
+}
+
+impl PartialEq for Timer {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.timestamp.eq(&other.timestamp)
+    }
+}
+
+impl Eq for Timer {}
+
+impl PartialOrd for Timer {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Timer {
+    #[inline]
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.timestamp.cmp(&other.timestamp)
+    }
 }
 
 pub(crate) struct Executor {
     app: AppProxy,
     tasks: HashMap<TaskId, Task>,
     tasks_to_poll: HashSet<TaskId>,
-    timers: BTreeMap<Instant, Rc<RefCell<Timer>>>,
+    timers: BinaryHeap<Reverse<Timer>>,
     proxy: Rc<RefCell<ExecutorProxy>>,
 }
 
 #[derive(Default)]
 pub(crate) struct ExecutorProxy {
     task_counter: TaskId,
-    tasks: Vec<(TaskId, Pin<Box<dyn Future<Output = ()>>>)>,
-    timers: Vec<(Instant, Rc<RefCell<Timer>>)>,
+    new_tasks: Vec<(TaskId, FutureObj)>,
+    new_timers: Vec<Timer>,
 }
 
 impl Executor {
@@ -108,7 +134,7 @@ impl Executor {
             app,
             tasks: HashMap::default(),
             tasks_to_poll: HashSet::default(),
-            timers: BTreeMap::default(),
+            timers: BinaryHeap::default(),
             proxy: Rc::new(RefCell::new(ExecutorProxy::default())),
         }
     }
@@ -120,24 +146,27 @@ impl Executor {
     fn sync_proxy(&mut self) {
         let mut proxy = self.proxy.borrow_mut();
 
-        for (id, future) in proxy.tasks.drain(..) {
+        for (id, future) in proxy.new_tasks.drain(..) {
             let task = Task::new(id, &self.app, Box::pin(future));
             assert!(self.tasks.insert(id, task).is_none());
             self.tasks_to_poll.insert(id);
         }
 
-        for (timestamp, timer) in proxy.timers.drain(..) {
-            // FIXME: Allow duplicate timestamps
-            assert!(self.timers.insert(timestamp, timer).is_none());
+        for timer in proxy.new_timers.drain(..) {
+            self.timers.push(Reverse(timer));
         }
     }
 
     fn wake_timers(&mut self) {
-        let mut old_timers = self.timers.split_off(&Instant::now());
-        mem::swap(&mut self.timers, &mut old_timers);
-        for timer in old_timers.into_values() {
-            if let Some(waker) = timer.borrow_mut().waker.take() {
-                waker.wake();
+        let now = Instant::now();
+        while let Some(peek) = self.timers.peek_mut() {
+            if peek.0.timestamp <= now {
+                if let Some(waker) = peek.0.waker.take() {
+                    waker.wake();
+                }
+                PeekMut::pop(peek);
+            } else {
+                break;
             }
         }
     }
@@ -158,8 +187,8 @@ impl Executor {
         }
 
         self.wake_timers();
-        if let Some(entry) = self.timers.first_entry() {
-            event_loop.set_control_flow(ControlFlow::WaitUntil(*entry.key()))
+        if let Some(Reverse(timer)) = self.timers.peek() {
+            event_loop.set_control_flow(ControlFlow::WaitUntil(timer.timestamp))
         } else {
             event_loop.set_control_flow(ControlFlow::Wait);
         }
@@ -176,13 +205,16 @@ impl ExecutorProxy {
     pub fn spawn<F: Future<Output = ()> + 'static>(&mut self, future: F) -> TaskId {
         let id = self.task_counter.get_and_inc();
         let future = Box::pin(future);
-        self.tasks.push((id, future));
+        self.new_tasks.push((id, future));
         id
     }
 
-    pub fn add_timer(&mut self, timestamp: Instant) -> Rc<RefCell<Timer>> {
-        let timer = Rc::new(RefCell::new(Timer::default()));
-        self.timers.push((timestamp, timer.clone()));
+    pub fn add_timer(&mut self, timestamp: Instant) -> Timer {
+        let timer = Timer {
+            timestamp,
+            waker: Default::default(),
+        };
+        self.new_timers.push(timer.clone());
         timer
     }
 }
@@ -190,8 +222,8 @@ impl ExecutorProxy {
 pub fn enter<F: AsyncFnOnce(Runtime) + 'static>(main: F) {
     let app = App::new();
 
-    let executor = Rc::new(RefCell::new(Executor::new(app.proxy())));
-    let proxy = executor.borrow().proxy();
+    let executor = Executor::new(app.proxy());
+    let proxy = executor.proxy();
 
     let runtime = Runtime::new(proxy.clone(), app.proxy());
 

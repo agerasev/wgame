@@ -46,7 +46,7 @@ impl Runtime {
     pub fn sleep(&self, timeout: Duration) -> SleepFuture {
         let timestamp = Instant::now().checked_add(timeout).unwrap();
         let timer = self.executor.borrow_mut().add_timer(timestamp);
-        SleepFuture { timestamp, timer }
+        SleepFuture { timer }
     }
 }
 
@@ -73,18 +73,17 @@ impl<'a> Future for RequestRenderFuture<'a> {
 }
 
 pub struct SleepFuture {
-    timestamp: Instant,
-    timer: Rc<RefCell<Timer>>,
+    timer: Timer,
 }
 
 impl Future for SleepFuture {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if Instant::now() >= self.timestamp {
+        if Instant::now() >= self.timer.timestamp {
             Poll::Ready(())
         } else {
-            self.timer.borrow_mut().waker = Some(cx.waker().clone());
+            self.timer.waker.set(Some(cx.waker().clone()));
             Poll::Pending
         }
     }
