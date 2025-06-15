@@ -56,12 +56,6 @@ impl ArcWake for TaskData {
     }
 }
 
-impl Drop for TaskData {
-    fn drop(&mut self) {
-        println!("Task data dropped");
-    }
-}
-
 impl Task {
     fn new(id: TaskId, app: &AppProxy, future: Pin<Box<dyn Future<Output = ()>>>) -> Self {
         let data = Arc::new(TaskData {
@@ -75,7 +69,6 @@ impl Task {
     }
 
     fn poll(&mut self) -> Poll<()> {
-        println!("Poll");
         let mut cx = Context::from_waker(&self.waker);
         match self.future.as_mut().poll(&mut cx) {
             Poll::Pending => Poll::Pending,

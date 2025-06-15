@@ -14,11 +14,11 @@ struct LoaderInfo {
     complete: bool,
 }
 
-struct Loader {
+struct CustomSleep {
     info: Arc<Mutex<LoaderInfo>>,
 }
 
-impl Loader {
+impl CustomSleep {
     fn new(delay: Duration) -> Self {
         let info = Arc::new(Mutex::new(LoaderInfo::default()));
         thread::spawn({
@@ -36,7 +36,7 @@ impl Loader {
     }
 }
 
-impl Future for Loader {
+impl Future for CustomSleep {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut guard = self.info.lock().unwrap();
@@ -51,7 +51,7 @@ impl Future for Loader {
 
 async fn main_(_rt: Runtime) {
     println!("Going to sleep");
-    Loader::new(Duration::from_secs(1)).await;
+    CustomSleep::new(Duration::from_secs(1)).await;
     println!("Awakened");
 }
 

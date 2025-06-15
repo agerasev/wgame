@@ -94,14 +94,12 @@ impl ApplicationHandler<UserEvent> for AppRuntime {
         let mut state = self.state.borrow_mut();
         match event {
             WindowEvent::CloseRequested => {
-                println!("Close requested");
                 state.close_requested = true;
                 if let Some(waker) = state.redraw_waker.take() {
                     waker.wake()
                 }
             }
             WindowEvent::RedrawRequested => {
-                println!("Redraw requested");
                 state.redraw_requested = true;
                 if let Some(waker) = state.redraw_waker.take() {
                     waker.wake()
@@ -113,7 +111,6 @@ impl ApplicationHandler<UserEvent> for AppRuntime {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
-        println!("User event: {event:?}");
         self.tasks_to_poll.insert(event.task_id);
     }
 
