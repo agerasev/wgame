@@ -8,6 +8,8 @@ license = "MIT"
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 fxhash = "0.2.1"
 winit = "0.30.11"
+log = "0.4.27"
 
 [dev-dependencies]
 futures = "0.3.31"
+env_logger = "0.11.8"

@@ -17,6 +17,7 @@ async fn main_(rt: Runtime) {
 }
 
 fn main() {
+    env_logger::init();
     let app = App::new().unwrap();
     let rt = Runtime::new(app.proxy());
     app.proxy().spawn(main_(rt));

@@ -143,15 +143,20 @@ impl Executor {
             let task = Task::new(id, self.event_loop.clone(), future);
             assert!(self.tasks.insert(id, task).is_none());
             self.tasks_to_poll.insert(id);
+            log::trace!("task spawned: {id:?}");
         }
 
         for timer in proxy.new_timers.drain(..) {
+            #[allow(unused_variables)]
+            let timestamp = timer.timestamp;
             self.timers.push(Reverse(timer));
+            log::trace!("timer added: {:?}", timestamp);
         }
     }
 
     fn make_loop_calls(&self, event_loop: &ActiveEventLoop) {
         for call in self.proxy.borrow_mut().loop_calls.drain(..) {
+            log::trace!("event loop called");
             call(event_loop);
         }
     }
@@ -160,6 +165,7 @@ impl Executor {
         let now = Instant::now();
         while let Some(peek) = self.timers.peek_mut() {
             if peek.0.timestamp <= now {
+                log::trace!("timer fired: {:?}", peek.0.timestamp);
                 if let Some(waker) = peek.0.waker.take() {
                     waker.wake();
                 }
@@ -185,16 +191,23 @@ impl Executor {
     }
 
     pub fn poll(&mut self, event_loop: &ActiveEventLoop) -> Poll<()> {
+        log::trace!("poll");
+
         self.sync_proxy();
 
-        self.poll_tasks();
+        while !self.tasks_to_poll.is_empty() {
+            self.poll_tasks();
+            self.sync_proxy();
+        }
 
         self.make_loop_calls(event_loop);
 
         self.wake_timers();
         if let Some(Reverse(timer)) = self.timers.peek() {
+            log::trace!("waiting until: {:?}", timer.timestamp);
             event_loop.set_control_flow(ControlFlow::WaitUntil(timer.timestamp))
         } else {
+            log::trace!("waiting indefinitely");
             event_loop.set_control_flow(ControlFlow::Wait);
         }
 
@@ -211,6 +224,7 @@ impl ExecutorProxy {
         let id = self.task_counter.get_and_inc();
         let future = Box::pin(future);
         self.new_tasks.push((id, future));
+        log::trace!("task queued: {id:?}");
         id
     }
 
@@ -220,10 +234,12 @@ impl ExecutorProxy {
             waker: Default::default(),
         };
         self.new_timers.push(timer.clone());
+        log::trace!("timer queued: {:?}", timer.timestamp);
         timer
     }
 
     pub fn add_loop_call<F: FnOnce(&ActiveEventLoop) + 'static>(&mut self, call: F) {
+        log::trace!("event loop call queued");
         self.loop_calls.push(Box::new(call));
     }
 }

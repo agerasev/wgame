@@ -90,16 +90,19 @@ impl App {
 
 impl ApplicationHandler<UserEvent> for AppHandler {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+        log::trace!("resumed");
         // FIXME: Re-create windows
     }
 
     fn window_event(&mut self, _event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+        log::trace!("window_event {id:?}: {event:?}");
+
         let mut state = self.state.borrow_mut();
         let window = match state.windows.get_mut(&id) {
             Some(window) => window,
             None => {
                 if event != WindowEvent::Destroyed {
-                    eprintln!("No such window: {id:?}\n{event:?}");
+                    log::error!("No such window {id:?}: {event:?}");
                 }
                 return;
             }
@@ -122,10 +125,12 @@ impl ApplicationHandler<UserEvent> for AppHandler {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
+        log::trace!("user_event: {event:?}");
         self.executor.add_task_to_poll(event.task_id);
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        log::trace!("about_to_wait");
         match self.executor.poll(event_loop) {
             Poll::Pending => (),
             Poll::Ready(()) => event_loop.exit(),
