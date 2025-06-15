@@ -15,6 +15,7 @@ use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 
 type FutureObj = Pin<Box<dyn Future<Output = ()>>>;
+type LoopCallObj = Box<dyn FnOnce(&ActiveEventLoop)>;
 
 use crate::app::UserEvent;
 
@@ -117,6 +118,7 @@ pub struct ExecutorProxy {
     task_counter: TaskId,
     new_tasks: Vec<(TaskId, FutureObj)>,
     new_timers: Vec<Timer>,
+    loop_calls: Vec<LoopCallObj>,
 }
 
 impl Executor {
@@ -148,6 +150,12 @@ impl Executor {
         }
     }
 
+    fn make_loop_calls(&self, event_loop: &ActiveEventLoop) {
+        for call in self.proxy.borrow_mut().loop_calls.drain(..) {
+            call(event_loop);
+        }
+    }
+
     fn wake_timers(&mut self) {
         let now = Instant::now();
         while let Some(peek) = self.timers.peek_mut() {
@@ -166,9 +174,7 @@ impl Executor {
         self.tasks_to_poll.insert(task_id);
     }
 
-    pub fn poll(&mut self, event_loop: &ActiveEventLoop) -> Poll<()> {
-        self.sync_proxy();
-
+    pub fn poll_tasks(&mut self) {
         for id in self.tasks_to_poll.drain() {
             if let Entry::Occupied(mut entry) = self.tasks.entry(id) {
                 if entry.get_mut().poll().is_ready() {
@@ -176,6 +182,14 @@ impl Executor {
                 }
             }
         }
+    }
+
+    pub fn poll(&mut self, event_loop: &ActiveEventLoop) -> Poll<()> {
+        self.sync_proxy();
+
+        self.make_loop_calls(event_loop);
+
+        self.poll_tasks();
 
         self.wake_timers();
         if let Some(Reverse(timer)) = self.timers.peek() {
@@ -207,5 +221,9 @@ impl ExecutorProxy {
         };
         self.new_timers.push(timer.clone());
         timer
+    }
+
+    pub fn add_loop_call<F: FnOnce(&ActiveEventLoop) + 'static>(&mut self, call: F) {
+        self.loop_calls.push(Box::new(call));
     }
 }
