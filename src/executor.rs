@@ -17,7 +17,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 type FutureObj = Pin<Box<dyn Future<Output = ()>>>;
 
 use crate::{
-    app::{App, AppProxy, UserEvent},
+    app::{App, UserEvent},
     runtime::Runtime,
 };
 
@@ -57,11 +57,12 @@ impl ArcWake for TaskData {
 }
 
 impl Task {
-    fn new(id: TaskId, app: &AppProxy, future: Pin<Box<dyn Future<Output = ()>>>) -> Self {
-        let data = Arc::new(TaskData {
-            id,
-            event_loop: app.event_loop.clone(),
-        });
+    fn new(
+        id: TaskId,
+        event_loop: EventLoopProxy<UserEvent>,
+        future: Pin<Box<dyn Future<Output = ()>>>,
+    ) -> Self {
+        let data = Arc::new(TaskData { id, event_loop });
         Self {
             future,
             waker: waker(data),
@@ -107,7 +108,7 @@ impl Ord for Timer {
 }
 
 pub(crate) struct Executor {
-    app: AppProxy,
+    event_loop: EventLoopProxy<UserEvent>,
     tasks: HashMap<TaskId, Task>,
     tasks_to_poll: HashSet<TaskId>,
     timers: BinaryHeap<Reverse<Timer>>,
@@ -122,9 +123,9 @@ pub(crate) struct ExecutorProxy {
 }
 
 impl Executor {
-    fn new(app: AppProxy) -> Self {
+    fn new(event_loop: EventLoopProxy<UserEvent>) -> Self {
         Self {
-            app,
+            event_loop,
             tasks: HashMap::default(),
             tasks_to_poll: HashSet::default(),
             timers: BinaryHeap::default(),
@@ -140,7 +141,7 @@ impl Executor {
         let mut proxy = self.proxy.borrow_mut();
 
         for (id, future) in proxy.new_tasks.drain(..) {
-            let task = Task::new(id, &self.app, Box::pin(future));
+            let task = Task::new(id, self.event_loop.clone(), future);
             assert!(self.tasks.insert(id, task).is_none());
             self.tasks_to_poll.insert(id);
         }
@@ -164,14 +165,14 @@ impl Executor {
         }
     }
 
-    pub fn poll(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        tasks: impl IntoIterator<Item = TaskId>,
-    ) -> Poll<()> {
+    pub fn add_task_to_poll(&mut self, task_id: TaskId) {
+        self.tasks_to_poll.insert(task_id);
+    }
+
+    pub fn poll(&mut self, event_loop: &ActiveEventLoop) -> Poll<()> {
         self.sync_proxy();
 
-        for id in tasks.into_iter().chain(self.tasks_to_poll.drain()) {
+        for id in self.tasks_to_poll.drain() {
             if let Entry::Occupied(mut entry) = self.tasks.entry(id) {
                 if entry.get_mut().poll().is_ready() {
                     entry.remove();
@@ -215,10 +216,10 @@ impl ExecutorProxy {
 pub fn enter<F: AsyncFnOnce(Runtime) + 'static>(main: F) {
     let app = App::new();
 
-    let executor = Executor::new(app.proxy());
+    let executor = Executor::new(app.event_loop());
     let proxy = executor.proxy();
 
-    let runtime = Runtime::new(proxy.clone(), app.proxy());
+    let runtime = Runtime::new(proxy.clone(), app.shared_state());
 
     proxy.borrow_mut().spawn(main(runtime));
 

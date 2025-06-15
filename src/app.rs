@@ -4,11 +4,10 @@ use std::{
     task::{Poll, Waker},
 };
 
-use fxhash::FxHashSet as HashSet;
 use winit::{
     application::ApplicationHandler,
     error::EventLoopError,
-    event::{StartCause, WindowEvent},
+    event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy},
     window::{Window, WindowId},
 };
@@ -28,12 +27,6 @@ pub struct AppState {
     pub close_requested: bool,
 }
 
-#[derive(Clone)]
-pub struct AppProxy {
-    pub state: Rc<RefCell<AppState>>,
-    pub event_loop: EventLoopProxy<UserEvent>,
-}
-
 pub struct App {
     event_loop: EventLoop<UserEvent>,
     state: Rc<RefCell<AppState>>,
@@ -42,7 +35,6 @@ pub struct App {
 struct AppRuntime {
     state: Rc<RefCell<AppState>>,
     executor: Executor,
-    tasks_to_poll: HashSet<TaskId>,
 }
 
 impl App {
@@ -54,18 +46,17 @@ impl App {
         }
     }
 
-    pub fn proxy(&self) -> AppProxy {
-        AppProxy {
-            state: self.state.clone(),
-            event_loop: self.event_loop.create_proxy(),
-        }
+    pub fn shared_state(&self) -> Rc<RefCell<AppState>> {
+        self.state.clone()
+    }
+    pub fn event_loop(&self) -> EventLoopProxy<UserEvent> {
+        self.event_loop.create_proxy()
     }
 
     pub fn run(self, executor: Executor) -> Result<(), EventLoopError> {
         let mut app = AppRuntime {
             state: self.state,
             executor,
-            tasks_to_poll: HashSet::default(),
         };
         self.event_loop.set_control_flow(ControlFlow::Wait);
         self.event_loop.run_app(&mut app)
@@ -79,15 +70,6 @@ impl ApplicationHandler<UserEvent> for AppRuntime {
                 .create_window(Window::default_attributes())
                 .unwrap(),
         );
-    }
-
-    fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
-        if let StartCause::Init = cause {
-            match self.executor.poll(event_loop, [TaskId::default()]) {
-                Poll::Pending => (),
-                Poll::Ready(()) => event_loop.exit(),
-            }
-        }
     }
 
     fn window_event(&mut self, _event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -111,15 +93,11 @@ impl ApplicationHandler<UserEvent> for AppRuntime {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
-        self.tasks_to_poll.insert(event.task_id);
+        self.executor.add_task_to_poll(event.task_id);
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let poll = self
-            .executor
-            .poll(event_loop, self.tasks_to_poll.iter().copied());
-        self.tasks_to_poll.clear();
-        match poll {
+        match self.executor.poll(event_loop) {
             Poll::Pending => (),
             Poll::Ready(()) => event_loop.exit(),
         }
