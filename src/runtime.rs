@@ -1,15 +1,15 @@
 use std::{
     cell::RefCell,
-    mem,
     pin::Pin,
     rc::Rc,
     task::{Context, Poll, Waker},
     time::{Duration, Instant},
 };
 
-use winit::event_loop::ActiveEventLoop;
+use winit::{error::OsError, event_loop::ActiveEventLoop, window::WindowAttributes};
 
 use crate::{
+    Window,
     app::{AppProxy, AppState},
     executor::{ExecutorProxy, TaskId, Timer},
 };
@@ -17,8 +17,8 @@ use crate::{
 /// Handle to underlying async runtime.
 #[derive(Clone)]
 pub struct Runtime {
-    executor: Rc<RefCell<ExecutorProxy>>,
-    state: Rc<RefCell<AppState>>,
+    pub(crate) executor: Rc<RefCell<ExecutorProxy>>,
+    pub(crate) state: Rc<RefCell<AppState>>,
 }
 
 impl Runtime {
@@ -27,17 +27,6 @@ impl Runtime {
             executor: app.executor,
             state: app.state,
         }
-    }
-
-    pub fn request_render(&self) -> RequestRenderFuture<'_> {
-        if let Some(window) = self.state.borrow().window.as_ref() {
-            window.request_redraw();
-        }
-        RequestRenderFuture { state: &self.state }
-    }
-
-    pub fn is_closed(&self) -> bool {
-        self.state.borrow().close_requested
     }
 
     pub fn spawn<T: 'static, F: Future<Output = T> + 'static>(&self, future: F) -> JoinHandle<T> {
@@ -60,13 +49,13 @@ impl Runtime {
         }
     }
 
-    pub fn sleep(&self, timeout: Duration) -> SleepFuture {
+    pub fn sleep(&self, timeout: Duration) -> Sleep {
         let timestamp = Instant::now().checked_add(timeout).unwrap();
         let timer = self.executor.borrow_mut().add_timer(timestamp);
-        SleepFuture { timer }
+        Sleep { timer }
     }
 
-    pub fn with_event_loop<T: 'static, F: FnOnce(&ActiveEventLoop) -> T + 'static>(
+    pub(crate) fn with_event_loop<T: 'static, F: FnOnce(&ActiveEventLoop) -> T + 'static>(
         &self,
         call: F,
     ) -> EventLoopCall<T> {
@@ -85,27 +74,9 @@ impl Runtime {
         });
         EventLoopCall { proxy }
     }
-}
 
-pub struct RequestRenderFuture<'a> {
-    state: &'a RefCell<AppState>,
-}
-
-impl<'a> Future for RequestRenderFuture<'a> {
-    type Output = Option<()>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut state = self.state.borrow_mut();
-        if mem::replace(&mut state.redraw_requested, false) || state.close_requested {
-            Poll::Ready(if !state.close_requested {
-                Some(())
-            } else {
-                None
-            })
-        } else {
-            state.redraw_waker = Some(cx.waker().clone());
-            Poll::Pending
-        }
+    pub async fn create_window(&self, attributes: WindowAttributes) -> Result<Window, OsError> {
+        Window::new(self, attributes).await
     }
 }
 
@@ -142,11 +113,11 @@ impl<T> Future for JoinHandle<T> {
     }
 }
 
-pub struct SleepFuture {
+pub struct Sleep {
     timer: Timer,
 }
 
-impl Future for SleepFuture {
+impl Future for Sleep {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

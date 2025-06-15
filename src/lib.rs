@@ -6,5 +6,9 @@ mod window;
 pub use crate::{
     app::{App, AppProxy},
     runtime::*,
+    window::*,
 };
-pub use winit::{error::EventLoopError, event_loop::ActiveEventLoop};
+pub use winit::{
+    error::{EventLoopError, OsError},
+    window::WindowAttributes,
+};

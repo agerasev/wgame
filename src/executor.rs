@@ -187,9 +187,9 @@ impl Executor {
     pub fn poll(&mut self, event_loop: &ActiveEventLoop) -> Poll<()> {
         self.sync_proxy();
 
-        self.make_loop_calls(event_loop);
-
         self.poll_tasks();
+
+        self.make_loop_calls(event_loop);
 
         self.wake_timers();
         if let Some(Reverse(timer)) = self.timers.peek() {

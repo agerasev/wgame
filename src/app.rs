@@ -4,6 +4,7 @@ use std::{
     task::{Poll, Waker},
 };
 
+use fxhash::FxHashMap as HashMap;
 use winit::{
     application::ApplicationHandler,
     error::EventLoopError,
@@ -19,12 +20,27 @@ pub struct UserEvent {
     pub task_id: TaskId,
 }
 
-#[derive(Default, Debug)]
-pub struct AppState {
-    pub window: Option<Window>,
-    pub redraw_waker: Option<Waker>,
+pub struct WindowState {
+    pub window: Window,
+    pub waker: Option<Waker>,
     pub redraw_requested: bool,
     pub close_requested: bool,
+}
+
+impl WindowState {
+    pub fn new(window: Window) -> Self {
+        Self {
+            window,
+            waker: None,
+            redraw_requested: false,
+            close_requested: false,
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct AppState {
+    pub windows: HashMap<WindowId, WindowState>,
 }
 
 pub struct App {
@@ -35,8 +51,8 @@ pub struct App {
 
 #[derive(Clone)]
 pub struct AppProxy {
-    pub state: Rc<RefCell<AppState>>,
-    pub executor: Rc<RefCell<ExecutorProxy>>,
+    pub(crate) state: Rc<RefCell<AppState>>,
+    pub(crate) executor: Rc<RefCell<ExecutorProxy>>,
 }
 
 struct AppHandler {
@@ -73,32 +89,36 @@ impl App {
 }
 
 impl ApplicationHandler<UserEvent> for AppHandler {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        self.state.borrow_mut().window = Some(
-            event_loop
-                .create_window(Window::default_attributes())
-                .unwrap(),
-        );
+    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+        // FIXME: Re-create windows
     }
 
-    fn window_event(&mut self, _event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+    fn window_event(&mut self, _event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
         let mut state = self.state.borrow_mut();
+        let window = match state.windows.get_mut(&id) {
+            Some(window) => window,
+            None => {
+                if event != WindowEvent::Destroyed {
+                    eprintln!("No such window: {id:?}\n{event:?}");
+                }
+                return;
+            }
+        };
         match event {
             WindowEvent::CloseRequested => {
-                state.close_requested = true;
-                if let Some(waker) = state.redraw_waker.take() {
+                window.close_requested = true;
+                if let Some(waker) = window.waker.take() {
                     waker.wake()
                 }
             }
             WindowEvent::RedrawRequested => {
-                state.redraw_requested = true;
-                if let Some(waker) = state.redraw_waker.take() {
+                window.redraw_requested = true;
+                if let Some(waker) = window.waker.take() {
                     waker.wake()
                 }
             }
             _ => (),
         }
-        drop(state);
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
