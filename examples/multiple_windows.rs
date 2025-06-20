@@ -1,7 +1,9 @@
 use futures::join;
-use wgame::{App, Runtime, WindowAttributes};
+use wgame::{Runtime, WindowAttributes};
 
-async fn main_(rt: Runtime) {
+#[wgame::main]
+async fn main(rt: Runtime) {
+    env_logger::init();
     println!("Started");
 
     async fn make_window_and_wait_closed(rt: &Runtime, index: usize) {
@@ -18,12 +20,4 @@ async fn main_(rt: Runtime) {
     );
 
     println!("Closed");
-}
-
-fn main() {
-    env_logger::init();
-    let app = App::new().unwrap();
-    let rt = Runtime::new(app.proxy());
-    app.proxy().spawn(main_(rt));
-    app.run().unwrap();
 }

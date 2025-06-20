@@ -1,17 +1,9 @@
 use std::time::Duration;
 
-use wgame::{App, Runtime};
-
-async fn main_(rt: Runtime) {
+#[wgame::main]
+async fn main(rt: wgame::Runtime) {
+    env_logger::init();
     println!("Going to sleep");
     rt.sleep(Duration::from_secs(1)).await;
     println!("Awakened");
-}
-
-fn main() {
-    env_logger::init();
-    let app = App::new().unwrap();
-    let rt = Runtime::new(app.proxy());
-    app.proxy().spawn(main_(rt));
-    app.run().unwrap();
 }

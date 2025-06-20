@@ -10,28 +10,24 @@ use winit::{error::OsError, event_loop::ActiveEventLoop, window::WindowAttribute
 
 use crate::{
     Window,
-    app::{AppProxy, AppState},
-    executor::{ExecutorProxy, TaskId, Timer},
+    app::AppProxy,
+    executor::{TaskId, Timer},
 };
 
 /// Handle to underlying async runtime.
 #[derive(Clone)]
 pub struct Runtime {
-    pub(crate) executor: Rc<RefCell<ExecutorProxy>>,
-    pub(crate) state: Rc<RefCell<AppState>>,
+    app: AppProxy,
 }
 
 impl Runtime {
-    pub fn new(app: AppProxy) -> Self {
-        Self {
-            executor: app.executor,
-            state: app.state,
-        }
+    pub(crate) fn new(app: AppProxy) -> Self {
+        Self { app }
     }
 
     pub fn spawn<T: 'static, F: Future<Output = T> + 'static>(&self, future: F) -> JoinHandle<T> {
         let proxy = Rc::new(RefCell::new(CallProxy::default()));
-        let task_id = self.executor.borrow_mut().spawn({
+        let task_id = self.app.executor.borrow_mut().spawn({
             let proxy = proxy.clone();
             async move {
                 let output = future.await;
@@ -51,7 +47,7 @@ impl Runtime {
 
     pub fn sleep(&self, timeout: Duration) -> Sleep {
         let timestamp = Instant::now().checked_add(timeout).unwrap();
-        let timer = self.executor.borrow_mut().add_timer(timestamp);
+        let timer = self.app.executor.borrow_mut().add_timer(timestamp);
         Sleep { timer }
     }
 
@@ -60,7 +56,7 @@ impl Runtime {
         call: F,
     ) -> EventLoopCall<T> {
         let proxy = Rc::new(RefCell::new(CallProxy::default()));
-        self.executor.borrow_mut().add_loop_call({
+        self.app.executor.borrow_mut().add_loop_call({
             let proxy = proxy.clone();
             move |event_loop: &ActiveEventLoop| {
                 let output = call(event_loop);
@@ -76,7 +72,11 @@ impl Runtime {
     }
 
     pub async fn create_window(&self, attributes: WindowAttributes) -> Result<Window, OsError> {
-        Window::new(self, attributes).await
+        self.with_event_loop({
+            let app = self.app.clone();
+            move |event_loop| Window::new(app, event_loop, attributes)
+        })
+        .await
     }
 }
 

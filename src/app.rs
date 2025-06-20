@@ -13,7 +13,10 @@ use winit::{
     window::{Window, WindowId},
 };
 
-use crate::executor::{Executor, ExecutorProxy, TaskId};
+use crate::{
+    Runtime,
+    executor::{Executor, ExecutorProxy, TaskId},
+};
 
 #[derive(Debug)]
 pub struct UserEvent {
@@ -50,9 +53,9 @@ pub struct App {
 }
 
 #[derive(Clone)]
-pub struct AppProxy {
-    pub(crate) state: Rc<RefCell<AppState>>,
-    pub(crate) executor: Rc<RefCell<ExecutorProxy>>,
+pub(crate) struct AppProxy {
+    pub state: Rc<RefCell<AppState>>,
+    pub executor: Rc<RefCell<ExecutorProxy>>,
 }
 
 struct AppHandler {
@@ -71,11 +74,15 @@ impl App {
         })
     }
 
-    pub fn proxy(&self) -> AppProxy {
+    pub(crate) fn proxy(&self) -> AppProxy {
         AppProxy {
             state: self.state.clone(),
             executor: self.executor.proxy(),
         }
+    }
+
+    pub fn runtime(&self) -> Runtime {
+        Runtime::new(self.proxy())
     }
 
     pub fn run(self) -> Result<(), EventLoopError> {
@@ -135,11 +142,5 @@ impl ApplicationHandler<UserEvent> for AppHandler {
             Poll::Pending => (),
             Poll::Ready(()) => event_loop.exit(),
         }
-    }
-}
-
-impl AppProxy {
-    pub fn spawn<F: Future<Output = ()> + 'static>(&mut self, future: F) {
-        self.executor.borrow_mut().spawn(future);
     }
 }

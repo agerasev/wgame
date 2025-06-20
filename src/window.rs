@@ -8,13 +8,11 @@ use std::{
 
 use winit::{
     error::OsError,
+    event_loop::ActiveEventLoop,
     window::{WindowAttributes, WindowId},
 };
 
-use crate::{
-    Runtime,
-    app::{AppState, WindowState},
-};
+use crate::app::{AppProxy, AppState, WindowState};
 
 pub struct Window {
     id: WindowId,
@@ -28,27 +26,23 @@ impl Drop for Window {
 }
 
 impl Window {
-    pub(crate) async fn new(rt: &Runtime, attributes: WindowAttributes) -> Result<Self, OsError> {
-        let id = rt
-            .with_event_loop({
-                let app = rt.state.clone();
-                move |event_loop| {
-                    let window = event_loop.create_window(attributes)?;
-                    let id = window.id();
-                    assert!(
-                        app.borrow_mut()
-                            .windows
-                            .insert(id, WindowState::new(window))
-                            .is_none()
-                    );
-                    Ok(id)
-                }
-            })
-            .await?;
-
+    pub(crate) fn new(
+        app: AppProxy,
+        event_loop: &ActiveEventLoop,
+        attributes: WindowAttributes,
+    ) -> Result<Self, OsError> {
+        let app = app.state.clone();
+        let window = event_loop.create_window(attributes)?;
+        let id = window.id();
+        assert!(
+            app.borrow_mut()
+                .windows
+                .insert(id, WindowState::new(window))
+                .is_none()
+        );
         Ok(Self {
             id,
-            app: rt.state.clone(),
+            app: app.clone(),
         })
     }
 

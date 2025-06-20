@@ -1,8 +1,10 @@
 use std::time::Duration;
 
-use wgame::{App, Runtime, WindowAttributes};
+use wgame::{Runtime, WindowAttributes};
 
-async fn main_(rt: Runtime) {
+#[wgame::main]
+async fn main(rt: Runtime) {
+    env_logger::init();
     println!("Started");
     let mut window = rt.create_window(WindowAttributes::default()).await.unwrap();
     println!("Window created");
@@ -13,12 +15,4 @@ async fn main_(rt: Runtime) {
         counter += 1;
     }
     println!("Closed");
-}
-
-fn main() {
-    env_logger::init();
-    let app = App::new().unwrap();
-    let rt = Runtime::new(app.proxy());
-    app.proxy().spawn(main_(rt));
-    app.run().unwrap();
 }
