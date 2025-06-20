@@ -6,10 +6,12 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures::{Stream, future::FusedFuture};
 use winit::{
     error::OsError,
+    event::WindowEvent,
     event_loop::ActiveEventLoop,
-    window::{WindowAttributes, WindowId},
+    window::{Window as RawWindow, WindowAttributes, WindowId},
 };
 
 use crate::app::{AppProxy, AppState, WindowState};
@@ -63,8 +65,17 @@ impl Window {
         })
     }
 
+    /// Underilying window
+    pub fn raw(&self) -> Ref<'_, RawWindow> {
+        Ref::map(self.state(), |state| &state.window)
+    }
+    /// Underilying window
+    pub fn raw_mut(&mut self) -> RefMut<'_, RawWindow> {
+        RefMut::map(self.state_mut(), |state| &mut state.window)
+    }
+
     pub fn request_render(&mut self) -> RequestRender<'_> {
-        self.state().window.request_redraw();
+        self.raw().request_redraw();
         RequestRender { owner: self }
     }
 
@@ -73,6 +84,38 @@ impl Window {
     }
     pub fn closed(&mut self) -> Closed<'_> {
         Closed { owner: self }
+    }
+
+    pub fn events(&mut self) -> EventPipe<'_> {
+        EventPipe { owner: self }
+    }
+}
+
+pub struct EventPipe<'a> {
+    owner: &'a mut Window,
+}
+
+impl Stream for EventPipe<'_> {
+    type Item = WindowEvent;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let mut state = self.owner.state_mut();
+        match state.events.pop_front() {
+            Some(event) => Poll::Ready(Some(event)),
+            None => {
+                if state.close_requested {
+                    Poll::Ready(None)
+                } else {
+                    state.waker = Some(cx.waker().clone());
+                    Poll::Pending
+                }
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.owner.state().events.len();
+        (len, Some(len))
     }
 }
 
@@ -113,5 +156,11 @@ impl<'a> Future for Closed<'a> {
             state.waker = Some(cx.waker().clone());
             Poll::Pending
         }
+    }
+}
+
+impl FusedFuture for Closed<'_> {
+    fn is_terminated(&self) -> bool {
+        self.owner.is_closed()
     }
 }

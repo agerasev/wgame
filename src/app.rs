@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    collections::VecDeque,
     rc::Rc,
     task::{Poll, Waker},
 };
@@ -23,11 +24,14 @@ pub struct UserEvent {
     pub task_id: TaskId,
 }
 
+const EVENTS_CAPACITY: usize = 0x1000;
+
 pub struct WindowState {
     pub window: Window,
     pub waker: Option<Waker>,
     pub redraw_requested: bool,
     pub close_requested: bool,
+    pub events: VecDeque<WindowEvent>,
 }
 
 impl WindowState {
@@ -37,6 +41,29 @@ impl WindowState {
             waker: None,
             redraw_requested: false,
             close_requested: false,
+            events: VecDeque::new(),
+        }
+    }
+}
+
+impl WindowState {
+    fn push_event(&mut self, event: WindowEvent) {
+        match &event {
+            WindowEvent::CloseRequested => {
+                self.close_requested = true;
+            }
+            WindowEvent::RedrawRequested => {
+                self.redraw_requested = true;
+            }
+            _ => (),
+        }
+
+        while self.events.len() >= EVENTS_CAPACITY {
+            self.events.pop_front();
+        }
+        self.events.push_back(event);
+        if let Some(waker) = self.waker.take() {
+            waker.wake()
         }
     }
 }
@@ -114,21 +141,8 @@ impl ApplicationHandler<UserEvent> for AppHandler {
                 return;
             }
         };
-        match event {
-            WindowEvent::CloseRequested => {
-                window.close_requested = true;
-                if let Some(waker) = window.waker.take() {
-                    waker.wake()
-                }
-            }
-            WindowEvent::RedrawRequested => {
-                window.redraw_requested = true;
-                if let Some(waker) = window.waker.take() {
-                    waker.wake()
-                }
-            }
-            _ => (),
-        }
+
+        window.push_event(event);
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {

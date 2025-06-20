@@ -51,7 +51,7 @@ impl Runtime {
         Sleep { timer }
     }
 
-    pub(crate) fn with_event_loop<T: 'static, F: FnOnce(&ActiveEventLoop) -> T + 'static>(
+    pub fn with_event_loop<T: 'static, F: FnOnce(&ActiveEventLoop) -> T + 'static>(
         &self,
         call: F,
     ) -> EventLoopCall<T> {
