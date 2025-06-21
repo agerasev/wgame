@@ -1,5 +1,5 @@
 use std::{
-    cell::{Ref, RefCell, RefMut},
+    cell::RefCell,
     mem,
     pin::Pin,
     rc::Rc,
@@ -8,86 +8,178 @@ use std::{
 
 use futures::{Stream, future::FusedFuture};
 use winit::{
-    error::OsError,
-    event::WindowEvent,
-    event_loop::ActiveEventLoop,
-    window::{Window as RawWindow, WindowAttributes, WindowId},
+    error::OsError, event::WindowEvent, event_loop::ActiveEventLoop, window::WindowAttributes,
 };
 
-use crate::app::{AppProxy, AppState, WindowState};
+use crate::app::{AppProxy, WindowState};
 
 pub struct Window {
-    id: WindowId,
-    app: Rc<RefCell<AppState>>,
-}
-
-impl Drop for Window {
-    fn drop(&mut self) {
-        assert!(self.app.borrow_mut().windows.remove(&self.id).is_some())
-    }
+    app: AppProxy,
+    state: Rc<RefCell<WindowState>>,
 }
 
 impl Window {
-    pub(crate) fn new(
-        app: AppProxy,
-        event_loop: &ActiveEventLoop,
-        attributes: WindowAttributes,
-    ) -> Result<Self, OsError> {
-        let app = app.state.clone();
-        let window = event_loop.create_window(attributes)?;
-        let id = window.id();
-        assert!(
-            app.borrow_mut()
-                .windows
-                .insert(id, WindowState::new(window))
-                .is_none()
-        );
-        Ok(Self {
-            id,
-            app: app.clone(),
-        })
+    pub(crate) fn new(app: AppProxy, attributes: WindowAttributes) -> Self {
+        let state = app.state.borrow_mut().create_window_state(attributes);
+        Self { app, state }
     }
 
-    fn state(&self) -> Ref<'_, WindowState> {
-        Ref::map(self.app.borrow(), |state| {
-            state
-                .windows
-                .get(&self.id)
-                .unwrap_or_else(|| panic!("Window not found: {:?}", self.id))
-        })
-    }
-    fn state_mut(&mut self) -> RefMut<'_, WindowState> {
-        RefMut::map(self.app.borrow_mut(), |state| {
-            state
-                .windows
-                .get_mut(&self.id)
-                .unwrap_or_else(|| panic!("Window not found: {:?}", self.id))
-        })
+    pub(crate) fn create(&mut self) -> Create<'_> {
+        Create {
+            owner: Some(self),
+            state: Rc::new(RefCell::new(CreateState { error: None })),
+        }
     }
 
-    /// Underilying window
-    pub fn raw(&self) -> Ref<'_, RawWindow> {
-        Ref::map(self.state(), |state| &state.window)
-    }
-    /// Underilying window
-    pub fn raw_mut(&mut self) -> RefMut<'_, RawWindow> {
-        RefMut::map(self.state_mut(), |state| &mut state.window)
+    pub fn render(&mut self) -> Render<'_> {
+        Render {
+            owner: Some(self),
+            state: Rc::new(RefCell::new(CreateState { error: None })),
+        }
     }
 
-    pub fn request_render(&mut self) -> RequestRender<'_> {
-        self.raw().request_redraw();
-        RequestRender { owner: self }
+    pub fn events(&mut self) -> EventPipe<'_> {
+        EventPipe { owner: self }
     }
 
     pub fn is_closed(&self) -> bool {
-        self.state().close_requested
+        self.state.borrow().close_requested
     }
     pub fn closed(&mut self) -> Closed<'_> {
         Closed { owner: self }
     }
 
-    pub fn events(&mut self) -> EventPipe<'_> {
-        EventPipe { owner: self }
+    fn poll_create(&mut self, create: &Rc<RefCell<CreateState>>) -> Poll<Result<(), OsError>> {
+        // Check if an error occured
+        if let Some(err) = create.borrow_mut().error.take() {
+            return Poll::Ready(Err(err));
+        }
+
+        // Check app is not suspended
+        if !self.app.state.borrow().is_active() {
+            return Poll::Pending;
+        }
+
+        // Try get dynamic window state
+        if self.state.borrow().dynamic.is_none() {
+            let app = self.app.state.clone();
+            let state = self.state.clone();
+            let create = create.clone();
+            self.app
+                .executor
+                .borrow_mut()
+                .add_loop_call(move |event_loop: &ActiveEventLoop| {
+                    if let Err(err) = app
+                        .borrow_mut()
+                        .try_create_and_insert_window_if_not_exist(&state, event_loop)
+                    {
+                        create.borrow_mut().error = Some(err);
+                    }
+                    if let Some(waker) = state.borrow_mut().waker.take() {
+                        waker.wake();
+                    }
+                });
+            return Poll::Pending;
+        }
+
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_render(
+        &mut self,
+        create: &Rc<RefCell<CreateState>>,
+    ) -> Poll<Result<Option<()>, OsError>> {
+        // Try get dynamic window state
+        let mut state = self.state.borrow_mut();
+        let dynamic = if let Some(dynamic) = &mut state.dynamic {
+            dynamic
+        } else {
+            drop(state);
+            // Create window
+            match self.poll_create(create) {
+                Poll::Ready(Ok(())) => unreachable!(),
+                other => return other.map_ok(|()| unreachable!()),
+            }
+        };
+
+        // Whether redraw requested
+        if !mem::replace(&mut dynamic.redraw_requested, false) {
+            dynamic.window.request_redraw();
+            return Poll::Pending;
+        }
+
+        // If window closed
+        if state.close_requested {
+            return Poll::Ready(Ok(None));
+        }
+
+        Poll::Ready(Ok(Some(())))
+    }
+}
+
+struct CreateState {
+    error: Option<OsError>,
+}
+
+pub struct Create<'a> {
+    owner: Option<&'a mut Window>,
+    state: Rc<RefCell<CreateState>>,
+}
+
+impl<'a> Future for Create<'a> {
+    type Output = Result<(), OsError>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let owner = self
+            .owner
+            .take()
+            .expect("FusedFuture polled again after it returned Ready");
+
+        let poll = owner.poll_create(&self.state);
+
+        if poll.is_pending() {
+            owner.state.borrow_mut().waker = Some(cx.waker().clone());
+            self.owner = Some(owner);
+        }
+
+        poll
+    }
+}
+
+impl FusedFuture for Create<'_> {
+    fn is_terminated(&self) -> bool {
+        self.owner.is_none()
+    }
+}
+
+pub struct Render<'a> {
+    owner: Option<&'a mut Window>,
+    state: Rc<RefCell<CreateState>>,
+}
+
+impl<'a> Future for Render<'a> {
+    type Output = Result<Option<()>, OsError>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let owner = self
+            .owner
+            .take()
+            .expect("FusedFuture polled again after it returned Ready");
+
+        let poll = owner.poll_render(&self.state);
+
+        if poll.is_pending() {
+            owner.state.borrow_mut().waker = Some(cx.waker().clone());
+            self.owner = Some(owner);
+        }
+
+        poll
+    }
+}
+
+impl FusedFuture for Render<'_> {
+    fn is_terminated(&self) -> bool {
+        self.owner.is_none()
     }
 }
 
@@ -98,8 +190,8 @@ pub struct EventPipe<'a> {
 impl Stream for EventPipe<'_> {
     type Item = WindowEvent;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut state = self.owner.state_mut();
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let mut state = self.owner.state.borrow_mut();
         match state.events.pop_front() {
             Some(event) => Poll::Ready(Some(event)),
             None => {
@@ -114,30 +206,8 @@ impl Stream for EventPipe<'_> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.owner.state().events.len();
+        let len = self.owner.state.borrow().events.len();
         (len, Some(len))
-    }
-}
-
-pub struct RequestRender<'a> {
-    owner: &'a mut Window,
-}
-
-impl<'a> Future for RequestRender<'a> {
-    type Output = Option<()>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut state = self.owner.state_mut();
-        if mem::replace(&mut state.redraw_requested, false) || state.close_requested {
-            Poll::Ready(if !state.close_requested {
-                Some(())
-            } else {
-                None
-            })
-        } else {
-            state.waker = Some(cx.waker().clone());
-            Poll::Pending
-        }
     }
 }
 
@@ -145,11 +215,11 @@ pub struct Closed<'a> {
     owner: &'a mut Window,
 }
 
-impl<'a> Future for Closed<'a> {
+impl Future for Closed<'_> {
     type Output = ();
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut state = self.owner.state_mut();
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut state = self.owner.state.borrow_mut();
         if state.close_requested {
             Poll::Ready(())
         } else {

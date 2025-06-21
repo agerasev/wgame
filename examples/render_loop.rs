@@ -9,7 +9,7 @@ async fn main(rt: Runtime) {
     let mut window = rt.create_window(WindowAttributes::default()).await.unwrap();
     println!("Window created");
     let mut counter = 0;
-    while let Some(_render) = window.request_render().await {
+    while let Some(_render) = window.render().await.unwrap() {
         rt.sleep(Duration::from_millis(100)).await;
         println!("Rendered frame #{counter}");
         counter += 1;

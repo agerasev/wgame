@@ -72,11 +72,9 @@ impl Runtime {
     }
 
     pub async fn create_window(&self, attributes: WindowAttributes) -> Result<Window, OsError> {
-        self.with_event_loop({
-            let app = self.app.clone();
-            move |event_loop| Window::new(app, event_loop, attributes)
-        })
-        .await
+        let mut window = Window::new(self.app.clone(), attributes);
+        window.create().await?;
+        Ok(window)
     }
 }
 
