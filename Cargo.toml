@@ -17,8 +17,10 @@ wgame-macros = { version = "0.1.0", path = "macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 fxhash = "0.2.1"
 winit = "0.30.11"
+wgpu = "25.0.2"
 log = "0.4.27"
 
 [dev-dependencies]
 futures = "0.3.31"
 env_logger = "0.11.8"
+pollster = "0.4.0"
