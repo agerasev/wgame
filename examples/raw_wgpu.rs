@@ -1,14 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
-use winit::{
-    application::ApplicationHandler,
-    event::WindowEvent,
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    window::{Window, WindowId},
-};
+use wgame::{Runtime, WindowAttributes, surface::Surface};
 
-struct State {
-    window: Arc<Window>,
+struct WgpuSurface {
+    window: Arc<winit::window::Window>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     size: winit::dpi::PhysicalSize<u32>,
@@ -16,41 +11,30 @@ struct State {
     surface_format: wgpu::TextureFormat,
 }
 
-impl State {
-    async fn new(window: Arc<Window>) -> State {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions::default())
-            .await
-            .unwrap();
-        let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor::default())
-            .await
-            .unwrap();
+impl WgpuSurface {
+    fn new(
+        window: &Arc<winit::window::Window>,
+        instance: &wgpu::Instance,
+        adapter: &wgpu::Adapter,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Result<Self, wgpu::CreateSurfaceError> {
+        let surface = instance.create_surface(window.clone())?;
+        let cap = surface.get_capabilities(adapter);
 
-        let size = window.inner_size();
-
-        let surface = instance.create_surface(window.clone()).unwrap();
-        let cap = surface.get_capabilities(&adapter);
-        let surface_format = cap.formats[0];
-
-        let state = State {
-            window,
-            device,
-            queue,
-            size,
+        let this = Self {
+            window: window.clone(),
+            device: device.clone(),
+            queue: queue.clone(),
+            size: window.inner_size(),
             surface,
-            surface_format,
+            surface_format: cap.formats[0],
         };
 
         // Configure surface for the first time
-        state.configure_surface();
+        this.configure_surface();
 
-        state
-    }
-
-    fn get_window(&self) -> &Window {
-        &self.window
+        Ok(this)
     }
 
     fn configure_surface(&self) {
@@ -67,20 +51,21 @@ impl State {
         };
         self.surface.configure(&self.device, &surface_config);
     }
+}
 
+impl Surface for WgpuSurface {
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.size = new_size;
 
         // reconfigure the surface
         self.configure_surface();
     }
+}
 
-    fn render(&mut self) {
+impl WgpuSurface {
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         // Create texture view
-        let surface_texture = self
-            .surface
-            .get_current_texture()
-            .expect("failed to acquire next swapchain texture");
+        let surface_texture = self.surface.get_current_texture()?;
         let texture_view = surface_texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor {
@@ -118,72 +103,53 @@ impl State {
         self.queue.submit([encoder.finish()]);
         self.window.pre_present_notify();
         surface_texture.present();
+
+        Ok(())
     }
 }
 
-#[derive(Default)]
-struct App {
-    state: Option<State>,
-}
-
-impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        // Create window object
-        let window = Arc::new(
-            event_loop
-                .create_window(Window::default_attributes())
-                .unwrap(),
-        );
-
-        let state = pollster::block_on(State::new(window.clone()));
-        self.state = Some(state);
-
-        window.request_redraw();
-    }
-
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
-        let state = self.state.as_mut().unwrap();
-        match event {
-            WindowEvent::CloseRequested => {
-                println!("The close button was pressed; stopping");
-                event_loop.exit();
-            }
-            WindowEvent::RedrawRequested => {
-                state.render();
-                // Emits a new redraw requested event.
-                state.get_window().request_redraw();
-            }
-            WindowEvent::Resized(size) => {
-                // Reconfigures the size of the surface. We do not re-render
-                // here as this event is always followed up by redraw request.
-                state.resize(size);
-            }
-            _ => (),
-        }
-    }
-}
-
-fn main() {
-    // wgpu uses `log` for all of our logging, so we initialize a logger with the `env_logger` crate.
-    //
-    // To change the log level, set the `RUST_LOG` environment variable. See the `env_logger`
-    // documentation for more information.
+#[wgame::main]
+async fn main(rt: Runtime) {
     env_logger::init();
+    println!("Started");
 
-    let event_loop = EventLoop::new().unwrap();
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+    let adapter = instance
+        .request_adapter(&wgpu::RequestAdapterOptions::default())
+        .await
+        .unwrap();
+    let (device, queue) = adapter
+        .request_device(&wgpu::DeviceDescriptor::default())
+        .await
+        .unwrap();
+    println!("WGPU initialized");
 
-    // When the current loop iteration finishes, immediately begin a new
-    // iteration regardless of whether or not new events are available to
-    // process. Preferred for applications that want to render as fast as
-    // possible, like games.
-    event_loop.set_control_flow(ControlFlow::Poll);
+    let mut window = rt
+        .create_window(
+            WindowAttributes::default(),
+            |window: &Arc<winit::window::Window>| {
+                WgpuSurface::new(window, &instance, &adapter, &device, &queue)
+            },
+        )
+        .await
+        .unwrap();
+    println!("Window and surface created");
 
-    // When the current loop iteration finishes, suspend the thread until
-    // another event arrives. Helps keeping CPU utilization low if nothing
-    // is happening, which is preferred if the application might be idling in
-    // the background.
-    // event_loop.set_control_flow(ControlFlow::Wait);
+    let mut counter = 0;
+    while window
+        .render(|surface: &mut WgpuSurface| {
+            let result = surface.render();
 
-    let mut app = App::default();
-    event_loop.run_app(&mut app).unwrap();
+            println!("Rendered frame #{counter}");
+            counter += 1;
+
+            result
+        })
+        .await
+        .unwrap()
+        .is_some()
+    {
+        rt.sleep(Duration::from_millis(100)).await;
+    }
+    println!("Closed");
 }

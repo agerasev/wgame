@@ -1,11 +1,11 @@
-use std::{any::Any, error::Error};
+use std::{any::Any, error::Error, sync::Arc};
 
 use winit::{dpi::PhysicalSize, window::Window};
 
 pub trait SurfaceBuilder {
     type Surface: Surface + 'static;
     type Error: Error;
-    fn build(&self, window: &Window) -> Result<Self::Surface, Self::Error>;
+    fn build(&self, window: &Arc<Window>) -> Result<Self::Surface, Self::Error>;
 }
 
 pub trait Surface: Any {
@@ -22,11 +22,11 @@ impl<S, E, F> SurfaceBuilder for F
 where
     S: Surface + 'static,
     E: Error + 'static,
-    F: Fn(&Window) -> Result<S, E>,
+    F: Fn(&Arc<Window>) -> Result<S, E>,
 {
     type Surface = S;
     type Error = E;
-    fn build(&self, window: &Window) -> Result<Self::Surface, Self::Error> {
+    fn build(&self, window: &Arc<Window>) -> Result<Self::Surface, Self::Error> {
         (self)(window)
     }
 }

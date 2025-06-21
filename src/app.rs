@@ -4,6 +4,7 @@ use std::{
     hash::{Hash, Hasher},
     ops::Deref,
     rc::{Rc, Weak},
+    sync::Arc,
     task::{Poll, Waker},
 };
 
@@ -39,7 +40,7 @@ pub struct WindowState {
 }
 
 pub struct ActualWindowState {
-    pub window: Window,
+    pub window: Arc<Window>,
     pub surface: Option<Box<dyn Surface>>,
     pub redraw_requested: bool,
 }
@@ -62,7 +63,7 @@ impl WindowState {
         let window = event_loop.create_window(self.attributes.clone())?;
         let id = window.id();
         self.actual = Some(ActualWindowState {
-            window,
+            window: Arc::new(window),
             surface: None,
             redraw_requested: false,
         });
