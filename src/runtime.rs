@@ -6,12 +6,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use winit::{error::OsError, event_loop::ActiveEventLoop, window::WindowAttributes};
+use winit::{event_loop::ActiveEventLoop, window::WindowAttributes};
 
 use crate::{
     Window,
     app::AppProxy,
     executor::{TaskId, Timer},
+    surface::SurfaceBuilder,
+    window::CreateError,
 };
 
 /// Handle to underlying async runtime.
@@ -71,12 +73,14 @@ impl Runtime {
         EventLoopCall { proxy }
     }
 
-    pub async fn create_window(&self, attributes: WindowAttributes) -> Result<Window, OsError> {
-        self.with_event_loop({
-            let app = self.app.clone();
-            move |event_loop| Window::new(app, event_loop, attributes)
-        })
-        .await
+    pub async fn create_window<S: SurfaceBuilder>(
+        &self,
+        attributes: WindowAttributes,
+        builder: S,
+    ) -> Result<Window<S>, CreateError<S::Error>> {
+        let mut window = Window::new(self.app.clone(), attributes, builder);
+        window.create().await?;
+        Ok(window)
     }
 }
 
