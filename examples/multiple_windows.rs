@@ -1,5 +1,7 @@
+use std::convert::Infallible;
+
 use futures::join;
-use wgame::{Runtime, WindowAttributes};
+use wgame::{Runtime, WindowAttributes, surface::DummySurface};
 
 #[wgame::main]
 async fn main(rt: Runtime) {
@@ -7,7 +9,12 @@ async fn main(rt: Runtime) {
     println!("Started");
 
     async fn make_window_and_wait_closed(rt: &Runtime, index: usize) {
-        let mut window = rt.create_window(WindowAttributes::default()).await.unwrap();
+        let mut window = rt
+            .create_window(WindowAttributes::default(), |_: &_| {
+                Ok::<_, Infallible>(DummySurface)
+            })
+            .await
+            .unwrap();
         println!("Window #{index} created");
         window.closed().await;
         println!("Window #{index} closed");

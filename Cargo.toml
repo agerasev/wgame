@@ -18,6 +18,8 @@ futures = { version = "0.3.31", default-features = false, features = ["std"] }
 fxhash = "0.2.1"
 winit = "0.30.11"
 log = "0.4.27"
+thiserror = "2.0.12"
+pin-project = "1.1.10"
 
 [dev-dependencies]
 futures = "0.3.31"

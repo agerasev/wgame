@@ -8,10 +8,7 @@ pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};
 pub use wgame_macros::main;
-pub use winit::{
-    error::{EventLoopError, OsError},
-    window::WindowAttributes,
-};
+pub use winit::window::WindowAttributes;
 
 #[macro_export]
 macro_rules! run_main {
