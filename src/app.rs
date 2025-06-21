@@ -1,11 +1,13 @@
 use std::{
     cell::{RefCell, RefMut},
     collections::{VecDeque, hash_map::Entry},
+    hash::{Hash, Hasher},
+    ops::Deref,
     rc::{Rc, Weak},
     task::{Poll, Waker},
 };
 
-use fxhash::FxHashMap as HashMap;
+use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use winit::{
     application::ApplicationHandler,
     dpi::Size,
@@ -29,13 +31,13 @@ const EVENTS_CAPACITY: usize = 0x1000;
 
 pub struct WindowState {
     pub attributes: WindowAttributes,
-    pub dynamic: Option<WindowDynamicState>,
+    pub actual: Option<ActualWindowState>,
     pub waker: Option<Waker>,
     pub events: VecDeque<WindowEvent>,
     pub close_requested: bool,
 }
 
-pub struct WindowDynamicState {
+pub struct ActualWindowState {
     pub window: Window,
     pub redraw_requested: bool,
 }
@@ -44,23 +46,20 @@ impl WindowState {
     fn new(attributes: WindowAttributes) -> Self {
         Self {
             attributes,
-            dynamic: None,
+            actual: None,
             waker: None,
             events: VecDeque::new(),
             close_requested: false,
         }
     }
 
-    fn create_window_if_not_exist(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-    ) -> Result<WindowId, OsError> {
-        if let Some(dynamic) = &self.dynamic {
-            return Ok(dynamic.window.id());
+    fn create_actual(&mut self, event_loop: &ActiveEventLoop) -> Result<WindowId, OsError> {
+        if let Some(actual) = &self.actual {
+            return Ok(actual.window.id());
         }
         let window = event_loop.create_window(self.attributes.clone())?;
         let id = window.id();
-        self.dynamic = Some(WindowDynamicState {
+        self.actual = Some(ActualWindowState {
             window,
             redraw_requested: false,
         });
@@ -73,8 +72,8 @@ impl WindowState {
                 self.close_requested = true;
             }
             WindowEvent::RedrawRequested => {
-                if let Some(dynamic) = &mut self.dynamic {
-                    dynamic.redraw_requested = true;
+                if let Some(actual) = &mut self.actual {
+                    actual.redraw_requested = true;
                 }
             }
             WindowEvent::Resized(size) => {
@@ -93,37 +92,81 @@ impl WindowState {
     }
 }
 
+#[derive(Clone, Default)]
+struct WindowHandle(Weak<RefCell<WindowState>>);
+
+impl WindowHandle {
+    fn new(state: &Rc<RefCell<WindowState>>) -> Self {
+        Self(Rc::downgrade(state))
+    }
+
+    fn upgrade(&self) -> Option<Rc<RefCell<WindowState>>> {
+        match self.0.upgrade() {
+            Some(state) => Some(state),
+            None => {
+                log::warn!("Window dropped but not removed from the app");
+                None
+            }
+        }
+    }
+}
+
+impl Deref for WindowHandle {
+    type Target = Weak<RefCell<WindowState>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl PartialEq for WindowHandle {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.ptr_eq(&other.0)
+    }
+}
+
+impl Eq for WindowHandle {}
+
+impl Hash for WindowHandle {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ptr().hash(state)
+    }
+}
+
+#[derive(Default)]
+struct WindowContainer {
+    resumed: HashMap<WindowId, WindowHandle>,
+    suspended: HashSet<WindowHandle>,
+}
+
 #[derive(Default)]
 pub struct AppState {
     active: bool,
-    resumed: HashMap<WindowId, Weak<RefCell<WindowState>>>,
-    suspended: Vec<Weak<RefCell<WindowState>>>,
+    windows: WindowContainer,
 }
 
 impl AppState {
-    pub fn create_window_state(
-        &mut self,
-        attributes: WindowAttributes,
-    ) -> Rc<RefCell<WindowState>> {
+    pub fn new_window_state(&mut self, attributes: WindowAttributes) -> Rc<RefCell<WindowState>> {
         let state = Rc::new(RefCell::new(WindowState::new(attributes)));
-        self.suspended.push(Rc::downgrade(&state));
+        self.windows.suspended.insert(WindowHandle::new(&state));
         log::debug!("A new window state created");
         state
     }
 
-    pub fn try_create_and_insert_window_if_not_exist(
+    pub fn create_actual_window(
         &mut self,
         state: &Rc<RefCell<WindowState>>,
         event_loop: &ActiveEventLoop,
     ) -> Result<bool, OsError> {
         Ok(if self.active {
             let mut window = state.borrow_mut();
-            let id = window.create_window_if_not_exist(event_loop)?;
+            let id = window.create_actual(event_loop)?;
             log::debug!("Window {id:?} created");
-            if let Entry::Vacant(entry) = self.resumed.entry(id) {
-                let weak = Rc::downgrade(state);
-                self.suspended.retain(|w| !w.ptr_eq(&weak));
-                entry.insert(weak);
+            if let Entry::Vacant(entry) = self.windows.resumed.entry(id) {
+                let handle = WindowHandle::new(state);
+                if !self.windows.suspended.remove(&handle) {
+                    log::warn!("Cannot remove window for suspended: not found");
+                }
+                entry.insert(handle);
                 log::debug!("Window {id:?} resumed");
             }
             true
@@ -132,6 +175,23 @@ impl AppState {
         })
     }
 
+    pub fn remove_window(&mut self, state: &Rc<RefCell<WindowState>>) {
+        match state.borrow().actual.as_ref().map(|a| a.window.id()) {
+            Some(id) => {
+                if self.windows.resumed.remove(&id).is_none() {
+                    log::warn!("Cannot remove window from resumed: {id:?} not found");
+                }
+            }
+            None => {
+                let handle = WindowHandle::new(state);
+                if !self.windows.suspended.remove(&handle) {
+                    log::warn!("Cannot remove window for suspended: not found");
+                }
+            }
+        }
+    }
+
+    /// Whether app is suspended or resumed
     pub fn is_active(&self) -> bool {
         self.active
     }
@@ -191,7 +251,7 @@ impl ApplicationHandler<UserEvent> for AppHandler {
         log::debug!("resumed");
         let mut state = self.state.borrow_mut();
         state.active = true;
-        state.suspended.retain(|window| {
+        state.windows.suspended.retain(|window| {
             if let Some(window) = &window.upgrade() {
                 if let Some(waker) = window.borrow_mut().waker.take() {
                     waker.wake();
@@ -208,16 +268,14 @@ impl ApplicationHandler<UserEvent> for AppHandler {
         log::debug!("suspended");
         let mut state = self.state.borrow_mut();
         state.active = false;
-        let (mut suspended, mut resumed) =
-            RefMut::map_split(state, |state| (&mut state.suspended, &mut state.resumed));
+        let (mut suspended, mut resumed) = RefMut::map_split(state, |s| {
+            (&mut s.windows.suspended, &mut s.windows.resumed)
+        });
         for (_, window) in resumed.drain() {
-            match window.upgrade() {
-                Some(window) => {
-                    // Drow window and surface
-                    window.borrow_mut().dynamic = None;
-                    suspended.push(Rc::downgrade(&window));
-                }
-                None => log::warn!("Window dropped but not removed from the app"),
+            if let Some(window) = window.upgrade() {
+                // Drow actual window
+                window.borrow_mut().actual = None;
+                suspended.insert(WindowHandle::new(&window));
             }
         }
     }
@@ -226,16 +284,15 @@ impl ApplicationHandler<UserEvent> for AppHandler {
         log::trace!("window_event {id:?}: {event:?}");
 
         let mut state = self.state.borrow_mut();
-        match state.resumed.entry(id) {
+        match state.windows.resumed.entry(id) {
             Entry::Occupied(mut entry) => {
                 if let Some(window) = entry.get_mut().upgrade() {
-                    let destroyed = event == WindowEvent::Destroyed;
-                    window.borrow_mut().push_event(event);
-                    if destroyed {
+                    if event != WindowEvent::Destroyed {
+                        window.borrow_mut().push_event(event);
+                    } else {
                         entry.remove();
                     }
                 } else {
-                    log::warn!("Window dropped but not removed from the app");
                     entry.remove();
                 }
             }

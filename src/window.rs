@@ -1,5 +1,5 @@
 use std::{
-    cell::RefCell,
+    cell::{RefCell, RefMut},
     mem,
     pin::Pin,
     rc::Rc,
@@ -11,16 +11,22 @@ use winit::{
     error::OsError, event::WindowEvent, event_loop::ActiveEventLoop, window::WindowAttributes,
 };
 
-use crate::app::{AppProxy, WindowState};
+use crate::app::{ActualWindowState, AppProxy, WindowState};
 
 pub struct Window {
     app: AppProxy,
     state: Rc<RefCell<WindowState>>,
 }
 
+impl Drop for Window {
+    fn drop(&mut self) {
+        self.app.state.borrow_mut().remove_window(&self.state);
+    }
+}
+
 impl Window {
     pub(crate) fn new(app: AppProxy, attributes: WindowAttributes) -> Self {
-        let state = app.state.borrow_mut().create_window_state(attributes);
+        let state = app.state.borrow_mut().new_window_state(attributes);
         Self { app, state }
     }
 
@@ -49,68 +55,64 @@ impl Window {
         Closed { owner: self }
     }
 
-    fn poll_create(&mut self, create: &Rc<RefCell<CreateState>>) -> Poll<Result<(), OsError>> {
-        // Check if an error occured
-        if let Some(err) = create.borrow_mut().error.take() {
-            return Poll::Ready(Err(err));
-        }
+    fn poll_create(
+        &mut self,
+        create: &Rc<RefCell<CreateState>>,
+    ) -> Poll<Result<RefMut<'_, ActualWindowState>, OsError>> {
+        // Try get actual window state
+        match RefMut::filter_map(self.state.borrow_mut(), |s| s.actual.as_mut()).ok() {
+            Some(actual) => Poll::Ready(Ok(actual)),
 
-        // Check app is not suspended
-        if !self.app.state.borrow().is_active() {
-            return Poll::Pending;
-        }
+            None => {
+                // Check if an error occured
+                if let Some(err) = create.borrow_mut().error.take() {
+                    return Poll::Ready(Err(err));
+                }
 
-        // Try get dynamic window state
-        if self.state.borrow().dynamic.is_none() {
-            let app = self.app.state.clone();
-            let state = self.state.clone();
-            let create = create.clone();
-            self.app
-                .executor
-                .borrow_mut()
-                .add_loop_call(move |event_loop: &ActiveEventLoop| {
-                    if let Err(err) = app
-                        .borrow_mut()
-                        .try_create_and_insert_window_if_not_exist(&state, event_loop)
-                    {
-                        create.borrow_mut().error = Some(err);
-                    }
-                    if let Some(waker) = state.borrow_mut().waker.take() {
-                        waker.wake();
-                    }
-                });
-            return Poll::Pending;
-        }
+                // Check app is not suspended
+                if !self.app.state.borrow().is_active() {
+                    return Poll::Pending;
+                }
 
-        Poll::Ready(Ok(()))
+                // Create actual window state
+                let app = self.app.state.clone();
+                let state = self.state.clone();
+                let create = create.clone();
+                self.app.executor.borrow_mut().add_loop_call(
+                    move |event_loop: &ActiveEventLoop| {
+                        if let Err(err) = app.borrow_mut().create_actual_window(&state, event_loop)
+                        {
+                            create.borrow_mut().error = Some(err);
+                        }
+                        if let Some(waker) = state.borrow_mut().waker.take() {
+                            waker.wake();
+                        }
+                    },
+                );
+                Poll::Pending
+            }
+        }
     }
 
     fn poll_render(
         &mut self,
         create: &Rc<RefCell<CreateState>>,
     ) -> Poll<Result<Option<()>, OsError>> {
-        // Try get dynamic window state
-        let mut state = self.state.borrow_mut();
-        let dynamic = if let Some(dynamic) = &mut state.dynamic {
-            dynamic
-        } else {
-            drop(state);
-            // Create window
-            match self.poll_create(create) {
-                Poll::Ready(Ok(())) => unreachable!(),
-                other => return other.map_ok(|()| unreachable!()),
-            }
+        // If window closed
+        if self.state.borrow().close_requested {
+            return Poll::Ready(Ok(None));
+        }
+
+        // Try create window
+        let mut actual = match self.poll_create(create)? {
+            Poll::Ready(actual) => actual,
+            Poll::Pending => return Poll::Pending,
         };
 
         // Whether redraw requested
-        if !mem::replace(&mut dynamic.redraw_requested, false) {
-            dynamic.window.request_redraw();
+        if !mem::replace(&mut actual.redraw_requested, false) {
+            actual.window.request_redraw();
             return Poll::Pending;
-        }
-
-        // If window closed
-        if state.close_requested {
-            return Poll::Ready(Ok(None));
         }
 
         Poll::Ready(Ok(Some(())))
@@ -135,7 +137,7 @@ impl<'a> Future for Create<'a> {
             .take()
             .expect("FusedFuture polled again after it returned Ready");
 
-        let poll = owner.poll_create(&self.state);
+        let poll = owner.poll_create(&self.state).map_ok(|_| ());
 
         if poll.is_pending() {
             owner.state.borrow_mut().waker = Some(cx.waker().clone());
