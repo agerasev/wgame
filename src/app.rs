@@ -20,6 +20,7 @@ use winit::{
 use crate::{
     Runtime,
     executor::{Executor, ExecutorProxy, TaskId},
+    surface::Surface,
 };
 
 #[derive(Debug)]
@@ -39,6 +40,7 @@ pub struct WindowState {
 
 pub struct ActualWindowState {
     pub window: Window,
+    pub surface: Option<Box<dyn Surface>>,
     pub redraw_requested: bool,
 }
 
@@ -61,6 +63,7 @@ impl WindowState {
         let id = window.id();
         self.actual = Some(ActualWindowState {
             window,
+            surface: None,
             redraw_requested: false,
         });
         Ok(id)
@@ -78,6 +81,11 @@ impl WindowState {
             }
             WindowEvent::Resized(size) => {
                 self.attributes.inner_size = Some(Size::Physical(*size));
+                if let Some(actual) = &mut self.actual {
+                    if let Some(surface) = &mut actual.surface {
+                        surface.resize(*size);
+                    }
+                }
             }
             _ => (),
         }
