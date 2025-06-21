@@ -164,10 +164,9 @@ impl AppState {
             if let Entry::Vacant(entry) = self.windows.resumed.entry(id) {
                 let handle = WindowHandle::new(state);
                 if !self.windows.suspended.remove(&handle) {
-                    log::warn!("Cannot remove window for suspended: not found");
+                    log::warn!("Cannot remove window from suspended: not found");
                 }
                 entry.insert(handle);
-                log::debug!("Window {id:?} resumed");
             }
             true
         } else {
@@ -185,7 +184,7 @@ impl AppState {
             None => {
                 let handle = WindowHandle::new(state);
                 if !self.windows.suspended.remove(&handle) {
-                    log::warn!("Cannot remove window for suspended: not found");
+                    log::warn!("Cannot remove window from suspended: not found");
                 }
             }
         }
@@ -241,6 +240,10 @@ impl App {
             state: self.state,
             executor: self.executor,
         };
+
+        // Poll tasks before running the event loop
+        app.executor.poll_tasks();
+
         self.event_loop.set_control_flow(ControlFlow::Wait);
         self.event_loop.run_app(&mut app)
     }

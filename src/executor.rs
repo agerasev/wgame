@@ -181,24 +181,25 @@ impl Executor {
     }
 
     pub fn poll_tasks(&mut self) {
-        for id in self.tasks_to_poll.drain() {
-            if let Entry::Occupied(mut entry) = self.tasks.entry(id) {
-                if entry.get_mut().poll().is_ready() {
-                    entry.remove();
+        self.sync_proxy();
+
+        while !self.tasks_to_poll.is_empty() {
+            for id in self.tasks_to_poll.drain() {
+                if let Entry::Occupied(mut entry) = self.tasks.entry(id) {
+                    if entry.get_mut().poll().is_ready() {
+                        entry.remove();
+                    }
                 }
             }
+
+            self.sync_proxy();
         }
     }
 
     pub fn poll(&mut self, event_loop: &ActiveEventLoop) -> Poll<()> {
         log::trace!("poll");
 
-        self.sync_proxy();
-
-        while !self.tasks_to_poll.is_empty() {
-            self.poll_tasks();
-            self.sync_proxy();
-        }
+        self.poll_tasks();
 
         self.make_loop_calls(event_loop);
 
