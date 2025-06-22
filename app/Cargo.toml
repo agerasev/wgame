@@ -11,3 +11,8 @@ fxhash = "0.2.1"
 log.workspace = true
 thiserror = "2.0.12"
 pin-project = "1.1.10"
+
+[dev-dependencies]
+futures = { workspace = true, default-features = true }
+winit = { workspace = true, default-features = true }
+env_logger.workspace = true

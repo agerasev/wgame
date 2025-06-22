@@ -1,9 +1,8 @@
 use std::{convert::Infallible, time::Duration};
 
-use wgame::{Runtime, WindowAttributes, surface::DummySurface};
+use wgame_app::{Runtime, WindowAttributes, run_main, surface::DummySurface};
 
-#[wgame::main]
-async fn main(rt: Runtime) {
+async fn main_(rt: Runtime) {
     env_logger::init();
     println!("Started");
     let mut window = rt
@@ -28,3 +27,5 @@ async fn main(rt: Runtime) {
     }
     println!("Closed");
 }
+
+run_main!(main_);

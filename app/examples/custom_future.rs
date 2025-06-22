@@ -6,6 +6,8 @@ use std::{
     time::Duration,
 };
 
+use wgame_app::{Runtime, run_main};
+
 #[derive(Default)]
 struct LoaderInfo {
     waker: Option<Waker>,
@@ -47,10 +49,11 @@ impl Future for CustomSleep {
     }
 }
 
-#[wgame::main]
-async fn main(_rt: wgame::Runtime) {
+async fn main_(_rt: Runtime) {
     env_logger::init();
     println!("Going to sleep");
     CustomSleep::new(Duration::from_secs(1)).await;
     println!("Awakened");
 }
+
+run_main!(main_);

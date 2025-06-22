@@ -1,7 +1,8 @@
 use std::time::Duration;
 
-#[wgame::main]
-async fn main(rt: wgame::Runtime) {
+use wgame_app::{Runtime, run_main};
+
+async fn main_(rt: Runtime) {
     env_logger::init();
     println!("Spawning new task");
     rt.spawn({
@@ -15,3 +16,5 @@ async fn main(rt: wgame::Runtime) {
     .await;
     println!("Joined task 0");
 }
+
+run_main!(main_);

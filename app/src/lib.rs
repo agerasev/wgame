@@ -8,3 +8,15 @@ pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};
 pub use winit::window::WindowAttributes;
+
+#[macro_export]
+macro_rules! run_main {
+    ($async_main:path) => {
+        fn main() {
+            let app = $crate::App::new().unwrap();
+            let rt = app.runtime();
+            rt.spawn($async_main(rt.clone()));
+            app.run().unwrap();
+        }
+    };
+}
