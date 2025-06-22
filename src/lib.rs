@@ -1,14 +1,7 @@
 #![forbid(unsafe_code)]
 
-mod app;
-mod executor;
-pub mod runtime;
-pub mod surface;
-pub mod window;
-
-pub use crate::{app::App, runtime::Runtime, window::Window};
+pub use wgame_app::*;
 pub use wgame_macros::main;
-pub use winit::window::WindowAttributes;
 
 #[macro_export]
 macro_rules! run_main {
