@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use winit::{
     application::ApplicationHandler,
@@ -9,38 +9,91 @@ use winit::{
 
 struct State {
     window: Arc<Window>,
+    adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     size: winit::dpi::PhysicalSize<u32>,
+    render_pipeline: wgpu::RenderPipeline,
     surface: wgpu::Surface<'static>,
-    surface_format: wgpu::TextureFormat,
 }
 
 impl State {
     async fn new(window: Arc<Window>) -> State {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
+
+        let surface = instance.create_surface(window.clone()).unwrap();
+
         let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions::default())
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                force_fallback_adapter: false,
+                // Request an adapter which can render to our surface
+                compatible_surface: Some(&surface),
+            })
             .await
-            .unwrap();
+            .expect("Failed to find an appropriate adapter");
+
+        // Create the logical device and command queue
         let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor::default())
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::empty(),
+                // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
+                required_limits: wgpu::Limits::downlevel_webgl2_defaults()
+                    .using_resolution(adapter.limits()),
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: wgpu::Trace::Off,
+            })
             .await
-            .unwrap();
+            .expect("Failed to create device");
+
+        // Load the shaders from disk
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+        });
 
         let size = window.inner_size();
 
-        let surface = instance.create_surface(window.clone()).unwrap();
-        let cap = surface.get_capabilities(&adapter);
-        let surface_format = cap.formats[0];
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[],
+            push_constant_ranges: &[],
+        });
+
+        let swapchain_capabilities = surface.get_capabilities(&adapter);
+        let swapchain_format = swapchain_capabilities.formats[0];
+
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                compilation_options: Default::default(),
+                targets: &[Some(swapchain_format.into())],
+            }),
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
+            cache: None,
+        });
 
         let state = State {
             window,
+            adapter,
             device,
             queue,
             size,
+            render_pipeline,
             surface,
-            surface_format,
         };
 
         // Configure surface for the first time
@@ -54,17 +107,10 @@ impl State {
     }
 
     fn configure_surface(&self) {
-        let surface_config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: self.surface_format,
-            // Request compatibility with the sRGB-format texture view we‘re going to create later.
-            view_formats: vec![self.surface_format.add_srgb_suffix()],
-            alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            width: self.size.width,
-            height: self.size.height,
-            desired_maximum_frame_latency: 2,
-            present_mode: wgpu::PresentMode::AutoVsync,
-        };
+        let surface_config = self
+            .surface
+            .get_default_config(&self.adapter, self.size.width, self.size.height)
+            .unwrap();
         self.surface.configure(&self.device, &surface_config);
     }
 
@@ -77,47 +123,42 @@ impl State {
 
     fn render(&mut self) {
         // Create texture view
-        let surface_texture = self
+        let frame = self
             .surface
             .get_current_texture()
-            .expect("failed to acquire next swapchain texture");
-        let texture_view = surface_texture
+            .expect("Failed to acquire next swap chain texture");
+        let view = frame
             .texture
-            .create_view(&wgpu::TextureViewDescriptor {
-                // Without add_srgb_suffix() the image we will be working with
-                // might not be "gamma correct".
-                format: Some(self.surface_format.add_srgb_suffix()),
-                ..Default::default()
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        {
+            let mut renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    // depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
-
-        // Renders a GREEN screen
-        let mut encoder = self.device.create_command_encoder(&Default::default());
-        // Create the renderpass which will clear the screen.
-        let renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &texture_view,
-                // depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-
-        // If you wanted to call any drawing commands, they would go here.
-
-        // End the renderpass.
-        drop(renderpass);
+            renderpass.set_pipeline(&self.render_pipeline);
+            renderpass.draw(0..3, 0..1);
+        }
 
         // Submit the command in the queue to execute
-        self.queue.submit([encoder.finish()]);
+        self.queue.submit(Some(encoder.finish()));
         self.window.pre_present_notify();
-        surface_texture.present();
+        frame.present();
     }
 }
 
