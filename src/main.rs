@@ -33,6 +33,7 @@ struct State {
     pipeline: wgpu::RenderPipeline,
     surface: wgpu::Surface<'static>,
     start_time: Instant,
+    frame_counter: FrameCounter,
 }
 
 impl State {
@@ -185,6 +186,7 @@ impl State {
             pipeline,
             surface,
             start_time: Instant::now(),
+            frame_counter: FrameCounter::new(),
         };
 
         // Configure surface for the first time
@@ -270,6 +272,8 @@ impl State {
         self.queue.submit(Some(encoder.finish()));
         self.window.pre_present_notify();
         frame.present();
+
+        self.frame_counter.count();
     }
 }
 
@@ -338,4 +342,30 @@ fn main() {
 
     let mut app = App::default();
     event_loop.run_app(&mut app).unwrap();
+}
+
+struct FrameCounter {
+    start: Instant,
+    count: usize,
+}
+
+impl FrameCounter {
+    fn new() -> Self {
+        Self {
+            start: Instant::now(),
+            count: 0,
+        }
+    }
+
+    fn count(&mut self) {
+        self.count += 1;
+
+        let now = Instant::now();
+        let secs = (now - self.start).as_secs_f32();
+        if secs > 10.0 {
+            println!("FPS: {}", self.count as f32 / secs);
+            self.start = now;
+            self.count = 0;
+        }
+    }
 }
