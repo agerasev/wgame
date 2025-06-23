@@ -9,10 +9,7 @@ use std::{
 use winit::{event_loop::ActiveEventLoop, window::WindowAttributes};
 
 use crate::{
-    Window,
-    app::AppProxy,
-    executor::{TaskId, Timer},
-    surface::SurfaceBuilder,
+    Window, app::AppProxy, executor::TaskId, surface::SurfaceBuilder, timer::Timer,
     window::CreateError,
 };
 
@@ -47,10 +44,9 @@ impl Runtime {
         }
     }
 
-    pub fn sleep(&self, timeout: Duration) -> Sleep {
+    pub fn sleep(&self, timeout: Duration) -> Timer {
         let timestamp = Instant::now().checked_add(timeout).unwrap();
-        let timer = self.app.executor.borrow_mut().add_timer(timestamp);
-        Sleep { timer }
+        self.app.timers.borrow_mut().add(timestamp)
     }
 
     pub fn with_event_loop<T: 'static, F: FnOnce(&ActiveEventLoop) -> T + 'static>(
@@ -58,7 +54,7 @@ impl Runtime {
         call: F,
     ) -> EventLoopCall<T> {
         let proxy = Rc::new(RefCell::new(CallProxy::default()));
-        self.app.executor.borrow_mut().add_loop_call({
+        self.app.callbacks.borrow_mut().add({
             let proxy = proxy.clone();
             move |event_loop: &ActiveEventLoop| {
                 let output = call(event_loop);
@@ -112,23 +108,6 @@ impl<T> Future for JoinHandle<T> {
             Poll::Ready(output)
         } else {
             proxy.waker = Some(cx.waker().clone());
-            Poll::Pending
-        }
-    }
-}
-
-pub struct Sleep {
-    timer: Timer,
-}
-
-impl Future for Sleep {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if Instant::now() >= self.timer.timestamp {
-            Poll::Ready(())
-        } else {
-            self.timer.waker.set(Some(cx.waker().clone()));
             Poll::Pending
         }
     }

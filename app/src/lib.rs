@@ -4,6 +4,7 @@ mod app;
 mod executor;
 pub mod runtime;
 pub mod surface;
+mod timer;
 pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};

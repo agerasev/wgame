@@ -22,7 +22,10 @@ use crate::{
     Runtime,
     executor::{Executor, ExecutorProxy, TaskId},
     surface::Surface,
+    timer::TimerQueue,
 };
+
+type CallbackObj = Box<dyn FnOnce(&ActiveEventLoop)>;
 
 #[derive(Debug)]
 pub struct UserEvent {
@@ -148,6 +151,11 @@ struct WindowContainer {
 }
 
 #[derive(Default)]
+pub struct CallbackContainer {
+    on_poll: Vec<CallbackObj>,
+}
+
+#[derive(Default)]
 pub struct AppState {
     active: bool,
     windows: WindowContainer,
@@ -205,21 +213,35 @@ impl AppState {
     }
 }
 
+impl CallbackContainer {
+    pub fn add<F: FnOnce(&ActiveEventLoop) + 'static>(&mut self, call: F) {
+        log::trace!("event loop call queued");
+        self.on_poll.push(Box::new(call));
+    }
+}
+
 pub struct App {
     event_loop: EventLoop<UserEvent>,
     executor: Executor,
     state: Rc<RefCell<AppState>>,
+    timers: Rc<RefCell<TimerQueue>>,
+    callbacks: Rc<RefCell<CallbackContainer>>,
 }
 
 #[derive(Clone)]
 pub(crate) struct AppProxy {
     pub state: Rc<RefCell<AppState>>,
     pub executor: Rc<RefCell<ExecutorProxy>>,
+    pub timers: Rc<RefCell<TimerQueue>>,
+    pub callbacks: Rc<RefCell<CallbackContainer>>,
 }
 
 struct AppHandler {
     state: Rc<RefCell<AppState>>,
     executor: Executor,
+    timers: Rc<RefCell<TimerQueue>>,
+    callbacks: Rc<RefCell<CallbackContainer>>,
+    call_buffer: Vec<CallbackObj>,
 }
 
 impl App {
@@ -230,13 +252,17 @@ impl App {
             event_loop,
             executor,
             state: Default::default(),
+            timers: Default::default(),
+            callbacks: Default::default(),
         })
     }
 
     pub(crate) fn proxy(&self) -> AppProxy {
         AppProxy {
-            state: self.state.clone(),
             executor: self.executor.proxy(),
+            state: self.state.clone(),
+            timers: self.timers.clone(),
+            callbacks: self.callbacks.clone(),
         }
     }
 
@@ -248,10 +274,15 @@ impl App {
         let mut app = AppHandler {
             state: self.state,
             executor: self.executor,
+            timers: self.timers,
+            callbacks: self.callbacks,
+            call_buffer: Vec::new(),
         };
 
         // Poll tasks before running the event loop
-        app.executor.poll_tasks();
+        if app.executor.poll().is_ready() {
+            return Ok(());
+        }
 
         self.event_loop.set_control_flow(ControlFlow::Wait);
         self.event_loop.run_app(&mut app)
@@ -323,9 +354,18 @@ impl ApplicationHandler<UserEvent> for AppHandler {
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         log::trace!("about_to_wait");
-        match self.executor.poll(event_loop) {
+
+        match self.executor.poll() {
             Poll::Pending => (),
             Poll::Ready(()) => event_loop.exit(),
         }
+
+        self.call_buffer
+            .append(&mut self.callbacks.borrow_mut().on_poll);
+        for call in self.call_buffer.drain(..) {
+            call(event_loop);
+        }
+
+        self.timers.borrow_mut().poll(event_loop);
     }
 }

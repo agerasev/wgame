@@ -101,8 +101,10 @@ impl<S: SurfaceBuilder> Window<S> {
                 let app = self.app.state.clone();
                 let state = self.state.clone();
                 let create = create.clone();
-                self.app.executor.borrow_mut().add_loop_call(
-                    move |event_loop: &ActiveEventLoop| {
+                self.app
+                    .callbacks
+                    .borrow_mut()
+                    .add(move |event_loop: &ActiveEventLoop| {
                         if let Err(err) = app.borrow_mut().create_actual_window(&state, event_loop)
                         {
                             create.borrow_mut().error = Some(err);
@@ -110,8 +112,7 @@ impl<S: SurfaceBuilder> Window<S> {
                         if let Some(waker) = state.borrow_mut().waker.take() {
                             waker.wake();
                         }
-                    },
-                );
+                    });
                 Poll::Pending
             }
 
