@@ -1,5 +1,12 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+    borrow::Cow,
+    f32::consts::{FRAC_PI_3, PI},
+    sync::Arc,
+    time::Instant,
+};
 
+use bytemuck::{Pod, Zeroable};
+use wgpu::util::DeviceExt;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -7,14 +14,25 @@ use winit::{
     window::{Window, WindowId},
 };
 
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct Vertex {
+    pos: [f32; 4],
+    tex_coord: [f32; 2],
+}
+
 struct State {
     window: Arc<Window>,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     size: winit::dpi::PhysicalSize<u32>,
-    render_pipeline: wgpu::RenderPipeline,
+    vertex_buf: wgpu::Buffer,
+    uniform_buf: wgpu::Buffer,
+    bind_group: wgpu::BindGroup,
+    pipeline: wgpu::RenderPipeline,
     surface: wgpu::Surface<'static>,
+    start_time: Instant,
 }
 
 impl State {
@@ -55,22 +73,91 @@ impl State {
 
         let size = window.inner_size();
 
+        let vertex_data = [
+            Vertex {
+                pos: [0.0, 1.0, 0.0, 1.0],
+                tex_coord: [0.0, 0.0],
+            },
+            Vertex {
+                pos: [(2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos(), 0.0, 1.0],
+                tex_coord: [1.0, 0.0],
+            },
+            Vertex {
+                pos: [(4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos(), 0.0, 1.0],
+                tex_coord: [0.0, 1.0],
+            },
+        ];
+
+        let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(&vertex_data),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        // Create pipeline layout
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(64),
+                },
+                count: None,
+            }],
+        });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
+
+        let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::cast_slice(glam::Mat4::ZERO.as_ref()),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        // Create bind group
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buf.as_entire_binding(),
+            }],
+            label: None,
+        });
+
+        let vertex_buffers = [wgpu::VertexBufferLayout {
+            array_stride: size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 4 * 4,
+                    shader_location: 1,
+                },
+            ],
+        }];
 
         let swapchain_capabilities = surface.get_capabilities(&adapter);
         let swapchain_format = swapchain_capabilities.formats[0];
 
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[],
+                buffers: &vertex_buffers,
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -92,8 +179,12 @@ impl State {
             device,
             queue,
             size,
-            render_pipeline,
+            vertex_buf,
+            uniform_buf,
+            bind_group,
+            pipeline,
             surface,
+            start_time: Instant::now(),
         };
 
         // Configure surface for the first time
@@ -131,6 +222,19 @@ impl State {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        let aspect_ratio = self.size.width as f32 / self.size.height as f32;
+        let mut transform =
+            glam::Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+
+        let angle = (2.0 * PI) * (Instant::now() - self.start_time).as_secs_f32() / 10.0;
+        transform *= glam::Mat4::from_rotation_z(angle);
+
+        self.queue.write_buffer(
+            &self.uniform_buf,
+            0,
+            bytemuck::cast_slice(transform.as_ref()),
+        );
+
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -143,7 +247,7 @@ impl State {
                     // depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -151,7 +255,14 @@ impl State {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
-            renderpass.set_pipeline(&self.render_pipeline);
+            {
+                renderpass.push_debug_group("Prepare data for draw.");
+                renderpass.set_pipeline(&self.pipeline);
+                renderpass.set_bind_group(0, &self.bind_group, &[]);
+                renderpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
+                renderpass.pop_debug_group();
+            }
+            renderpass.insert_debug_marker("Draw!");
             renderpass.draw(0..3, 0..1);
         }
 
