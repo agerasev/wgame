@@ -84,6 +84,7 @@ pub struct Executor {
 pub struct ExecutorProxy {
     task_counter: TaskId,
     new_tasks: Vec<(TaskId, FutureObj)>,
+    tasks_to_terminate: HashSet<TaskId>,
 }
 
 impl Executor {
@@ -109,6 +110,14 @@ impl Executor {
             self.tasks_to_poll.insert(id);
             log::trace!("task spawned: {id:?}");
         }
+
+        for id in proxy.tasks_to_terminate.drain() {
+            if self.tasks.remove(&id).is_some() {
+                log::trace!("task terminated: {id:?}");
+            } else {
+                log::error!("task not found: {id:?}");
+            }
+        }
     }
 
     pub fn add_task_to_poll(&mut self, task_id: TaskId) {
@@ -122,10 +131,16 @@ impl Executor {
 
         while !self.tasks_to_poll.is_empty() {
             for id in self.tasks_to_poll.drain() {
+                if self.proxy.borrow().tasks_to_terminate.contains(&id) {
+                    // Don't poll tasks that will be terminated
+                    continue;
+                }
                 if let Entry::Occupied(mut entry) = self.tasks.entry(id) {
                     if entry.get_mut().poll().is_ready() {
                         entry.remove();
                     }
+                } else {
+                    log::error!("Task {id:?} registered to poll, but not found");
                 }
             }
 
@@ -138,6 +153,11 @@ impl Executor {
             Poll::Pending
         }
     }
+
+    pub fn terminate_task(&mut self, task_id: TaskId) {
+        self.tasks_to_poll.retain(|id| *id != task_id);
+        self.tasks.retain(|id, _| *id != task_id);
+    }
 }
 
 impl ExecutorProxy {
@@ -145,7 +165,10 @@ impl ExecutorProxy {
         let id = self.task_counter.get_and_inc();
         let future = Box::pin(future);
         self.new_tasks.push((id, future));
-        log::trace!("task queued: {id:?}");
         id
+    }
+
+    pub fn terminate(&mut self, id: TaskId) {
+        self.tasks_to_terminate.insert(id);
     }
 }

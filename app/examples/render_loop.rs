@@ -1,30 +1,28 @@
-use std::{convert::Infallible, time::Duration};
+use std::time::Duration;
 
-use wgame_app::{Runtime, WindowAttributes, run_main, surface::DummySurface};
+use wgame_app::{Runtime, WindowAttributes, run_main};
 
 async fn main_(rt: Runtime) {
     env_logger::init();
     println!("Started");
-    let mut window = rt
-        .create_window(WindowAttributes::default(), |_: &_| {
-            Ok::<_, Infallible>(DummySurface)
-        })
-        .await
-        .unwrap();
-    println!("Window created");
-    let mut counter = 0;
-    while window
-        .render(|_: &mut _| {
-            println!("Rendered frame #{counter}");
-            counter += 1;
-            Ok::<_, Infallible>(())
-        })
-        .await
-        .unwrap()
-        .is_some()
-    {
-        rt.sleep(Duration::from_millis(100)).await;
-    }
+
+    rt.create_window(WindowAttributes::default(), {
+        let rt = rt.clone();
+        async move |window| {
+            println!("Window created");
+            let mut counter = 0;
+            while let Some(()) = window.request_redraw().await {
+                println!("Rendered frame #{counter}");
+                counter += 1;
+                for _ in window.events() {
+                    // Skip all events
+                }
+                rt.sleep(Duration::from_millis(100)).await;
+            }
+        }
+    })
+    .await
+    .unwrap();
     println!("Closed");
 }
 

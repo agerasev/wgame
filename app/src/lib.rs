@@ -2,21 +2,21 @@
 
 mod app;
 mod executor;
+mod proxy;
 pub mod runtime;
-pub mod surface;
 mod timer;
 pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};
-pub use winit::window::WindowAttributes;
+pub use winit::{event::WindowEvent, window::WindowAttributes};
 
 #[macro_export]
 macro_rules! run_main {
     ($async_main:path) => {
         fn main() {
             let app = $crate::App::new().unwrap();
-            let rt = app.runtime();
-            rt.spawn($async_main(rt.clone()));
+            let proxy = app.proxy();
+            proxy.create_task($async_main(Runtime::new(proxy.clone())));
             app.run().unwrap();
         }
     };

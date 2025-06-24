@@ -2114,8 +2114,6 @@ dependencies = [
  "futures",
  "fxhash",
  "log",
- "pin-project",
- "thiserror 2.0.12",
  "winit",
 ]
 

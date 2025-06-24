@@ -1,222 +1,60 @@
 use std::{
-    cell::{RefCell, RefMut},
-    collections::{VecDeque, hash_map::Entry},
-    hash::{Hash, Hasher},
-    ops::Deref,
+    cell::RefCell,
+    collections::hash_map::Entry,
     rc::{Rc, Weak},
-    sync::Arc,
-    task::{Poll, Waker},
+    task::Poll,
 };
 
-use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use fxhash::FxHashMap as HashMap;
 use winit::{
     application::ApplicationHandler,
-    dpi::Size,
-    error::{EventLoopError, OsError},
+    error::EventLoopError,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    window::{Window, WindowAttributes, WindowId},
+    window::WindowId,
 };
 
 use crate::{
-    Runtime,
-    executor::{Executor, ExecutorProxy, TaskId},
-    surface::Surface,
+    executor::{Executor, TaskId},
+    proxy::{AppProxy, CallbackObj},
     timer::TimerQueue,
+    window::WindowState,
 };
-
-type CallbackObj = Box<dyn FnOnce(&ActiveEventLoop)>;
 
 #[derive(Debug)]
 pub struct UserEvent {
     pub task_id: TaskId,
 }
 
-const EVENTS_CAPACITY: usize = 0x1000;
-
-pub struct WindowState {
-    pub attributes: WindowAttributes,
-    pub actual: Option<ActualWindowState>,
-    pub waker: Option<Waker>,
-    pub events: VecDeque<WindowEvent>,
-    pub close_requested: bool,
-}
-
-pub struct ActualWindowState {
-    pub window: Arc<Window>,
-    pub surface: Option<Box<dyn Surface>>,
-    pub redraw_requested: bool,
-}
-
-impl WindowState {
-    fn new(attributes: WindowAttributes) -> Self {
-        Self {
-            attributes,
-            actual: None,
-            waker: None,
-            events: VecDeque::new(),
-            close_requested: false,
-        }
-    }
-
-    fn create_actual(&mut self, event_loop: &ActiveEventLoop) -> Result<WindowId, OsError> {
-        if let Some(actual) = &self.actual {
-            return Ok(actual.window.id());
-        }
-        let window = event_loop.create_window(self.attributes.clone())?;
-        let id = window.id();
-        self.actual = Some(ActualWindowState {
-            window: Arc::new(window),
-            surface: None,
-            redraw_requested: false,
-        });
-        Ok(id)
-    }
-
-    fn push_event(&mut self, event: WindowEvent) {
-        match &event {
-            WindowEvent::CloseRequested => {
-                self.close_requested = true;
-            }
-            WindowEvent::RedrawRequested => {
-                if let Some(actual) = &mut self.actual {
-                    actual.redraw_requested = true;
-                }
-            }
-            WindowEvent::Resized(size) => {
-                self.attributes.inner_size = Some(Size::Physical(*size));
-                if let Some(actual) = &mut self.actual {
-                    if let Some(surface) = &mut actual.surface {
-                        surface.resize(*size);
-                    }
-                }
-            }
-            _ => (),
-        }
-
-        while self.events.len() >= EVENTS_CAPACITY {
-            self.events.pop_front();
-        }
-        self.events.push_back(event);
-        if let Some(waker) = self.waker.take() {
-            waker.wake()
-        }
-    }
-}
-
-#[derive(Clone, Default)]
-struct WindowHandle(Weak<RefCell<WindowState>>);
-
-impl WindowHandle {
-    fn new(state: &Rc<RefCell<WindowState>>) -> Self {
-        Self(Rc::downgrade(state))
-    }
-
-    fn upgrade(&self) -> Option<Rc<RefCell<WindowState>>> {
-        match self.0.upgrade() {
-            Some(state) => Some(state),
-            None => {
-                log::warn!("Window dropped but not removed from the app");
-                None
-            }
-        }
-    }
-}
-
-impl Deref for WindowHandle {
-    type Target = Weak<RefCell<WindowState>>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl PartialEq for WindowHandle {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.ptr_eq(&other.0)
-    }
-}
-
-impl Eq for WindowHandle {}
-
-impl Hash for WindowHandle {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_ptr().hash(state)
-    }
-}
-
-#[derive(Default)]
-struct WindowContainer {
-    resumed: HashMap<WindowId, WindowHandle>,
-    suspended: HashSet<WindowHandle>,
-}
-
 #[derive(Default)]
 pub struct CallbackContainer {
-    on_poll: Vec<CallbackObj>,
+    pub next_poll: Vec<CallbackObj>,
+    pub on_resume: Vec<CallbackObj>,
 }
 
 #[derive(Default)]
 pub struct AppState {
-    active: bool,
-    windows: WindowContainer,
+    resumed: bool,
+    windows: HashMap<WindowId, (TaskId, Weak<RefCell<WindowState>>)>,
 }
 
 impl AppState {
-    pub fn new_window_state(&mut self, attributes: WindowAttributes) -> Rc<RefCell<WindowState>> {
-        let state = Rc::new(RefCell::new(WindowState::new(attributes)));
-        self.windows.suspended.insert(WindowHandle::new(&state));
-        log::debug!("A new window state created");
-        state
-    }
-
-    pub fn create_actual_window(
-        &mut self,
-        state: &Rc<RefCell<WindowState>>,
-        event_loop: &ActiveEventLoop,
-    ) -> Result<bool, OsError> {
-        Ok(if self.active {
-            let mut window = state.borrow_mut();
-            let id = window.create_actual(event_loop)?;
-            log::debug!("Window {id:?} created");
-            if let Entry::Vacant(entry) = self.windows.resumed.entry(id) {
-                let handle = WindowHandle::new(state);
-                if !self.windows.suspended.remove(&handle) {
-                    log::warn!("Cannot remove window from suspended: not found");
-                }
-                entry.insert(handle);
-            }
-            true
+    pub fn insert_window(&mut self, id: WindowId, task: TaskId, state: Weak<RefCell<WindowState>>) {
+        if let Entry::Vacant(entry) = self.windows.entry(id) {
+            entry.insert((task, state));
         } else {
-            false
-        })
-    }
-
-    pub fn remove_window(&mut self, state: &Rc<RefCell<WindowState>>) {
-        match state.borrow().actual.as_ref().map(|a| a.window.id()) {
-            Some(id) => {
-                if self.windows.resumed.remove(&id).is_none() {
-                    log::warn!("Cannot remove window from resumed: {id:?} not found");
-                }
-            }
-            None => {
-                let handle = WindowHandle::new(state);
-                if !self.windows.suspended.remove(&handle) {
-                    log::warn!("Cannot remove window from suspended: not found");
-                }
-            }
+            log::error!("Window {id:?} already registered");
         }
     }
 
-    /// Whether app is suspended or resumed
-    pub fn is_active(&self) -> bool {
-        self.active
+    pub fn remove_window(&mut self, id: WindowId) {
+        if self.windows.remove(&id).is_none() {
+            log::warn!("Cannot remove window from resumed: {id:?} not found");
+        }
     }
-}
 
-impl CallbackContainer {
-    pub fn add<F: FnOnce(&ActiveEventLoop) + 'static>(&mut self, call: F) {
-        log::trace!("event loop call queued");
-        self.on_poll.push(Box::new(call));
+    pub fn is_resumed(&self) -> bool {
+        self.resumed
     }
 }
 
@@ -226,14 +64,6 @@ pub struct App {
     state: Rc<RefCell<AppState>>,
     timers: Rc<RefCell<TimerQueue>>,
     callbacks: Rc<RefCell<CallbackContainer>>,
-}
-
-#[derive(Clone)]
-pub(crate) struct AppProxy {
-    pub state: Rc<RefCell<AppState>>,
-    pub executor: Rc<RefCell<ExecutorProxy>>,
-    pub timers: Rc<RefCell<TimerQueue>>,
-    pub callbacks: Rc<RefCell<CallbackContainer>>,
 }
 
 struct AppHandler {
@@ -257,17 +87,13 @@ impl App {
         })
     }
 
-    pub(crate) fn proxy(&self) -> AppProxy {
+    pub fn proxy(&self) -> AppProxy {
         AppProxy {
             executor: self.executor.proxy(),
             state: self.state.clone(),
             timers: self.timers.clone(),
             callbacks: self.callbacks.clone(),
         }
-    }
-
-    pub fn runtime(&self) -> Runtime {
-        Runtime::new(self.proxy())
     }
 
     pub fn run(self) -> Result<(), EventLoopError> {
@@ -290,46 +116,30 @@ impl App {
 }
 
 impl ApplicationHandler<UserEvent> for AppHandler {
-    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         log::debug!("resumed");
-        let mut state = self.state.borrow_mut();
-        state.active = true;
-        state.windows.suspended.retain(|window| {
-            if let Some(window) = &window.upgrade() {
-                if let Some(waker) = window.borrow_mut().waker.take() {
-                    waker.wake();
-                }
-                true
-            } else {
-                log::warn!("Window dropped but not removed from the app");
-                false
-            }
-        })
+        self.call_buffer
+            .append(&mut self.callbacks.borrow_mut().on_resume);
+        for call in self.call_buffer.drain(..) {
+            call(event_loop);
+        }
+        self.state.borrow_mut().resumed = true;
     }
 
     fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
         log::debug!("suspended");
         let mut state = self.state.borrow_mut();
-        state.active = false;
-        let (mut suspended, mut resumed) = RefMut::map_split(state, |s| {
-            (&mut s.windows.suspended, &mut s.windows.resumed)
-        });
-        for (_, window) in resumed.drain() {
-            if let Some(window) = window.upgrade() {
-                // Drow actual window
-                window.borrow_mut().actual = None;
-                suspended.insert(WindowHandle::new(&window));
-            }
+        state.resumed = false;
+        for (_id, (task, _window)) in state.windows.drain() {
+            self.executor.terminate_task(task);
         }
     }
 
     fn window_event(&mut self, _event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
         log::trace!("window_event {id:?}: {event:?}");
-
-        let mut state = self.state.borrow_mut();
-        match state.windows.resumed.entry(id) {
+        match self.state.borrow_mut().windows.entry(id) {
             Entry::Occupied(mut entry) => {
-                if let Some(window) = entry.get_mut().upgrade() {
+                if let Some(window) = entry.get_mut().1.upgrade() {
                     if event != WindowEvent::Destroyed {
                         window.borrow_mut().push_event(event);
                     } else {
@@ -360,8 +170,11 @@ impl ApplicationHandler<UserEvent> for AppHandler {
             Poll::Ready(()) => event_loop.exit(),
         }
 
-        self.call_buffer
-            .append(&mut self.callbacks.borrow_mut().on_poll);
+        let mut callbacks = self.callbacks.borrow_mut();
+        self.call_buffer.append(&mut callbacks.next_poll);
+        if self.state.borrow().is_resumed() {
+            self.call_buffer.append(&mut callbacks.on_resume);
+        }
         for call in self.call_buffer.drain(..) {
             call(event_loop);
         }

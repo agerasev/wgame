@@ -1,26 +1,26 @@
 use std::{sync::Arc, time::Duration};
 
-use wgame::{Runtime, WindowAttributes, surface::Surface};
+use wgame::{Runtime, WindowAttributes};
 
-struct WgpuSurface {
-    window: Arc<winit::window::Window>,
+struct WgpuSurface<'a> {
+    window: &'a winit::window::Window,
     device: wgpu::Device,
     queue: wgpu::Queue,
     size: winit::dpi::PhysicalSize<u32>,
-    surface: wgpu::Surface<'static>,
+    surface: wgpu::Surface<'a>,
     surface_format: wgpu::TextureFormat,
 }
 
-impl WgpuSurface {
+impl<'a> WgpuSurface<'a> {
     fn new(
-        window: &Arc<winit::window::Window>,
-        instance: &wgpu::Instance,
-        adapter: &wgpu::Adapter,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        window: &'a winit::window::Window,
+        instance: wgpu::Instance,
+        adapter: wgpu::Adapter,
+        device: wgpu::Device,
+        queue: wgpu::Queue,
     ) -> Result<Self, wgpu::CreateSurfaceError> {
         let surface = instance.create_surface(window.clone())?;
-        let cap = surface.get_capabilities(adapter);
+        let cap = surface.get_capabilities(&adapter);
 
         let this = Self {
             window: window.clone(),
@@ -51,18 +51,14 @@ impl WgpuSurface {
         };
         self.surface.configure(&self.device, &surface_config);
     }
-}
 
-impl Surface for WgpuSurface {
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.size = new_size;
 
         // reconfigure the surface
         self.configure_surface();
     }
-}
 
-impl WgpuSurface {
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         // Create texture view
         let surface_texture = self.surface.get_current_texture()?;
@@ -124,32 +120,24 @@ async fn main(rt: Runtime) {
         .unwrap();
     println!("WGPU initialized");
 
-    let mut window = rt
-        .create_window(
-            WindowAttributes::default(),
-            |window: &Arc<winit::window::Window>| {
-                WgpuSurface::new(window, &instance, &adapter, &device, &queue)
-            },
-        )
-        .await
-        .unwrap();
-    println!("Window and surface created");
+    rt.clone()
+        .create_window(WindowAttributes::default(), async move |window| {
+            println!("Window created");
 
-    let mut counter = 0;
-    while window
-        .render(|surface: &mut WgpuSurface| {
-            let result = surface.render();
+            let surface = WgpuSurface::new(window.raw(), instance, adapter, device, queue).unwrap();
+            println!("Surface created");
 
-            println!("Rendered frame #{counter}");
-            counter += 1;
+            let mut counter = 0;
+            while let Some(()) = window.request_redraw().await {
+                surface.render().unwrap();
 
-            result
+                println!("Rendered frame #{counter}");
+                counter += 1;
+
+                rt.sleep(Duration::from_millis(100)).await;
+            }
         })
         .await
-        .unwrap()
-        .is_some()
-    {
-        rt.sleep(Duration::from_millis(100)).await;
-    }
+        .unwrap();
     println!("Closed");
 }

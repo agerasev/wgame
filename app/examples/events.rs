@@ -1,21 +1,22 @@
-use std::convert::Infallible;
-
 use futures::StreamExt;
-use wgame_app::{Runtime, WindowAttributes, run_main, surface::DummySurface};
+use wgame_app::{Runtime, WindowAttributes, WindowEvent, run_main};
 
 async fn main_(rt: Runtime) {
     env_logger::init();
     println!("Started");
-    let mut window = rt
-        .create_window(WindowAttributes::default(), |_: &_| {
-            Ok::<_, Infallible>(DummySurface)
-        })
-        .await
-        .unwrap();
-    println!("Window created");
-    while let Some(event) = window.events().next().await {
-        println!("Event: {:?}", event);
-    }
+
+    rt.create_window(WindowAttributes::default(), async |window| {
+        println!("Window created");
+        while let Some(event) = window.next().await {
+            println!("Event: {:?}", event);
+            if let WindowEvent::CloseRequested = event {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+
     println!("Closed");
 }
 

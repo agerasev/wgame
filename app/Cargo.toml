@@ -7,10 +7,8 @@ license.workspace = true
 [dependencies]
 futures.workspace = true
 winit.workspace = true
-fxhash = "0.2.1"
+fxhash.workspace = true
 log.workspace = true
-thiserror = "2.0.12"
-pin-project = "1.1.10"
 
 [dev-dependencies]
 futures = { workspace = true, default-features = true }

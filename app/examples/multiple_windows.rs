@@ -1,21 +1,18 @@
-use std::convert::Infallible;
-
 use futures::join;
-use wgame_app::{Runtime, WindowAttributes, run_main, surface::DummySurface};
+use wgame_app::{Runtime, WindowAttributes, run_main};
 
 async fn main_(rt: Runtime) {
     env_logger::init();
     println!("Started");
 
     async fn make_window_and_wait_closed(rt: &Runtime, index: usize) {
-        let mut window = rt
-            .create_window(WindowAttributes::default(), |_: &_| {
-                Ok::<_, Infallible>(DummySurface)
-            })
-            .await
-            .unwrap();
-        println!("Window #{index} created");
-        window.closed().await;
+        rt.create_window(WindowAttributes::default(), async move |window| {
+            println!("Window #{index} created");
+            window.closed().await;
+            // TODO: Skip events to avoid infinite growth of event queue
+        })
+        .await
+        .unwrap();
         println!("Window #{index} closed");
     }
 

@@ -1,76 +1,113 @@
 use std::{
-    any::Any,
-    cell::{RefCell, RefMut},
-    error::Error,
+    cell::RefCell,
+    collections::VecDeque,
     mem,
     pin::Pin,
     rc::Rc,
-    task::{Context, Poll},
+    task::{Context, Poll, Waker},
 };
 
-use futures::{Stream, future::FusedFuture};
-use pin_project::pin_project;
-use thiserror::Error;
+use futures::{Stream, StreamExt, future::FusedFuture};
 use winit::{
-    error::OsError, event::WindowEvent, event_loop::ActiveEventLoop, window::WindowAttributes,
+    event::WindowEvent,
+    window::{Window as RawWindow, WindowId},
 };
 
-use crate::{
-    app::{ActualWindowState, AppProxy, WindowState},
-    surface::{Renderer, SurfaceBuilder},
-};
+use crate::{app::AppState, proxy::AppProxy};
 
-#[derive(Debug, Error)]
-pub enum CreateError<S: Error> {
-    Window(#[from] OsError),
-    Surface(S),
+pub struct WindowState {
+    pub waker: Option<Waker>,
+    pub events: VecDeque<WindowEvent>,
+    pub events_capacity: usize,
+    pub redraw_requested: bool,
+    pub close_requested: bool,
 }
 
-#[derive(Debug, Error)]
-pub enum RenderError<S: Error, R: Error> {
-    Resume(#[from] CreateError<S>),
-    Render(R),
-}
+const EVENT_BUFFER_MIN_CAPACITY: usize = 0x10;
 
-pub struct Window<S: SurfaceBuilder> {
-    app: AppProxy,
-    state: Rc<RefCell<WindowState>>,
-    builder: S,
-}
-
-impl<S: SurfaceBuilder> Drop for Window<S> {
-    fn drop(&mut self) {
-        self.app.state.borrow_mut().remove_window(&self.state);
-    }
-}
-
-impl<S: SurfaceBuilder> Window<S> {
-    pub(crate) fn new(app: AppProxy, attributes: WindowAttributes, builder: S) -> Self {
-        let state = app.state.borrow_mut().new_window_state(attributes);
+impl WindowState {
+    fn new(events_capacity: Option<usize>) -> Self {
         Self {
-            app,
-            state,
-            builder,
+            waker: None,
+            events: VecDeque::new(),
+            events_capacity: events_capacity
+                .unwrap_or(usize::MAX)
+                .max(EVENT_BUFFER_MIN_CAPACITY),
+            redraw_requested: false,
+            close_requested: false,
         }
     }
 
-    pub(crate) fn create(&mut self) -> Create<'_, S> {
-        Create {
-            owner: Some(self),
-            state: Rc::new(RefCell::new(CreateState { error: None })),
+    pub fn push_event(&mut self, event: WindowEvent) {
+        match &event {
+            WindowEvent::CloseRequested => {
+                self.close_requested = true;
+            }
+            WindowEvent::RedrawRequested => {
+                self.redraw_requested = true;
+            }
+            _ => (),
+        }
+
+        while self.events.len() >= self.events_capacity {
+            if let Some(event) = self.events.pop_front() {
+                log::warn!("Skipping event due to buffer overflow: {event:?}");
+            } else {
+                break;
+            }
+        }
+        self.events.push_back(event);
+        if let Some(waker) = self.waker.take() {
+            waker.wake()
+        }
+    }
+}
+
+pub struct Window {
+    raw: RawWindow,
+    app: Rc<RefCell<AppState>>,
+    state: Rc<RefCell<WindowState>>,
+}
+
+impl Drop for Window {
+    fn drop(&mut self) {
+        self.app.borrow_mut().remove_window(self.raw.id());
+    }
+}
+
+impl Window {
+    pub(crate) fn new(raw: RawWindow, app: AppProxy) -> Self {
+        Self {
+            raw,
+            app: app.state.clone(),
+            state: Rc::new(RefCell::new(WindowState::new(None))),
         }
     }
 
-    pub fn render<R: Renderer<S::Surface>>(&mut self, renderer: R) -> Render<'_, S, R> {
-        Render {
-            owner: Some(self),
-            state: Rc::new(RefCell::new(CreateState { error: None })),
-            renderer: Some(renderer),
+    pub fn id(&self) -> WindowId {
+        self.raw.id()
+    }
+
+    pub fn raw(&self) -> &RawWindow {
+        &self.raw
+    }
+    pub fn raw_mut(&mut self) -> &mut RawWindow {
+        &mut self.raw
+    }
+
+    pub(crate) fn state(&self) -> &Rc<RefCell<WindowState>> {
+        &self.state
+    }
+
+    pub fn events(&mut self) -> Events<'_> {
+        Events {
+            state: &mut self.state,
         }
     }
 
-    pub fn events(&mut self) -> EventPipe<'_> {
-        EventPipe { state: &self.state }
+    pub fn request_redraw(&mut self) -> RedrawRequested<'_> {
+        self.raw.request_redraw();
+        RedrawRequested { state: &self.state }
     }
 
     pub fn is_closed(&self) -> bool {
@@ -79,174 +116,25 @@ impl<S: SurfaceBuilder> Window<S> {
     pub fn closed(&mut self) -> Closed<'_> {
         Closed { state: &self.state }
     }
-
-    fn poll_create(
-        &mut self,
-        create: &Rc<RefCell<CreateState>>,
-    ) -> Poll<Result<RefMut<'_, ActualWindowState>, CreateError<S::Error>>> {
-        // Try get actual window state
-        match RefMut::filter_map(self.state.borrow_mut(), |s| s.actual.as_mut()).ok() {
-            None => {
-                // Check if an error occured
-                if let Some(err) = create.borrow_mut().error.take() {
-                    return Poll::Ready(Err(CreateError::Window(err)));
-                }
-
-                // Check app is not suspended
-                if !self.app.state.borrow().is_active() {
-                    return Poll::Pending;
-                }
-
-                // Create actual window state
-                let app = self.app.state.clone();
-                let state = self.state.clone();
-                let create = create.clone();
-                self.app
-                    .callbacks
-                    .borrow_mut()
-                    .add(move |event_loop: &ActiveEventLoop| {
-                        if let Err(err) = app.borrow_mut().create_actual_window(&state, event_loop)
-                        {
-                            create.borrow_mut().error = Some(err);
-                        }
-                        if let Some(waker) = state.borrow_mut().waker.take() {
-                            waker.wake();
-                        }
-                    });
-                Poll::Pending
-            }
-
-            Some(mut actual) => {
-                if actual.surface.is_none() {
-                    match self.builder.build(&actual.window) {
-                        Ok(surface) => {
-                            actual.surface = Some(Box::new(surface));
-                        }
-                        Err(err) => {
-                            return Poll::Ready(Err(CreateError::Surface(err)));
-                        }
-                    }
-                }
-                Poll::Ready(Ok(actual))
-            }
-        }
-    }
-
-    #[allow(clippy::type_complexity)]
-    fn poll_render<R: Renderer<S::Surface>>(
-        &mut self,
-        create: &Rc<RefCell<CreateState>>,
-        renderer: &mut Option<R>,
-    ) -> Poll<Result<Option<R::Output>, RenderError<S::Error, R::Error>>> {
-        // If window closed
-        if self.state.borrow().close_requested {
-            return Poll::Ready(Ok(None));
-        }
-
-        // Try create window
-        let mut actual = match self.poll_create(create)? {
-            Poll::Ready(actual) => actual,
-            Poll::Pending => return Poll::Pending,
-        };
-
-        // Whether redraw requested
-        if !mem::replace(&mut actual.redraw_requested, false) {
-            actual.window.request_redraw();
-            return Poll::Pending;
-        }
-
-        // Render
-        let dyn_surface = actual
-            .surface
-            .as_mut()
-            .expect("Surface hasn't been created");
-        let surface = (dyn_surface.as_mut() as &mut dyn Any)
-            .downcast_mut::<S::Surface>()
-            .expect("Error downcasting surface");
-        Poll::Ready(
-            match renderer.take().expect("Renderer is empty").render(surface) {
-                Ok(out) => Ok(Some(out)),
-                Err(err) => Err(RenderError::Render(err)),
-            },
-        )
-    }
 }
 
-struct CreateState {
-    error: Option<OsError>,
-}
-
-pub struct Create<'a, S: SurfaceBuilder> {
-    owner: Option<&'a mut Window<S>>,
-    state: Rc<RefCell<CreateState>>,
-}
-
-impl<'a, S: SurfaceBuilder> Future for Create<'a, S> {
-    type Output = Result<(), CreateError<S::Error>>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let owner = self
-            .owner
-            .take()
-            .expect("FusedFuture polled again after it returned Ready");
-
-        let poll = owner.poll_create(&self.state).map_ok(|_| ());
-
-        if poll.is_pending() {
-            owner.state.borrow_mut().waker = Some(cx.waker().clone());
-            self.owner = Some(owner);
-        }
-
-        poll
-    }
-}
-
-impl<S: SurfaceBuilder> FusedFuture for Create<'_, S> {
-    fn is_terminated(&self) -> bool {
-        self.owner.is_none()
-    }
-}
-
-#[pin_project]
-pub struct Render<'a, S: SurfaceBuilder, R: Renderer<S::Surface>> {
-    owner: Option<&'a mut Window<S>>,
-    state: Rc<RefCell<CreateState>>,
-    renderer: Option<R>,
-}
-
-impl<'a, S: SurfaceBuilder, R: Renderer<S::Surface>> Future for Render<'a, S, R> {
-    type Output = Result<Option<R::Output>, RenderError<S::Error, R::Error>>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-
-        let owner = this
-            .owner
-            .take()
-            .expect("FusedFuture polled again after it returned Ready");
-
-        let poll = owner.poll_render(this.state, this.renderer);
-
-        if poll.is_pending() {
-            owner.state.borrow_mut().waker = Some(cx.waker().clone());
-            *this.owner = Some(owner);
-        }
-
-        poll
-    }
-}
-
-impl<S: SurfaceBuilder, R: Renderer<S::Surface>> FusedFuture for Render<'_, S, R> {
-    fn is_terminated(&self) -> bool {
-        self.owner.is_none()
-    }
-}
-
-pub struct EventPipe<'a> {
+pub struct Events<'a> {
     state: &'a RefCell<WindowState>,
 }
 
-impl Stream for EventPipe<'_> {
+impl Iterator for Events<'_> {
+    type Item = WindowEvent;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.state.borrow_mut().events.pop_front()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.state.borrow().events.len(), None)
+    }
+}
+
+impl Stream for Events<'_> {
     type Item = WindowEvent;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -254,19 +142,48 @@ impl Stream for EventPipe<'_> {
         match state.events.pop_front() {
             Some(event) => Poll::Ready(Some(event)),
             None => {
-                if state.close_requested {
-                    Poll::Ready(None)
-                } else {
-                    state.waker = Some(cx.waker().clone());
-                    Poll::Pending
-                }
+                state.waker = Some(cx.waker().clone());
+                Poll::Pending
             }
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.state.borrow().events.len();
-        (len, Some(len))
+        (self.state.borrow().events.len(), None)
+    }
+}
+
+impl Stream for Window {
+    type Item = WindowEvent;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.events().poll_next_unpin(cx)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.state.borrow().events.len(), None)
+    }
+}
+
+pub struct RedrawRequested<'a> {
+    state: &'a RefCell<WindowState>,
+}
+
+impl Future for RedrawRequested<'_> {
+    type Output = Option<()>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut state = self.state.borrow_mut();
+        if mem::replace(&mut state.redraw_requested, false) || state.close_requested {
+            Poll::Ready(if state.close_requested {
+                None
+            } else {
+                Some(())
+            })
+        } else {
+            state.waker = Some(cx.waker().clone());
+            Poll::Pending
+        }
     }
 }
 

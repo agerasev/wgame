@@ -2,15 +2,18 @@ use std::{
     cell::RefCell,
     pin::Pin,
     rc::Rc,
-    task::{Context, Poll, Waker},
+    task::{Context, Poll},
     time::{Duration, Instant},
 };
 
-use winit::{event_loop::ActiveEventLoop, window::WindowAttributes};
+use futures::FutureExt;
+use winit::{error::OsError, window::WindowAttributes};
 
 use crate::{
-    Window, app::AppProxy, executor::TaskId, surface::SurfaceBuilder, timer::Timer,
-    window::CreateError,
+    Window,
+    executor::{ExecutorProxy, TaskId},
+    proxy::{AppProxy, CallbackTrigger, SharedCallState},
+    timer::Timer,
 };
 
 /// Handle to underlying async runtime.
@@ -20,26 +23,15 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub(crate) fn new(app: AppProxy) -> Self {
+    pub fn new(app: AppProxy) -> Self {
         Self { app }
     }
 
     pub fn spawn<T: 'static, F: Future<Output = T> + 'static>(&self, future: F) -> JoinHandle<T> {
-        let proxy = Rc::new(RefCell::new(CallProxy::default()));
-        let task_id = self.app.executor.borrow_mut().spawn({
-            let proxy = proxy.clone();
-            async move {
-                let output = future.await;
-
-                let mut proxy = proxy.borrow_mut();
-                proxy.output = Some(output);
-                if let Some(waker) = proxy.waker.take() {
-                    waker.wake();
-                }
-            }
-        });
+        let (task_id, proxy) = self.app.create_task(future);
         JoinHandle {
-            _task_id: task_id,
+            task: task_id,
+            executor: self.app.executor.clone(),
             proxy,
         }
     }
@@ -49,84 +41,64 @@ impl Runtime {
         self.app.timers.borrow_mut().add(timestamp)
     }
 
-    pub fn with_event_loop<T: 'static, F: FnOnce(&ActiveEventLoop) -> T + 'static>(
-        &self,
-        call: F,
-    ) -> EventLoopCall<T> {
-        let proxy = Rc::new(RefCell::new(CallProxy::default()));
-        self.app.callbacks.borrow_mut().add({
-            let proxy = proxy.clone();
-            move |event_loop: &ActiveEventLoop| {
-                let output = call(event_loop);
-
-                let mut proxy = proxy.borrow_mut();
-                proxy.output = Some(output);
-                if let Some(waker) = proxy.waker.take() {
-                    waker.wake();
-                }
-            }
-        });
-        EventLoopCall { proxy }
-    }
-
-    pub async fn create_window<S: SurfaceBuilder>(
+    pub async fn create_window<T: 'static, F: AsyncFnOnce(&mut Window) -> T + 'static>(
         &self,
         attributes: WindowAttributes,
-        builder: S,
-    ) -> Result<Window<S>, CreateError<S::Error>> {
-        let mut window = Window::new(self.app.clone(), attributes, builder);
-        window.create().await?;
-        Ok(window)
-    }
-}
-
-struct CallProxy<T> {
-    output: Option<T>,
-    waker: Option<Waker>,
-}
-
-impl<T> Default for CallProxy<T> {
-    fn default() -> Self {
-        Self {
-            output: None,
-            waker: None,
-        }
+        window_main: F,
+    ) -> Result<JoinHandle<T>, OsError> {
+        let app = self.app.clone();
+        let (task, proxy) = self
+            .app
+            .with_event_loop(
+                move |event_loop| {
+                    let raw = event_loop.create_window(attributes)?;
+                    let id = raw.id();
+                    let mut window = Window::new(raw, app.clone());
+                    let state = Rc::downgrade(window.state());
+                    let (task, proxy) =
+                        app.create_task(async move { window_main(&mut window).await });
+                    app.state.borrow_mut().insert_window(id, task, state);
+                    Ok((task, proxy))
+                },
+                CallbackTrigger::PollResumed,
+            )
+            .await?;
+        Ok(JoinHandle {
+            task,
+            executor: self.app.executor.clone(),
+            proxy,
+        })
     }
 }
 
 pub struct JoinHandle<T> {
-    _task_id: TaskId,
-    proxy: Rc<RefCell<CallProxy<T>>>,
+    task: TaskId,
+    executor: Rc<RefCell<ExecutorProxy>>,
+    proxy: SharedCallState<T>,
+}
+
+impl<T> JoinHandle<T> {
+    pub fn terminate(self) {
+        self.executor.borrow_mut().terminate(self.task);
+    }
 }
 
 impl<T> Future for JoinHandle<T> {
     type Output = T;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut proxy = self.proxy.borrow_mut();
-        if let Some(output) = proxy.output.take() {
-            Poll::Ready(output)
-        } else {
-            proxy.waker = Some(cx.waker().clone());
-            Poll::Pending
-        }
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.proxy.poll_unpin(cx)
     }
 }
 
 pub struct EventLoopCall<T> {
-    proxy: Rc<RefCell<CallProxy<T>>>,
+    proxy: SharedCallState<T>,
 }
 
 impl<T> Future for EventLoopCall<T> {
     type Output = T;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut proxy = self.proxy.borrow_mut();
-        if let Some(output) = proxy.output.take() {
-            Poll::Ready(output)
-        } else {
-            proxy.waker = Some(cx.waker().clone());
-            Poll::Pending
-        }
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.proxy.poll_unpin(cx)
     }
 }
