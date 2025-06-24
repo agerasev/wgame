@@ -1,6 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
-use wgame::{Runtime, WindowAttributes};
+use futures::StreamExt;
+use wgame::{Runtime, WindowAttributes, WindowEvent};
 
 struct WgpuSurface<'a> {
     window: &'a winit::window::Window,
@@ -19,11 +20,11 @@ impl<'a> WgpuSurface<'a> {
         device: wgpu::Device,
         queue: wgpu::Queue,
     ) -> Result<Self, wgpu::CreateSurfaceError> {
-        let surface = instance.create_surface(window.clone())?;
+        let surface = instance.create_surface(window)?;
         let cap = surface.get_capabilities(&adapter);
 
         let this = Self {
-            window: window.clone(),
+            window,
             device: device.clone(),
             queue: queue.clone(),
             size: window.inner_size(),
@@ -121,23 +122,36 @@ async fn main(rt: Runtime) {
     println!("WGPU initialized");
 
     rt.clone()
-        .create_window(WindowAttributes::default(), async move |window| {
+        .create_window(WindowAttributes::default(), async move |mut window| {
             println!("Window created");
 
-            let surface = WgpuSurface::new(window.raw(), instance, adapter, device, queue).unwrap();
+            let mut surface =
+                WgpuSurface::new(window.raw, instance, adapter, device, queue).unwrap();
             println!("Surface created");
 
             let mut counter = 0;
-            while let Some(()) = window.request_redraw().await {
-                surface.render().unwrap();
+            'render_loop: loop {
+                while let Some(event) = window.input.next().await {
+                    match event {
+                        WindowEvent::Resized(size) => surface.resize(size),
+                        WindowEvent::RedrawRequested => {
+                            surface.render().unwrap();
 
-                println!("Rendered frame #{counter}");
-                counter += 1;
+                            println!("Rendered frame #{counter}");
+                            counter += 1;
 
-                rt.sleep(Duration::from_millis(100)).await;
+                            rt.sleep(Duration::from_millis(100)).await;
+
+                            window.raw.request_redraw();
+                        }
+                        WindowEvent::CloseRequested => break 'render_loop,
+                        _ => (),
+                    }
+                }
             }
         })
         .await
-        .unwrap();
+        .unwrap()
+        .await;
     println!("Closed");
 }

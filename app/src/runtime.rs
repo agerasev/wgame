@@ -14,6 +14,7 @@ use crate::{
     executor::{ExecutorProxy, TaskId},
     proxy::{AppProxy, CallbackTrigger, SharedCallState},
     timer::Timer,
+    window::create_window,
 };
 
 /// Handle to underlying async runtime.
@@ -41,7 +42,7 @@ impl Runtime {
         self.app.timers.borrow_mut().add(timestamp)
     }
 
-    pub async fn create_window<T: 'static, F: AsyncFnOnce(&mut Window) -> T + 'static>(
+    pub async fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
         &self,
         attributes: WindowAttributes,
         window_main: F,
@@ -50,16 +51,7 @@ impl Runtime {
         let (task, proxy) = self
             .app
             .with_event_loop(
-                move |event_loop| {
-                    let raw = event_loop.create_window(attributes)?;
-                    let id = raw.id();
-                    let mut window = Window::new(raw, app.clone());
-                    let state = Rc::downgrade(window.state());
-                    let (task, proxy) =
-                        app.create_task(async move { window_main(&mut window).await });
-                    app.state.borrow_mut().insert_window(id, task, state);
-                    Ok((task, proxy))
-                },
+                move |event_loop| create_window(app, attributes, event_loop, window_main),
                 CallbackTrigger::PollResumed,
             )
             .await?;
