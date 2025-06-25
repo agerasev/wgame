@@ -11,7 +11,7 @@ use winit::{
     error::OsError,
     event::WindowEvent,
     event_loop::ActiveEventLoop,
-    window::{Window as RawWindow, WindowAttributes},
+    window::{Window as InnerWindow, WindowAttributes},
 };
 
 use crate::{
@@ -60,14 +60,14 @@ pub struct Input {
 }
 
 pub struct Window<'a> {
-    pub raw: &'a RawWindow,
+    pub surface: &'a InnerWindow,
     pub input: Input,
 }
 
 impl<'a> Window<'a> {
-    fn new(raw: &'a RawWindow, state: Rc<RefCell<WindowState>>) -> Self {
+    fn new(inner: &'a InnerWindow, state: Rc<RefCell<WindowState>>) -> Self {
         Self {
-            raw,
+            surface: inner,
             input: Input { state },
         }
     }

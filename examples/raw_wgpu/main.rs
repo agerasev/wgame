@@ -282,7 +282,7 @@ async fn main(rt: Runtime) {
         .create_window(WindowAttributes::default(), async move |mut window| {
             println!("Window created");
 
-            let mut state = WgpuState::new(window.raw).await;
+            let mut state = WgpuState::new(window.surface).await;
             println!("Surface created");
 
             let mut scene = TriangleScene::new(&state);
@@ -299,7 +299,7 @@ async fn main(rt: Runtime) {
                                 (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
                             scene.render(&state, angle);
                             fps.count();
-                            window.raw.request_redraw();
+                            window.surface.request_redraw();
                         }
                         WindowEvent::CloseRequested => break 'render_loop,
                         _ => (),

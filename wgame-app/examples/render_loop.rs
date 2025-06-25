@@ -19,7 +19,7 @@ async fn main_(rt: Runtime) {
                             println!("Rendered frame #{counter}");
                             counter += 1;
                             rt.sleep(Duration::from_millis(100)).await;
-                            window.raw.request_redraw();
+                            window.surface.request_redraw();
                         }
                         WindowEvent::CloseRequested => break 'render_loop,
                         _ => (),
