@@ -1,5 +1,5 @@
 [workspace]
-members = ["wgame-app", "wgame-macros"]
+members = ["wgame-common", "wgame-app", "wgame-macros"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +13,7 @@ edition.workspace = true
 license.workspace = true
 
 [workspace.dependencies]
+wgame-common = { version = "0.1.0", path = "wgame-common" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 winit = { version = "0.30.11", default-features = false }
 wgpu = { version = "25.0.2", default-features = false }
@@ -21,8 +22,9 @@ log = "0.4.27"
 env_logger = "0.11.8"
 
 [dependencies]
-wgame-macros = { version = "0.1.0", path = "wgame-macros" }
+wgame-common.workspace = true
 wgame-app = { version = "0.1.0", path = "wgame-app" }
+wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 
 [dev-dependencies]
 futures = { workspace = true, default-features = true }

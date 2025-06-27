@@ -1,13 +1,16 @@
 use std::{
     cell::RefCell,
-    collections::VecDeque,
+    mem,
+    ops::{Deref, DerefMut},
     pin::Pin,
     rc::Rc,
     task::{Context, Poll, Waker},
 };
 
-use futures::Stream;
+use futures::future::FusedFuture;
+use wgame_common::Surface;
 use winit::{
+    dpi::PhysicalSize,
     error::OsError,
     event::WindowEvent,
     event_loop::ActiveEventLoop,
@@ -19,57 +22,53 @@ use crate::{
     proxy::{AppProxy, SharedCallState},
 };
 
+#[derive(Default)]
 pub struct WindowState {
     pub waker: Option<Waker>,
-    pub events: VecDeque<WindowEvent>,
-    pub events_capacity: usize,
+    pub resize: Option<PhysicalSize<u32>>,
+    pub redraw_requested: bool,
+    pub close_requested: bool,
     pub terminated: bool,
 }
 
-const EVENT_BUFFER_MIN_CAPACITY: usize = 0x10;
-
 impl WindowState {
-    fn new(events_capacity: Option<usize>) -> Self {
-        Self {
-            waker: None,
-            events: VecDeque::new(),
-            events_capacity: events_capacity
-                .unwrap_or(usize::MAX)
-                .max(EVENT_BUFFER_MIN_CAPACITY),
-            terminated: false,
-        }
-    }
-
     pub fn push_event(&mut self, event: WindowEvent) {
-        while self.events.len() >= self.events_capacity {
-            if let Some(event) = self.events.pop_front() {
-                log::warn!("Skipping event due to buffer overflow: {event:?}");
-            } else {
-                break;
+        let mut wake = false;
+        match event {
+            WindowEvent::CloseRequested => {
+                self.close_requested = true;
+                wake = true;
+            }
+            WindowEvent::RedrawRequested => {
+                self.redraw_requested = true;
+                wake = true;
+            }
+            WindowEvent::Resized(size) => {
+                self.resize = Some(size);
+                wake = true;
+            }
+            _ => (),
+        }
+        if wake {
+            if let Some(waker) = self.waker.take() {
+                waker.wake()
             }
         }
-        self.events.push_back(event);
-        if let Some(waker) = self.waker.take() {
-            waker.wake()
-        }
     }
-}
-
-pub struct Input {
-    state: Rc<RefCell<WindowState>>,
 }
 
 pub struct Window<'a> {
-    pub surface: &'a InnerWindow,
-    pub input: Input,
+    inner: &'a InnerWindow,
+    state: Rc<RefCell<WindowState>>,
 }
 
 impl<'a> Window<'a> {
     fn new(inner: &'a InnerWindow, state: Rc<RefCell<WindowState>>) -> Self {
-        Self {
-            surface: inner,
-            input: Input { state },
-        }
+        Self { inner, state }
+    }
+
+    pub fn inner(&self) -> &'a InnerWindow {
+        self.inner
     }
 }
 
@@ -81,7 +80,7 @@ pub fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
 ) -> Result<(TaskId, SharedCallState<T>), OsError> {
     let raw = event_loop.create_window(attributes)?;
     let id = raw.id();
-    let state = Rc::new(RefCell::new(WindowState::new(None)));
+    let state = Rc::new(RefCell::new(WindowState::default()));
     let weak = Rc::downgrade(&state);
     let (task, proxy) = app.create_task({
         let app = app.clone();
@@ -96,25 +95,93 @@ pub fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
     Ok((task, proxy))
 }
 
-impl Stream for Input {
-    type Item = WindowEvent;
-
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut state = self.state.borrow_mut();
-        match state.events.pop_front() {
-            Some(event) => Poll::Ready(Some(event)),
-            None => {
-                if !state.terminated {
-                    state.waker = Some(cx.waker().clone());
-                    Poll::Pending
-                } else {
-                    Poll::Ready(None)
-                }
-            }
+impl<'a> Window<'a> {
+    pub fn next_frame<'b, S: Surface + 'b>(
+        &'b mut self,
+        surface: &'b mut S,
+    ) -> WaitFrame<'a, 'b, S> {
+        WaitFrame {
+            owner: Some(self),
+            surface: Some(surface),
         }
     }
+}
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.state.borrow().events.len(), None)
+pub struct WaitFrame<'a, 'b, S: Surface + 'b> {
+    owner: Option<&'b mut Window<'a>>,
+    surface: Option<&'b mut S>,
+}
+
+impl<'a, 'b, S: Surface + 'b> Future for WaitFrame<'a, 'b, S> {
+    type Output = Result<Option<Frame<'a, 'b, S>>, S::Error>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let owner = match self.owner.take() {
+            Some(owner) => owner,
+            None => panic!("Window terminated but its task polled"),
+        };
+        let surface = self.surface.take().unwrap();
+
+        let mut state = owner.state.borrow_mut();
+        if state.terminated {
+            log::error!("Window terminated but its task polled");
+            return Poll::Ready(Ok(None));
+        }
+
+        if state.close_requested {
+            return Poll::Ready(Ok(None));
+        }
+
+        if let Some(size) = state.resize.take() {
+            surface.resize(size.into())?;
+        }
+
+        if mem::take(&mut state.redraw_requested) {
+            drop(state);
+            let inner_frame = surface.create_frame()?;
+            Poll::Ready(Ok(Some(Frame {
+                owner,
+                inner: Some(inner_frame),
+            })))
+        } else {
+            state.waker = Some(cx.waker().clone());
+            drop(state);
+            self.owner = Some(owner);
+            self.surface = Some(surface);
+            Poll::Pending
+        }
+    }
+}
+
+impl<'a, 'b, S: Surface + 'b> FusedFuture for WaitFrame<'a, 'b, S> {
+    fn is_terminated(&self) -> bool {
+        self.owner.is_none()
+    }
+}
+
+pub struct Frame<'a, 'b, S: Surface + 'b> {
+    owner: &'b mut Window<'a>,
+    inner: Option<S::Frame<'b>>,
+}
+
+impl<'a, 'b, S: Surface + 'b> Deref for Frame<'a, 'b, S> {
+    type Target = S::Frame<'b>;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner.as_ref().unwrap()
+    }
+}
+
+impl<'a, 'b, S: Surface + 'b> DerefMut for Frame<'a, 'b, S> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.inner.as_mut().unwrap()
+    }
+}
+
+impl<'a, 'b, S: Surface + 'b> Drop for Frame<'a, 'b, S> {
+    fn drop(&mut self) {
+        self.owner.inner.pre_present_notify();
+        drop(self.inner.take());
+        self.owner.inner.request_redraw();
     }
 }

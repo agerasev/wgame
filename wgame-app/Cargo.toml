@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+wgame-common.workspace = true
 futures.workspace = true
 winit.workspace = true
 fxhash.workspace = true

@@ -1,21 +1,21 @@
 use std::{
     borrow::Cow,
+    convert::Infallible,
     f32::consts::{FRAC_PI_3, PI},
     time::Instant,
 };
 
 use bytemuck::{Pod, Zeroable};
-use futures::StreamExt;
-use wgame::{Runtime, WindowAttributes, WindowEvent};
+use wgame::{Runtime, WindowAttributes};
+use wgame_common::Surface;
 use wgpu::util::DeviceExt;
 
 struct WgpuState<'a> {
-    window: &'a winit::window::Window,
     surface: wgpu::Surface<'a>,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    size: winit::dpi::PhysicalSize<u32>,
+    size: (u32, u32),
     format: wgpu::TextureFormat,
 }
 
@@ -54,12 +54,11 @@ impl<'a> WgpuState<'a> {
         let caps = surface.get_capabilities(&adapter);
 
         let this = Self {
-            window,
             surface,
             adapter,
             device,
             queue,
-            size: window.inner_size(),
+            size: window.inner_size().into(),
             format: caps.formats[0],
         };
 
@@ -72,27 +71,29 @@ impl<'a> WgpuState<'a> {
     fn configure_surface(&self) {
         let surface_config = self
             .surface
-            .get_default_config(&self.adapter, self.size.width, self.size.height)
+            .get_default_config(&self.adapter, self.size.0, self.size.1)
             .unwrap();
         self.surface.configure(&self.device, &surface_config);
     }
+}
 
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+impl<'a> Surface for WgpuState<'a> {
+    type Frame<'b>
+        = Frame<'a, 'b>
+    where
+        Self: 'b;
+    type Error = Infallible;
+
+    fn resize(&mut self, new_size: (u32, u32)) -> Result<(), Infallible> {
         self.size = new_size;
 
         // reconfigure the surface
         self.configure_surface();
+
+        Ok(())
     }
-}
 
-struct Frame<'a, 'b> {
-    state: &'a mut WgpuState<'b>,
-    frame: wgpu::SurfaceTexture,
-    view: wgpu::TextureView,
-}
-
-impl<'a> WgpuState<'a> {
-    fn create_frame(&mut self) -> Frame<'_, 'a> {
+    fn create_frame(&mut self) -> Result<Frame<'a, '_>, Infallible> {
         // Create texture view
         let frame = self
             .surface
@@ -102,18 +103,23 @@ impl<'a> WgpuState<'a> {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        Frame {
+        Ok(Frame {
             state: self,
-            frame,
+            frame: Some(frame),
             view,
-        }
+        })
     }
 }
 
-impl Frame<'_, '_> {
-    fn present(self) {
-        self.state.window.pre_present_notify();
-        self.frame.present();
+struct Frame<'a, 'b> {
+    state: &'b mut WgpuState<'a>,
+    frame: Option<wgpu::SurfaceTexture>,
+    view: wgpu::TextureView,
+}
+
+impl Drop for Frame<'_, '_> {
+    fn drop(&mut self) {
+        self.frame.take().unwrap().present();
     }
 }
 
@@ -248,7 +254,7 @@ impl TriangleScene {
     }
 
     fn render(&mut self, frame: &Frame<'_, '_>, angle: f32) {
-        let aspect_ratio = frame.state.size.width as f32 / frame.state.size.height as f32;
+        let aspect_ratio = frame.state.size.0 as f32 / frame.state.size.1 as f32;
         let mut transform =
             glam::Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
         transform *= glam::Mat4::from_rotation_z(angle);
@@ -304,7 +310,7 @@ async fn main(rt: Runtime) {
         .create_window(WindowAttributes::default(), async move |mut window| {
             println!("Window created");
 
-            let mut state = WgpuState::new(window.surface).await;
+            let mut state = WgpuState::new(window.inner()).await;
             println!("Surface created");
 
             let mut scene = TriangleScene::new(&state);
@@ -312,23 +318,10 @@ async fn main(rt: Runtime) {
 
             let start_time = Instant::now();
             let mut fps = FrameCounter::new();
-            'render_loop: loop {
-                while let Some(event) = window.input.next().await {
-                    match event {
-                        WindowEvent::Resized(size) => state.resize(size),
-                        WindowEvent::RedrawRequested => break,
-                        WindowEvent::CloseRequested => break 'render_loop,
-                        _ => (),
-                    }
-                }
-
-                let frame = state.create_frame();
+            while let Some(frame) = window.next_frame(&mut state).await.unwrap() {
                 let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
                 scene.render(&frame, angle);
-                frame.present();
-
                 fps.count();
-                window.surface.request_redraw();
             }
         })
         .await

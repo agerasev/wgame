@@ -2104,6 +2104,7 @@ dependencies = [
  "futures",
  "glam",
  "wgame-app",
+ "wgame-common",
  "wgame-macros",
  "wgpu",
  "winit",
@@ -2117,8 +2118,13 @@ dependencies = [
  "futures",
  "fxhash",
  "log",
+ "wgame-common",
  "winit",
 ]
+
+[[package]]
+name = "wgame-common"
+version = "0.1.0"
 
 [[package]]
 name = "wgame-macros"

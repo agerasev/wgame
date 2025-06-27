@@ -134,7 +134,8 @@ impl ApplicationHandler<UserEvent> for AppHandler {
         log::debug!("suspended");
         let mut state = self.state.borrow_mut();
         state.resumed = false;
-        for (_id, (task, _window)) in state.windows.drain() {
+        for (id, (task, _window)) in state.windows.drain() {
+            self.state.borrow_mut().remove_window(id);
             self.executor.terminate_task(task);
         }
     }

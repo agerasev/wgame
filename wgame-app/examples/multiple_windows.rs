@@ -1,5 +1,5 @@
-use futures::{StreamExt, join};
-use wgame_app::{Runtime, WindowAttributes, WindowEvent, run_main};
+use futures::join;
+use wgame_app::{Runtime, WindowAttributes, run_main};
 
 async fn main_(rt: Runtime) {
     env_logger::init();
@@ -8,11 +8,7 @@ async fn main_(rt: Runtime) {
     async fn make_window_and_wait_closed(rt: &Runtime, index: usize) {
         rt.create_window(WindowAttributes::default(), async move |mut window| {
             println!("Window #{index} created");
-            while let Some(event) = window.input.next().await {
-                if let WindowEvent::CloseRequested = event {
-                    break;
-                }
-            }
+            while let Some(_frame) = window.next_frame(&mut ()).await.unwrap() {}
         })
         .await
         .unwrap()

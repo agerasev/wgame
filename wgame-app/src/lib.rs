@@ -8,7 +8,7 @@ mod timer;
 pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};
-pub use winit::{event::WindowEvent, window::WindowAttributes};
+pub use winit::window::WindowAttributes;
 
 #[macro_export]
 macro_rules! run_main {

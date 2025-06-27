@@ -1,5 +1,4 @@
-use futures::StreamExt;
-use wgame_app::{Runtime, WindowAttributes, WindowEvent, run_main};
+use wgame_app::{Runtime, WindowAttributes, run_main};
 
 async fn main_(rt: Runtime) {
     env_logger::init();
@@ -7,11 +6,9 @@ async fn main_(rt: Runtime) {
 
     rt.create_window(WindowAttributes::default(), async |mut window| {
         println!("Window created");
-        while let Some(event) = window.input.next().await {
-            println!("Event: {:?}", event);
-            if let WindowEvent::CloseRequested = event {
-                break;
-            }
+        while let Some(_frame) = window.next_frame(&mut ()).await.unwrap() {
+            // println!("Event: {:?}", event);
+            todo!("Collect events in Frame")
         }
     })
     .await
