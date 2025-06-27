@@ -1,13 +1,15 @@
 use std::{
     borrow::Cow,
-    convert::Infallible,
     f32::consts::{FRAC_PI_3, PI},
     time::Instant,
 };
 
 use bytemuck::{Pod, Zeroable};
-use wgame::{Runtime, WindowAttributes};
-use wgame_common::Surface;
+use wgame::{
+    Runtime,
+    app::{WindowAttributes, window::Frame},
+};
+use wgame_common::Frame as _;
 use wgpu::util::DeviceExt;
 
 struct WgpuState<'a> {
@@ -75,25 +77,28 @@ impl<'a> WgpuState<'a> {
             .unwrap();
         self.surface.configure(&self.device, &surface_config);
     }
-}
 
-impl<'a> Surface for WgpuState<'a> {
-    type Frame<'b>
-        = Frame<'a, 'b>
-    where
-        Self: 'b;
-    type Error = Infallible;
-
-    fn resize(&mut self, new_size: (u32, u32)) -> Result<(), Infallible> {
+    fn resize(&mut self, new_size: (u32, u32)) {
         self.size = new_size;
 
         // reconfigure the surface
         self.configure_surface();
-
-        Ok(())
     }
+}
 
-    fn create_frame(&mut self) -> Result<Frame<'a, '_>, Infallible> {
+struct WgpuFrame<'a, 'b, 'c> {
+    state: &'b mut WgpuState<'a>,
+    inner: Frame<'c>,
+    frame: Option<wgpu::SurfaceTexture>,
+    view: wgpu::TextureView,
+}
+
+impl<'a> WgpuState<'a> {
+    fn create_frame<'b, 'c>(&'b mut self, inner: Frame<'c>) -> WgpuFrame<'a, 'b, 'c> {
+        if let Some(new_size) = inner.resized() {
+            self.resize(new_size);
+        }
+
         // Create texture view
         let frame = self
             .surface
@@ -103,22 +108,18 @@ impl<'a> Surface for WgpuState<'a> {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        Ok(Frame {
+        WgpuFrame {
             state: self,
+            inner,
             frame: Some(frame),
             view,
-        })
+        }
     }
 }
 
-struct Frame<'a, 'b> {
-    state: &'b mut WgpuState<'a>,
-    frame: Option<wgpu::SurfaceTexture>,
-    view: wgpu::TextureView,
-}
-
-impl Drop for Frame<'_, '_> {
+impl Drop for WgpuFrame<'_, '_, '_> {
     fn drop(&mut self) {
+        self.inner.pre_present();
         self.frame.take().unwrap().present();
     }
 }
@@ -253,7 +254,7 @@ impl TriangleScene {
         }
     }
 
-    fn render(&mut self, frame: &Frame<'_, '_>, angle: f32) {
+    fn render(&mut self, frame: &WgpuFrame<'_, '_, '_>, angle: f32) {
         let aspect_ratio = frame.state.size.0 as f32 / frame.state.size.1 as f32;
         let mut transform =
             glam::Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
@@ -318,8 +319,9 @@ async fn main(rt: Runtime) {
 
             let start_time = Instant::now();
             let mut fps = FrameCounter::new();
-            while let Some(frame) = window.next_frame(&mut state).await.unwrap() {
+            while let Some(frame) = window.next_frame().await {
                 let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
+                let frame = state.create_frame(frame);
                 scene.render(&frame, angle);
                 fps.count();
             }

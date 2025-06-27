@@ -8,7 +8,7 @@ async fn main_(rt: Runtime) {
     async fn make_window_and_wait_closed(rt: &Runtime, index: usize) {
         rt.create_window(WindowAttributes::default(), async move |mut window| {
             println!("Window #{index} created");
-            while let Some(_frame) = window.next_frame(&mut ()).await.unwrap() {}
+            while let Some(_frame) = window.next_frame().await {}
         })
         .await
         .unwrap()

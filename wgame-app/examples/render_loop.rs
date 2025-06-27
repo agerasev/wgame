@@ -11,7 +11,7 @@ async fn main_(rt: Runtime) {
         async move |mut window| {
             println!("Window created");
             let mut counter = 0;
-            while let Some(_frame) = window.next_frame(&mut ()).await.unwrap() {
+            while let Some(_frame) = window.next_frame().await {
                 println!("Rendered frame #{counter}");
                 counter += 1;
                 rt.sleep(Duration::from_millis(100)).await;

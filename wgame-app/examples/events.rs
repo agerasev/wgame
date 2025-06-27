@@ -6,7 +6,7 @@ async fn main_(rt: Runtime) {
 
     rt.create_window(WindowAttributes::default(), async |mut window| {
         println!("Window created");
-        while let Some(_frame) = window.next_frame(&mut ()).await.unwrap() {
+        while let Some(_frame) = window.next_frame().await {
             // println!("Event: {:?}", event);
             todo!("Collect events in Frame")
         }
