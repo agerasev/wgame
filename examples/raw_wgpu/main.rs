@@ -85,6 +85,38 @@ impl<'a> WgpuState<'a> {
     }
 }
 
+struct Frame<'a, 'b> {
+    state: &'a mut WgpuState<'b>,
+    frame: wgpu::SurfaceTexture,
+    view: wgpu::TextureView,
+}
+
+impl<'a> WgpuState<'a> {
+    fn create_frame(&mut self) -> Frame<'_, 'a> {
+        // Create texture view
+        let frame = self
+            .surface
+            .get_current_texture()
+            .expect("Failed to acquire next swap chain texture");
+        let view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        Frame {
+            state: self,
+            frame,
+            view,
+        }
+    }
+}
+
+impl Frame<'_, '_> {
+    fn present(self) {
+        self.state.window.pre_present_notify();
+        self.frame.present();
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Vertex {
@@ -215,27 +247,19 @@ impl TriangleScene {
         }
     }
 
-    fn render(&mut self, state: &WgpuState<'_>, angle: f32) {
-        // Create texture view
-        let frame = state
-            .surface
-            .get_current_texture()
-            .expect("Failed to acquire next swap chain texture");
-        let view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        let aspect_ratio = state.size.width as f32 / state.size.height as f32;
+    fn render(&mut self, frame: &Frame<'_, '_>, angle: f32) {
+        let aspect_ratio = frame.state.size.width as f32 / frame.state.size.height as f32;
         let mut transform =
             glam::Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
         transform *= glam::Mat4::from_rotation_z(angle);
-        state.queue.write_buffer(
+        frame.state.queue.write_buffer(
             &self.uniform_buf,
             0,
             bytemuck::cast_slice(transform.as_ref()),
         );
 
-        let mut encoder = state
+        let mut encoder = frame
+            .state
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -243,7 +267,7 @@ impl TriangleScene {
             let mut renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
+                    view: &frame.view,
                     // depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
@@ -267,9 +291,7 @@ impl TriangleScene {
         }
 
         // Submit the command in the queue to execute
-        state.queue.submit(Some(encoder.finish()));
-        state.window.pre_present_notify();
-        frame.present();
+        frame.state.queue.submit(Some(encoder.finish()));
     }
 }
 
@@ -294,17 +316,19 @@ async fn main(rt: Runtime) {
                 while let Some(event) = window.input.next().await {
                     match event {
                         WindowEvent::Resized(size) => state.resize(size),
-                        WindowEvent::RedrawRequested => {
-                            let angle =
-                                (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
-                            scene.render(&state, angle);
-                            fps.count();
-                            window.surface.request_redraw();
-                        }
+                        WindowEvent::RedrawRequested => break,
                         WindowEvent::CloseRequested => break 'render_loop,
                         _ => (),
                     }
                 }
+
+                let frame = state.create_frame();
+                let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
+                scene.render(&frame, angle);
+                frame.present();
+
+                fps.count();
+                window.surface.request_redraw();
             }
         })
         .await
