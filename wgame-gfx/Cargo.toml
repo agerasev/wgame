@@ -8,3 +8,5 @@ license.workspace = true
 wgpu.workspace = true
 anyhow.workspace = true
 log.workspace = true
+bytemuck = "1.23.1"
+glam = { version = "0.30.4", features = ["bytemuck"] }
