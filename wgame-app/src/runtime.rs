@@ -3,7 +3,7 @@ use std::{
     pin::Pin,
     rc::Rc,
     task::{Context, Poll},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use futures::FutureExt;
@@ -13,7 +13,7 @@ use crate::{
     Window,
     executor::{ExecutorProxy, TaskId},
     proxy::{AppProxy, CallbackTrigger, SharedCallState},
-    timer::Timer,
+    timer::{Instant, Timer},
     window::create_window,
 };
 

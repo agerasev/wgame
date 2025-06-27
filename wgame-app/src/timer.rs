@@ -5,8 +5,12 @@ use std::{
     pin::Pin,
     rc::Rc,
     task::{Context, Poll, Waker},
-    time::Instant,
 };
+
+#[cfg(not(feature = "web"))]
+pub use std::time::Instant;
+#[cfg(feature = "web")]
+pub use web_time::Instant;
 
 use winit::event_loop::ControlFlow;
 

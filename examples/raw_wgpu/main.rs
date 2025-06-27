@@ -307,8 +307,21 @@ async fn main(rt: Runtime) {
     env_logger::init();
     println!("Started");
 
+    let mut attributes = WindowAttributes::default();
+    #[cfg(feature = "web")]
+    {
+        use web_sys::wasm_bindgen::JsCast;
+        use winit::platform::web::WindowAttributesExtWebSys;
+
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        let canvas = document.get_element_by_id("canvas").unwrap();
+        let html_canvas_element = canvas.unchecked_into();
+        attributes = attributes.with_canvas(Some(html_canvas_element));
+    }
+
     rt.clone()
-        .create_window(WindowAttributes::default(), async move |mut window| {
+        .create_window(attributes, async move |mut window| {
             println!("Window created");
 
             let mut state = WgpuState::new(window.inner()).await;

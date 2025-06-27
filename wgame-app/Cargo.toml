@@ -4,12 +4,19 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+x11 = ["winit/x11"]
+wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita"]
+android = ["winit/android-native-activity"]
+web = ["dep:web-time"]
+
 [dependencies]
 wgame-common.workspace = true
 futures.workspace = true
 winit.workspace = true
 fxhash.workspace = true
 log.workspace = true
+web-time = { version = "1.1.0", optional = true }
 
 [dev-dependencies]
 futures = { workspace = true, default-features = true }
