@@ -7,6 +7,7 @@ use std::{
 };
 
 use futures::future::FusedFuture;
+use wgame_common::Window as CommonWindow;
 use winit::{
     dpi::PhysicalSize,
     error::OsError,
@@ -64,9 +65,17 @@ impl<'a> Window<'a> {
     fn new(inner: &'a InnerWindow, state: Rc<RefCell<WindowState>>) -> Self {
         Self { inner, state }
     }
+}
 
-    pub fn inner(&self) -> &'a InnerWindow {
+impl<'a> CommonWindow for Window<'a> {
+    type Inner = &'a InnerWindow;
+
+    fn inner(&self) -> Self::Inner {
         self.inner
+    }
+
+    fn size(&self) -> (u32, u32) {
+        self.inner.inner_size().into()
     }
 }
 
