@@ -183,6 +183,7 @@ impl ApplicationHandler<UserEvent> for AppHandler {
             call(event_loop);
         }
 
-        self.timers.borrow_mut().poll(event_loop);
+        let next_poll = self.timers.borrow_mut().poll();
+        event_loop.set_control_flow(next_poll);
     }
 }

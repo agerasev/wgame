@@ -8,7 +8,7 @@ use std::{
     time::Instant,
 };
 
-use winit::event_loop::{ActiveEventLoop, ControlFlow};
+use winit::event_loop::ControlFlow;
 
 #[derive(Clone)]
 pub struct Timer {
@@ -79,19 +79,19 @@ impl TimerQueue {
         }
     }
 
-    fn schedule(&self, event_loop: &ActiveEventLoop) {
+    fn schedule(&self) -> ControlFlow {
         if let Some(Reverse(timer)) = self.queue.peek() {
             log::trace!("waiting until: {:?}", timer.timestamp);
-            event_loop.set_control_flow(ControlFlow::WaitUntil(timer.timestamp))
+            ControlFlow::WaitUntil(timer.timestamp)
         } else {
             log::trace!("waiting indefinitely");
-            event_loop.set_control_flow(ControlFlow::Wait);
+            ControlFlow::Wait
         }
     }
 
-    pub fn poll(&mut self, event_loop: &ActiveEventLoop) {
+    pub fn poll(&mut self) -> ControlFlow {
         self.wake();
-        self.schedule(event_loop);
+        self.schedule()
     }
 }
 
