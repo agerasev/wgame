@@ -70,13 +70,31 @@ impl<'a> Window<'a> {
     }
 }
 
+fn update_attributes(attributes: WindowAttributes) -> WindowAttributes {
+    #[cfg(not(feature = "web"))]
+    {
+        attributes
+    }
+    #[cfg(feature = "web")]
+    {
+        use web_sys::wasm_bindgen::JsCast;
+        use winit::platform::web::WindowAttributesExtWebSys;
+
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        let canvas = document.get_element_by_id("canvas").unwrap();
+        let html_canvas_element = canvas.unchecked_into();
+        attributes.with_canvas(Some(html_canvas_element))
+    }
+}
+
 pub fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
     app: AppProxy,
     attributes: WindowAttributes,
     event_loop: &ActiveEventLoop,
     window_main: F,
 ) -> Result<(TaskId, SharedCallState<T>), OsError> {
-    let raw = event_loop.create_window(attributes)?;
+    let raw = event_loop.create_window(update_attributes(attributes))?;
     let id = raw.id();
     let state = Rc::new(RefCell::new(WindowState::default()));
     let weak = Rc::downgrade(&state);

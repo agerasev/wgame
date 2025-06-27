@@ -1,5 +1,5 @@
 [workspace]
-members = ["wgame-common", "wgame-app", "wgame-macros"]
+members = ["wgame-common", "wgame-app", "wgame-macros", "wgame-examples"]
 
 [workspace.package]
 version = "0.1.0"
@@ -24,24 +24,10 @@ env_logger = "0.11.8"
 [features]
 default = ["desktop"]
 desktop = ["wgame-app/x11", "wgame-app/wayland", "wgpu/vulkan", "wgpu/gles"]
-web = ["wgame-app/web", "wgpu/webgpu", "wgpu/webgl", "web-sys"]
+web = ["wgame-app/web", "wgpu/webgpu", "wgpu/webgl"]
 
 [dependencies]
 wgame-common.workspace = true
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
-web-sys = { version = "0.3.77", optional = true, features = [
-    "Document",
-    "Element",
-    "Window",
-    "console",
-    "HtmlCanvasElement",
-    "HtmlCollection",
-] }
-
-[dev-dependencies]
-winit.workspace = true
 wgpu.workspace = true
-env_logger.workspace = true
-bytemuck = "1.23.1"
-glam = "0.30.4"

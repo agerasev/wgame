@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wgame_app::{Runtime, run_main};
+use wgame_app::{Runtime, run};
 
 async fn main_(rt: Runtime) {
     env_logger::init();
@@ -9,4 +9,4 @@ async fn main_(rt: Runtime) {
     println!("Awakened");
 }
 
-run_main!(main_);
+run!(main, main_);

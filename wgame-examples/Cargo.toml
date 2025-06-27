@@ -1,0 +1,13 @@
+[package]
+name = "wgame-examples"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+wgame = { path = "..", default-features = false }
+winit.workspace = true
+wgpu.workspace = true
+env_logger.workspace = true
+bytemuck = "1.23.1"
+glam = "0.30.4"

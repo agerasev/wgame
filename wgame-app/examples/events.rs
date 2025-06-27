@@ -1,4 +1,4 @@
-use wgame_app::{Runtime, WindowAttributes, run_main};
+use wgame_app::{Runtime, WindowAttributes, run};
 
 async fn main_(rt: Runtime) {
     env_logger::init();
@@ -18,4 +18,4 @@ async fn main_(rt: Runtime) {
     println!("Closed");
 }
 
-run_main!(main_);
+run!(main, main_);

@@ -33,4 +33,17 @@
       <canvas class="main-canvas" id="canvas"></canvas>
     </div>
   </body>
+
+  <script>
+    window.onload = () => {
+      console.log("loading webassembly");
+      WebAssembly.instantiateStreaming(
+        fetch("../../target/wasm32-unknown-unknown/debug/wgame-examples.wasm"),
+        {}
+      ).then((obj) => {
+        // Call an exported function:
+        obj.instance.exports.wgame_main();
+      });
+    };
+  </script>
 </html>

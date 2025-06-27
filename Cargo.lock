@@ -2048,15 +2048,10 @@ dependencies = [
 name = "wgame"
 version = "0.1.0"
 dependencies = [
- "bytemuck",
- "env_logger",
- "glam",
- "web-sys",
  "wgame-app",
  "wgame-common",
  "wgame-macros",
  "wgpu",
- "winit",
 ]
 
 [[package]]
@@ -2067,6 +2062,8 @@ dependencies = [
  "futures",
  "fxhash",
  "log",
+ "wasm-bindgen",
+ "web-sys",
  "web-time",
  "wgame-common",
  "winit",
@@ -2075,6 +2072,18 @@ dependencies = [
 [[package]]
 name = "wgame-common"
 version = "0.1.0"
+
+[[package]]
+name = "wgame-examples"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "env_logger",
+ "glam",
+ "wgame",
+ "wgpu",
+ "winit",
+]
 
 [[package]]
 name = "wgame-macros"
