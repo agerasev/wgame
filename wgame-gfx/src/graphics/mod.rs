@@ -20,7 +20,6 @@ struct Vertex {
 pub struct Graphics<'a> {
     device: &'a wgpu::Device,
     triangle_vertices: wgpu::Buffer,
-    bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::RenderPipeline,
 }
 
@@ -120,7 +119,6 @@ impl<'a> Graphics<'a> {
         Ok(Self {
             device,
             triangle_vertices,
-            bind_group_layout,
             pipeline,
         })
     }
@@ -129,7 +127,6 @@ impl<'a> Graphics<'a> {
         Triangle {
             device: self.device,
             vertex_buffer: &self.triangle_vertices,
-            bind_group_layout: &self.bind_group_layout,
             pipeline: &self.pipeline,
         }
     }
