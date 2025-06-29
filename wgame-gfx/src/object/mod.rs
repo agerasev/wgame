@@ -28,7 +28,6 @@ pub trait Object: Sized {
         }
     }
 
-    fn bind_group_layout(&self) -> &wgpu::BindGroupLayout;
     fn uniforms(&self) -> Uniforms {
         let device = self.device();
 
@@ -39,7 +38,7 @@ pub trait Object: Sized {
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: self.bind_group_layout(),
+            layout: &self.pipeline().get_bind_group_layout(0),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: buffer.as_entire_binding(),

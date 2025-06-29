@@ -20,10 +20,6 @@ impl<T: Object> Object for Transformed<T> {
         self.inner.tranformation() * self.transformation
     }
 
-    fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
-        self.inner.bind_group_layout()
-    }
-
     fn pipeline(&self) -> &wgpu::RenderPipeline {
         self.inner.pipeline()
     }

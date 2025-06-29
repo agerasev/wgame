@@ -5,7 +5,6 @@ use crate::object::{Object, Vertices};
 pub struct Triangle<'a> {
     pub(crate) device: &'a wgpu::Device,
     pub(crate) vertex_buffer: &'a wgpu::Buffer,
-    pub(crate) bind_group_layout: &'a wgpu::BindGroupLayout,
     pub(crate) pipeline: &'a wgpu::RenderPipeline,
 }
 
@@ -27,9 +26,5 @@ impl<'a> Object for Triangle<'a> {
 
     fn tranformation(&self) -> Mat2 {
         Mat2::IDENTITY
-    }
-
-    fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
-        self.bind_group_layout
     }
 }
