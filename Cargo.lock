@@ -2106,6 +2106,7 @@ dependencies = [
  "wgame-app",
  "wgame-common",
  "wgame-macros",
+ "wgame-utils",
  "wgpu",
  "winit",
 ]
@@ -2134,6 +2135,10 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "wgame-utils"
+version = "0.1.0"
 
 [[package]]
 name = "wgpu"

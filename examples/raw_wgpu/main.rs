@@ -10,6 +10,7 @@ use wgame::{
     app::{WindowAttributes, window::Frame},
 };
 use wgame_common::Frame as _;
+use wgame_utils::FrameCounter;
 use wgpu::util::DeviceExt;
 
 struct WgpuState<'a> {
@@ -318,7 +319,7 @@ async fn main(rt: Runtime) {
             println!("Scene created");
 
             let start_time = Instant::now();
-            let mut fps = FrameCounter::new();
+            let mut fps = FrameCounter::default();
             while let Some(frame) = window.next_frame().await {
                 let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
                 let frame = state.create_frame(frame);
@@ -330,30 +331,4 @@ async fn main(rt: Runtime) {
         .unwrap()
         .await;
     println!("Closed");
-}
-
-struct FrameCounter {
-    start: Instant,
-    count: usize,
-}
-
-impl FrameCounter {
-    fn new() -> Self {
-        Self {
-            start: Instant::now(),
-            count: 0,
-        }
-    }
-
-    fn count(&mut self) {
-        self.count += 1;
-
-        let now = Instant::now();
-        let secs = (now - self.start).as_secs_f32();
-        if secs > 10.0 {
-            println!("FPS: {}", self.count as f32 / secs);
-            self.start = now;
-            self.count = 0;
-        }
-    }
 }

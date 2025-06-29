@@ -1,5 +1,5 @@
 [workspace]
-members = ["wgame-common", "wgame-app", "wgame-macros"]
+members = ["wgame-common", "wgame-app", "wgame-utils", "wgame-macros"]
 
 [workspace.package]
 version = "0.1.0"
@@ -24,6 +24,7 @@ env_logger = "0.11.8"
 [dependencies]
 wgame-common.workspace = true
 wgame-app = { version = "0.1.0", path = "wgame-app" }
+wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 
 [dev-dependencies]
