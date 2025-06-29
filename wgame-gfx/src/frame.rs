@@ -39,7 +39,7 @@ impl<F: CommonFrame> Drop for Frame<'_, '_, F> {
 }
 
 impl<F: CommonFrame> Frame<'_, '_, F> {
-    pub fn render<O: Object>(&mut self, object: &O) {
+    pub fn render<T: Object>(&mut self, object: &T) {
         let vertices = object.vertices();
         let uniforms = object.uniforms();
 
@@ -66,7 +66,7 @@ impl<F: CommonFrame> Frame<'_, '_, F> {
             });
             {
                 renderpass.push_debug_group("Prepare data for draw.");
-                renderpass.set_pipeline(&object.pipeline());
+                renderpass.set_pipeline(object.pipeline());
                 renderpass.set_bind_group(0, &uniforms.bind_group, &[]);
                 renderpass.set_vertex_buffer(0, vertices.buffer.slice(..));
                 renderpass.pop_debug_group();
