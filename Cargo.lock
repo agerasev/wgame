@@ -2142,8 +2142,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
+ "fxhash",
  "glam",
  "log",
+ "wgame-common",
  "wgpu",
 ]
 

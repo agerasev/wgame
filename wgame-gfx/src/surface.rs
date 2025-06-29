@@ -1,41 +1,42 @@
+use std::{cell::Cell, rc::Rc};
+
 use anyhow::{Context, Result};
+use wgame_common::{Frame as CommonFrame, Window};
+
+use crate::frame::Frame;
 
 pub struct Surface<'a> {
     pub(crate) inner: wgpu::Surface<'a>,
     adapter: wgpu::Adapter,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
-    size: (u32, u32),
+    size: Rc<Cell<(u32, u32)>>,
     pub(crate) format: wgpu::TextureFormat,
 }
 
 impl<'a> Surface<'a> {
-    pub async fn new<W: Into<wgpu::SurfaceTarget<'a>>>(
-        window: W,
-        size: (u32, u32),
-    ) -> Result<Self> {
+    pub async fn new<W: Window<Inner: Into<wgpu::SurfaceTarget<'a>>>>(window: &W) -> Result<Self> {
+        let size = window.size();
+
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
 
         let surface = instance
-            .create_surface(window)
+            .create_surface(window.inner())
             .context("Failed to create surface")?;
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
                 force_fallback_adapter: false,
-                // Request an adapter which can render to our surface
                 compatible_surface: Some(&surface),
             })
             .await
             .context("Failed to find an appropriate adapter")?;
 
-        // Create the logical device and command queue
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
                 required_features: wgpu::Features::empty(),
-                // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
                 required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                     .using_resolution(adapter.limits()),
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
@@ -51,7 +52,7 @@ impl<'a> Surface<'a> {
             adapter,
             device,
             queue,
-            size,
+            size: Rc::new(Cell::new(size)),
             format: caps.formats[0],
         };
 
@@ -62,17 +63,25 @@ impl<'a> Surface<'a> {
     }
 
     fn configure(&self) {
+        let size = self.size.get();
         let surface_config = self
             .inner
-            .get_default_config(&self.adapter, self.size.0, self.size.1)
+            .get_default_config(&self.adapter, size.0, size.1)
             .unwrap();
         self.inner.configure(&self.device, &surface_config);
     }
 
-    pub fn resize(&mut self, new_size: (u32, u32)) {
-        self.size = new_size;
+    fn resize(&self, new_size: (u32, u32)) {
+        self.size.set(new_size);
 
         // Reconfigure the surface
         self.configure();
+    }
+
+    pub fn create_frame<F: CommonFrame>(&self, common: F) -> Result<Frame<'a, '_, F>> {
+        if let Some(new_size) = common.resized() {
+            self.resize(new_size);
+        }
+        Frame::new(self, common)
     }
 }

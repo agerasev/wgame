@@ -9,7 +9,7 @@ use wgame::{
     Runtime,
     app::{WindowAttributes, window::Frame},
 };
-use wgame_common::Frame as _;
+use wgame_common::{Frame as _, Window as _};
 use wgpu::util::DeviceExt;
 
 struct WgpuState<'a> {
