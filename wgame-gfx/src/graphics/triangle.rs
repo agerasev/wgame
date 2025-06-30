@@ -1,4 +1,4 @@
-use glam::Mat2;
+use wgpu::util::DeviceExt;
 
 use crate::object::{Object, Vertices};
 
@@ -20,11 +20,26 @@ impl<'a> Object for Triangle<'a> {
         }
     }
 
-    fn pipeline(&self) -> &wgpu::RenderPipeline {
-        self.pipeline
+    fn create_uniforms(&self, transformation: glam::Mat4) -> wgpu::BindGroup {
+        let device = self.device();
+
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::cast_slice(transformation.as_ref()),
+            usage: wgpu::BufferUsages::UNIFORM, // | wgpu::BufferUsages::COPY_DST,
+        });
+
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.pipeline().get_bind_group_layout(0),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buffer.as_entire_binding(),
+            }],
+            label: None,
+        })
     }
 
-    fn tranformation(&self) -> Mat2 {
-        Mat2::IDENTITY
+    fn pipeline(&self) -> &wgpu::RenderPipeline {
+        self.pipeline
     }
 }

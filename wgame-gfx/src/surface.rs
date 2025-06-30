@@ -62,6 +62,10 @@ impl<'a> Surface<'a> {
         Ok(this)
     }
 
+    pub fn size(&self) -> (u32, u32) {
+        self.size.get()
+    }
+
     fn configure(&self) {
         let size = self.size.get();
         let surface_config = self

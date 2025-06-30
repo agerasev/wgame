@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use glam::Mat4;
 use wgame_common::Frame as CommonFrame;
 
 use crate::{object::Object, surface::Surface};
@@ -41,7 +42,14 @@ impl<F: CommonFrame> Drop for Frame<'_, '_, F> {
 impl<F: CommonFrame> Frame<'_, '_, F> {
     pub fn render<T: Object>(&mut self, object: &T) {
         let vertices = object.vertices();
-        let uniforms = object.uniforms();
+
+        let aspect_ratio = {
+            let (width, height) = self.owner.size();
+            width as f32 / height as f32
+        };
+        let transformation =
+            Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        let bind_group = object.create_uniforms(transformation);
 
         let mut encoder = self
             .owner
@@ -67,7 +75,7 @@ impl<F: CommonFrame> Frame<'_, '_, F> {
             {
                 renderpass.push_debug_group("Prepare data for draw.");
                 renderpass.set_pipeline(object.pipeline());
-                renderpass.set_bind_group(0, &uniforms.bind_group, &[]);
+                renderpass.set_bind_group(0, &bind_group, &[]);
                 renderpass.set_vertex_buffer(0, vertices.buffer.slice(..));
                 renderpass.pop_debug_group();
             }

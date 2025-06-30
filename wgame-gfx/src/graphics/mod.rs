@@ -4,7 +4,7 @@ use std::{borrow::Cow, f32::consts::FRAC_PI_3, mem::offset_of};
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
-use glam::{Mat2, Vec2};
+use glam::{Mat4, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
 use crate::{graphics::triangle::Triangle, surface::Surface};
@@ -12,8 +12,17 @@ use crate::{graphics::triangle::Triangle, surface::Surface};
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Vertex {
-    pos: Vec2,
-    tex_coord: Vec2,
+    pos: [f32; 4],
+    tex_coord: [f32; 2],
+}
+
+impl Vertex {
+    fn new(pos: Vec4, tex_coord: Vec2) -> Self {
+        Self {
+            pos: pos.into(),
+            tex_coord: tex_coord.into(),
+        }
+    }
 }
 
 /// 2D graphics
@@ -35,18 +44,15 @@ impl<'a> Graphics<'a> {
         });
 
         let triangle_vertices = [
-            Vertex {
-                pos: Vec2::new(0.0, 1.0),
-                tex_coord: Vec2::new(0.0, 0.0),
-            },
-            Vertex {
-                pos: Vec2::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos()),
-                tex_coord: Vec2::new(1.0, 0.0),
-            },
-            Vertex {
-                pos: Vec2::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos()),
-                tex_coord: Vec2::new(0.0, 1.0),
-            },
+            Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
+            Vertex::new(
+                Vec4::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos(), 0.0, 1.0),
+                Vec2::new(1.0, 0.0),
+            ),
+            Vertex::new(
+                Vec4::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos(), 0.0, 1.0),
+                Vec2::new(0.0, 1.0),
+            ),
         ];
 
         let triangle_vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -64,7 +70,7 @@ impl<'a> Graphics<'a> {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: wgpu::BufferSize::new(
-                        size_of::<Mat2>() as wgpu::BufferAddress
+                        size_of::<Mat4>() as wgpu::BufferAddress
                     ),
                 },
                 count: None,
@@ -82,7 +88,7 @@ impl<'a> Graphics<'a> {
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &[
                 wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
+                    format: wgpu::VertexFormat::Float32x4,
                     offset: offset_of!(Vertex, pos) as wgpu::BufferAddress,
                     shader_location: 0,
                 },
