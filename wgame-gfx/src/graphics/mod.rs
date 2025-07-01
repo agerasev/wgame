@@ -1,13 +1,17 @@
 pub mod triangle;
 
-use std::{borrow::Cow, f32::consts::FRAC_PI_3, mem::offset_of};
+use std::{borrow::Cow, f32::consts::FRAC_PI_3, mem::offset_of, rc::Rc};
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec2, Vec4};
+use wgame_common::Window;
 use wgpu::util::DeviceExt;
 
-use crate::{graphics::triangle::Triangle, surface::Surface};
+use crate::{
+    graphics::triangle::Triangle,
+    surface::{State, Surface},
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -27,15 +31,19 @@ impl Vertex {
 
 /// 2D graphics
 pub struct Graphics<'a> {
-    device: &'a wgpu::Device,
+    state: Rc<State<'a>>,
     triangle_vertices: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a> Graphics<'a> {
-    pub fn new(surface: &'a Surface<'_>) -> Result<Self> {
-        let device = &surface.device;
-        let swapchain_format = surface.format;
+    pub fn from_surface(surface: &Surface<'a, impl Window>) -> Result<Self> {
+        Self::new(surface.state().clone())
+    }
+
+    fn new(state: Rc<State<'a>>) -> Result<Self> {
+        let device = &state.device;
+        let swapchain_format = state.format;
 
         // Load the shaders from disk
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -123,7 +131,7 @@ impl<'a> Graphics<'a> {
         });
 
         Ok(Self {
-            device,
+            state,
             triangle_vertices,
             pipeline,
         })
@@ -131,7 +139,7 @@ impl<'a> Graphics<'a> {
 
     pub fn triangle(&self) -> Triangle<'_> {
         Triangle {
-            device: self.device,
+            device: &self.state.device,
             vertex_buffer: &self.triangle_vertices,
             pipeline: &self.pipeline,
         }

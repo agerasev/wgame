@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use wgame_app::{Runtime, WindowAttributes, run_main};
+use wgame_common::Window as _;
 
 async fn main_(rt: Runtime) {
     env_logger::init();

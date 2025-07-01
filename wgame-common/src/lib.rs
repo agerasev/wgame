@@ -1,7 +1,13 @@
 pub trait Window {
-    type Inner;
-    fn inner(&self) -> Self::Inner;
+    type Handle;
+    fn handle(&self) -> Self::Handle;
+
     fn size(&self) -> (u32, u32);
+
+    type Frame<'a>: Frame
+    where
+        Self: 'a;
+    fn next_frame(&mut self) -> impl Future<Output = Option<Self::Frame<'_>>>;
 }
 
 pub trait Frame {

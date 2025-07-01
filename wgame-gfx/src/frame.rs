@@ -2,26 +2,26 @@ use anyhow::{Context, Result};
 use glam::Mat4;
 use wgame_common::Frame as CommonFrame;
 
-use crate::{object::Object, surface::Surface};
+use crate::{object::Object, surface::State};
 
 pub struct Frame<'a, 'b, F: CommonFrame> {
-    owner: &'b Surface<'a>,
+    state: &'b State<'a>,
     common: F,
     inner: Option<wgpu::SurfaceTexture>,
     view: wgpu::TextureView,
 }
 
 impl<'a, 'b, F: CommonFrame> Frame<'a, 'b, F> {
-    pub(crate) fn new(owner: &'b Surface<'a>, common: F) -> Result<Self> {
-        let frame = owner
-            .inner
+    pub(crate) fn new(state: &'b State<'a>, common: F) -> Result<Self> {
+        let frame = state
+            .surface
             .get_current_texture()
             .context("Failed to acquire next swap chain texture")?;
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
         Ok(Frame {
-            owner,
+            state,
             common,
             inner: Some(frame),
             view,
@@ -44,7 +44,7 @@ impl<F: CommonFrame> Frame<'_, '_, F> {
         let vertices = object.vertices();
 
         let aspect_ratio = {
-            let (width, height) = self.owner.size();
+            let (width, height) = self.state.size();
             width as f32 / height as f32
         };
         let transformation =
@@ -52,7 +52,7 @@ impl<F: CommonFrame> Frame<'_, '_, F> {
         let bind_group = object.create_uniforms(transformation);
 
         let mut encoder = self
-            .owner
+            .state
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -84,6 +84,6 @@ impl<F: CommonFrame> Frame<'_, '_, F> {
         }
 
         // Submit the command in the queue to execute
-        self.owner.queue.submit(Some(encoder.finish()));
+        self.state.queue.submit(Some(encoder.finish()));
     }
 }

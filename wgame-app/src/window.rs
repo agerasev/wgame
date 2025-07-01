@@ -67,18 +67,6 @@ impl<'a> Window<'a> {
     }
 }
 
-impl<'a> CommonWindow for Window<'a> {
-    type Inner = &'a InnerWindow;
-
-    fn inner(&self) -> Self::Inner {
-        self.inner
-    }
-
-    fn size(&self) -> (u32, u32) {
-        self.inner.inner_size().into()
-    }
-}
-
 pub fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
     app: AppProxy,
     attributes: WindowAttributes,
@@ -102,8 +90,24 @@ pub fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
     Ok((task, proxy))
 }
 
-impl<'a> Window<'a> {
-    pub fn next_frame<'b>(&'b mut self) -> WaitFrame<'a, 'b> {
+impl<'a> CommonWindow for Window<'a> {
+    fn size(&self) -> (u32, u32) {
+        self.inner.inner_size().into()
+    }
+
+    type Handle = &'a InnerWindow;
+
+    fn handle(&self) -> Self::Handle {
+        self.inner
+    }
+
+    type Frame<'b>
+        = Frame<'b>
+    where
+        Self: 'b;
+
+    #[allow(refining_impl_trait)]
+    fn next_frame(&mut self) -> WaitFrame<'a, '_> {
         WaitFrame { owner: Some(self) }
     }
 }
