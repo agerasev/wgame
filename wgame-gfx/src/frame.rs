@@ -3,11 +3,11 @@ use std::rc::Rc;
 use anyhow::{Context, Result};
 use glam::Mat4;
 
-use crate::{object::Object, state::State};
+use crate::{State, object::Object};
 
 pub struct Frame<'a> {
     state: Rc<State<'a>>,
-    surface: Option<wgpu::SurfaceTexture>,
+    surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
 }
 
@@ -22,22 +22,15 @@ impl<'a> Frame<'a> {
             .create_view(&wgpu::TextureViewDescriptor::default());
         Ok(Frame {
             state,
-            surface: Some(surface),
+            surface,
             view,
         })
     }
-}
 
-impl Drop for Frame<'_> {
-    fn drop(&mut self) {
-        self.surface
-            .take()
-            .expect("Inner frame is already taken")
-            .present();
+    pub fn present(self) {
+        self.surface.present()
     }
-}
 
-impl Frame<'_> {
     pub fn render<T: Object>(&self, object: &T) {
         let vertices = object.vertices();
 

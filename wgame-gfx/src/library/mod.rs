@@ -9,7 +9,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::state::State;
+use crate::State;
 
 pub use self::{
     geometry::{Geometry, GeometryExt},

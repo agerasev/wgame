@@ -71,7 +71,7 @@ impl<'a> Window<'a> {
                 }
                 Ok(Some(Frame {
                     app: redraw,
-                    gfx: gfx::Frame::new(self.gfx.clone())?,
+                    gfx: Some(gfx::Frame::new(self.gfx.clone())?),
                 }))
             }
         }
@@ -83,21 +83,20 @@ impl<'a> Window<'a> {
 }
 
 pub struct Frame<'a, 'b> {
-    gfx: gfx::Frame<'a>,
+    gfx: Option<gfx::Frame<'a>>,
     app: app::window::Redraw<'b>,
 }
 
 impl<'a> Deref for Frame<'a, '_> {
     type Target = gfx::Frame<'a>;
     fn deref(&self) -> &Self::Target {
-        &self.gfx
+        self.gfx.as_ref().unwrap()
     }
 }
 
 impl Drop for Frame<'_, '_> {
     fn drop(&mut self) {
         self.app.pre_present();
-        // drop(gfx) -> present()
-        // drop(app) -> request_redraw()
+        self.gfx.take().unwrap().present();
     }
 }
