@@ -4,7 +4,8 @@ use crate::transform::Transformed;
 
 pub struct Vertices<'a> {
     pub count: u32,
-    pub buffer: &'a wgpu::Buffer,
+    pub vertex_buffer: &'a wgpu::Buffer,
+    pub index_buffer: &'a wgpu::Buffer,
 }
 
 pub trait Object {

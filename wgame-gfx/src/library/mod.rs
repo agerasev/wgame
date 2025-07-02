@@ -1,6 +1,6 @@
-mod triangle;
+mod polygon;
 
-use std::{borrow::Cow, f32::consts::FRAC_PI_3, mem::offset_of, rc::Rc};
+use std::{borrow::Cow, mem::offset_of, rc::Rc};
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
@@ -9,7 +9,7 @@ use wgpu::util::DeviceExt;
 
 use crate::state::State;
 
-pub use self::triangle::Triangle;
+pub use self::polygon::Polygon;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -30,7 +30,8 @@ impl Vertex {
 /// 2D graphics library
 pub struct Library<'a> {
     state: Rc<State<'a>>,
-    triangle_vertices: wgpu::Buffer,
+    quad_vertices: wgpu::Buffer,
+    quad_indices: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
 }
 
@@ -45,22 +46,20 @@ impl<'a> Library<'a> {
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
         });
 
-        let triangle_vertices = [
-            Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
-            Vertex::new(
-                Vec4::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos(), 0.0, 1.0),
-                Vec2::new(1.0, 0.0),
-            ),
-            Vertex::new(
-                Vec4::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos(), 0.0, 1.0),
-                Vec2::new(0.0, 1.0),
-            ),
-        ];
-
-        let triangle_vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(&triangle_vertices),
+        let quad_vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("quad_vertices"),
+            contents: bytemuck::cast_slice(&[
+                Vertex::new(Vec4::new(0.0, 0.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
+                Vertex::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
+                Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
+                Vertex::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
+            ]),
             usage: wgpu::BufferUsages::VERTEX,
+        });
+        let quad_indices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("quad_indices"),
+            contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 1, 3]),
+            usage: wgpu::BufferUsages::INDEX,
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -126,15 +125,28 @@ impl<'a> Library<'a> {
 
         Ok(Self {
             state: state.clone(),
-            triangle_vertices,
+            quad_vertices,
+            quad_indices,
             pipeline,
         })
     }
 
-    pub fn triangle(&self) -> Triangle<'_> {
-        Triangle {
+    pub fn triangle(&self) -> Polygon<'_> {
+        Polygon {
+            vertex_count: 3,
             device: &self.state.device,
-            vertex_buffer: &self.triangle_vertices,
+            vertices: &self.quad_vertices,
+            indices: &self.quad_indices,
+            pipeline: &self.pipeline,
+        }
+    }
+
+    pub fn quad(&self) -> Polygon<'_> {
+        Polygon {
+            vertex_count: 4,
+            device: &self.state.device,
+            vertices: &self.quad_vertices,
+            indices: &self.quad_indices,
             pipeline: &self.pipeline,
         }
     }

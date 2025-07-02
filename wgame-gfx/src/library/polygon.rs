@@ -2,21 +2,24 @@ use wgpu::util::DeviceExt;
 
 use crate::object::{Object, Vertices};
 
-pub struct Triangle<'a> {
+pub struct Polygon<'a> {
+    pub(crate) vertex_count: u32,
     pub(crate) device: &'a wgpu::Device,
-    pub(crate) vertex_buffer: &'a wgpu::Buffer,
+    pub(crate) vertices: &'a wgpu::Buffer,
+    pub(crate) indices: &'a wgpu::Buffer,
     pub(crate) pipeline: &'a wgpu::RenderPipeline,
 }
 
-impl<'a> Object for Triangle<'a> {
+impl<'a> Object for Polygon<'a> {
     fn device(&self) -> &wgpu::Device {
         self.device
     }
 
     fn vertices(&self) -> Vertices<'_> {
         Vertices {
-            count: 3,
-            buffer: self.vertex_buffer,
+            count: 3 * (self.vertex_count - 2),
+            vertex_buffer: self.vertices,
+            index_buffer: self.indices,
         }
     }
 
@@ -26,7 +29,7 @@ impl<'a> Object for Triangle<'a> {
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: bytemuck::cast_slice(transformation.as_ref()),
-            usage: wgpu::BufferUsages::UNIFORM, // | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM,
         });
 
         device.create_bind_group(&wgpu::BindGroupDescriptor {

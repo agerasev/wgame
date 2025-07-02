@@ -59,7 +59,6 @@ impl Frame<'_> {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &self.view,
-                    // depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -71,17 +70,18 @@ impl Frame<'_> {
                 occlusion_query_set: None,
             });
             {
-                renderpass.push_debug_group("Prepare data for draw.");
+                renderpass.push_debug_group("prepare");
                 renderpass.set_pipeline(object.pipeline());
                 renderpass.set_bind_group(0, &bind_group, &[]);
-                renderpass.set_vertex_buffer(0, vertices.buffer.slice(..));
+                renderpass.set_vertex_buffer(0, vertices.vertex_buffer.slice(..));
+                renderpass
+                    .set_index_buffer(vertices.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
                 renderpass.pop_debug_group();
             }
-            renderpass.insert_debug_marker("Draw!");
-            renderpass.draw(0..vertices.count, 0..1);
+            renderpass.insert_debug_marker("draw");
+            renderpass.draw_indexed(0..vertices.count, 0, 0..1);
         }
 
-        // Submit the command in the queue to execute
         self.state.queue.submit(Some(encoder.finish()));
     }
 }
