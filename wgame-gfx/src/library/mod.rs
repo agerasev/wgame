@@ -1,17 +1,15 @@
-pub mod triangle;
+mod triangle;
 
 use std::{borrow::Cow, f32::consts::FRAC_PI_3, mem::offset_of, rc::Rc};
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec2, Vec4};
-use wgame_common::Window;
 use wgpu::util::DeviceExt;
 
-use crate::{
-    graphics::triangle::Triangle,
-    surface::{State, Surface},
-};
+use crate::state::State;
+
+pub use self::triangle::Triangle;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -29,19 +27,15 @@ impl Vertex {
     }
 }
 
-/// 2D graphics
-pub struct Graphics<'a> {
+/// 2D graphics library
+pub struct Library<'a> {
     state: Rc<State<'a>>,
     triangle_vertices: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl<'a> Graphics<'a> {
-    pub fn from_surface(surface: &Surface<'a, impl Window>) -> Result<Self> {
-        Self::new(surface.state().clone())
-    }
-
-    fn new(state: Rc<State<'a>>) -> Result<Self> {
+impl<'a> Library<'a> {
+    pub fn new(state: &Rc<State<'a>>) -> Result<Self> {
         let device = &state.device;
         let swapchain_format = state.format;
 
@@ -131,7 +125,7 @@ impl<'a> Graphics<'a> {
         });
 
         Ok(Self {
-            state,
+            state: state.clone(),
             triangle_vertices,
             pipeline,
         })

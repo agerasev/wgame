@@ -5,11 +5,11 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-wgame-common.workspace = true
 wgame-app.workspace = true
 wgame-gfx.workspace = true
 wgame-utils.workspace = true
 wgame-macros.workspace = true
+anyhow.workspace = true
 
 [dev-dependencies]
 futures = { workspace = true, default-features = true }

@@ -1,8 +1,13 @@
 #![forbid(unsafe_code)]
 
-pub mod frame;
-pub mod graphics;
-pub mod object;
-pub mod shader;
-pub mod surface;
-pub mod transform;
+mod frame;
+pub mod library;
+mod object;
+mod shader;
+mod state;
+mod transform;
+
+pub use frame::Frame;
+pub use library::Library;
+pub use object::{Object, ObjectExt};
+pub use state::State;

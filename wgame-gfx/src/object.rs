@@ -7,11 +7,6 @@ pub struct Vertices<'a> {
     pub buffer: &'a wgpu::Buffer,
 }
 
-pub struct Uniforms {
-    pub buffer: wgpu::Buffer,
-    pub bind_group: wgpu::BindGroup,
-}
-
 pub trait Object {
     fn device(&self) -> &wgpu::Device;
 

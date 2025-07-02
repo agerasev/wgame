@@ -28,7 +28,10 @@ impl Runtime {
         Self { app }
     }
 
-    pub fn spawn<T: 'static, F: Future<Output = T> + 'static>(&self, future: F) -> JoinHandle<T> {
+    pub fn create_task<T: 'static, F: Future<Output = T> + 'static>(
+        &self,
+        future: F,
+    ) -> JoinHandle<T> {
         let (task_id, proxy) = self.app.create_task(future);
         JoinHandle {
             task: task_id,
@@ -37,12 +40,12 @@ impl Runtime {
         }
     }
 
-    pub fn sleep(&self, timeout: Duration) -> Timer {
+    pub fn create_timer(&self, timeout: Duration) -> Timer {
         let timestamp = Instant::now().checked_add(timeout).unwrap();
         self.app.timers.borrow_mut().add(timestamp)
     }
 
-    pub async fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
+    pub async fn create_windowed_task<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
         &self,
         attributes: WindowAttributes,
         window_main: F,
@@ -50,7 +53,7 @@ impl Runtime {
         let app = self.app.clone();
         let (task, proxy) = self
             .app
-            .with_event_loop(
+            .run_within_event_loop(
                 move |event_loop| create_window(app, attributes, event_loop, window_main),
                 CallbackTrigger::PollResumed,
             )

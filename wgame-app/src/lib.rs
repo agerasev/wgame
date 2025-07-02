@@ -4,7 +4,7 @@ mod app;
 mod executor;
 mod proxy;
 pub mod runtime;
-mod timer;
+pub mod timer;
 pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};
@@ -16,7 +16,7 @@ macro_rules! run_main {
         fn main() {
             let app = $crate::App::new().unwrap();
             let proxy = app.proxy();
-            proxy.create_task($async_main(Runtime::new(proxy.clone())));
+            proxy.create_task($async_main($crate::Runtime::new(proxy.clone())));
             app.run().unwrap();
         }
     };

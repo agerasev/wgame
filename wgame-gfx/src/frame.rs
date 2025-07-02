@@ -1,46 +1,44 @@
+use std::rc::Rc;
+
 use anyhow::{Context, Result};
 use glam::Mat4;
-use wgame_common::Frame as CommonFrame;
 
-use crate::{object::Object, surface::State};
+use crate::{object::Object, state::State};
 
-pub struct Frame<'a, 'b, F: CommonFrame> {
-    state: &'b State<'a>,
-    common: F,
-    inner: Option<wgpu::SurfaceTexture>,
+pub struct Frame<'a> {
+    state: Rc<State<'a>>,
+    surface: Option<wgpu::SurfaceTexture>,
     view: wgpu::TextureView,
 }
 
-impl<'a, 'b, F: CommonFrame> Frame<'a, 'b, F> {
-    pub(crate) fn new(state: &'b State<'a>, common: F) -> Result<Self> {
-        let frame = state
+impl<'a> Frame<'a> {
+    pub fn new(state: Rc<State<'a>>) -> Result<Self> {
+        let surface = state
             .surface
             .get_current_texture()
             .context("Failed to acquire next swap chain texture")?;
-        let view = frame
+        let view = surface
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
         Ok(Frame {
             state,
-            common,
-            inner: Some(frame),
+            surface: Some(surface),
             view,
         })
     }
 }
 
-impl<F: CommonFrame> Drop for Frame<'_, '_, F> {
+impl Drop for Frame<'_> {
     fn drop(&mut self) {
-        self.common.pre_present();
-        self.inner
+        self.surface
             .take()
             .expect("Inner frame is already taken")
             .present();
     }
 }
 
-impl<F: CommonFrame> Frame<'_, '_, F> {
-    pub fn render<T: Object>(&mut self, object: &T) {
+impl Frame<'_> {
+    pub fn render<T: Object>(&self, object: &T) {
         let vertices = object.vertices();
 
         let aspect_ratio = {

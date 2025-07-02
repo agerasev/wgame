@@ -1,12 +1,5 @@
 [workspace]
-members = [
-    "wgame",
-    "wgame-common",
-    "wgame-app",
-    "wgame-gfx",
-    "wgame-utils",
-    "wgame-macros",
-]
+members = ["wgame", "wgame-app", "wgame-gfx", "wgame-utils", "wgame-macros"]
 resolver = "3"
 
 [workspace.package]
@@ -15,7 +8,6 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
-wgame-common = { version = "0.1.0", path = "wgame-common" }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }

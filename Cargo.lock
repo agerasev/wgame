@@ -2108,12 +2108,12 @@ dependencies = [
 name = "wgame"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bytemuck",
  "env_logger",
  "futures",
  "glam",
  "wgame-app",
- "wgame-common",
  "wgame-gfx",
  "wgame-macros",
  "wgame-utils",
@@ -2129,13 +2129,8 @@ dependencies = [
  "futures",
  "fxhash",
  "log",
- "wgame-common",
  "winit",
 ]
-
-[[package]]
-name = "wgame-common"
-version = "0.1.0"
 
 [[package]]
 name = "wgame-gfx"
@@ -2146,7 +2141,6 @@ dependencies = [
  "fxhash",
  "glam",
  "log",
- "wgame-common",
  "wgpu",
 ]
 
