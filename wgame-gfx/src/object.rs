@@ -8,16 +8,13 @@ pub struct Vertices<'a> {
 
 pub trait Object {
     fn vertices(&self) -> Vertices<'_>;
-    fn create_uniforms(&self, transformation: Mat4) -> wgpu::BindGroup;
+    fn create_uniforms(&self, xform: Mat4) -> wgpu::BindGroup;
     fn pipeline(&self) -> &wgpu::RenderPipeline;
 }
 
 pub trait ObjectExt: Object + Sized {
-    fn transform(self, transformation: Mat4) -> Transformed<Self> {
-        Transformed {
-            inner: self,
-            transformation,
-        }
+    fn transform(self, xform: Mat4) -> Transformed<Self> {
+        Transformed { inner: self, xform }
     }
 }
 
@@ -25,7 +22,7 @@ impl<T: Object> ObjectExt for T {}
 
 pub struct Transformed<T> {
     pub inner: T,
-    pub transformation: Mat4,
+    pub xform: Mat4,
 }
 
 impl<T: Object> Object for Transformed<T> {
@@ -33,9 +30,8 @@ impl<T: Object> Object for Transformed<T> {
         self.inner.vertices()
     }
 
-    fn create_uniforms(&self, transformation: Mat4) -> wgpu::BindGroup {
-        self.inner
-            .create_uniforms(transformation * self.transformation)
+    fn create_uniforms(&self, xform: Mat4) -> wgpu::BindGroup {
+        self.inner.create_uniforms(xform * self.xform)
     }
 
     fn pipeline(&self) -> &wgpu::RenderPipeline {

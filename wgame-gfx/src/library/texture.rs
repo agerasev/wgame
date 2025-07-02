@@ -1,14 +1,17 @@
 use std::rc::Rc;
 
+use glam::Affine2;
+
 use crate::State;
 
 #[derive(Clone)]
 pub struct Texture<'a> {
-    pub state: Rc<State<'a>>,
-    pub extent: wgpu::Extent3d,
-    pub texture: wgpu::Texture,
-    pub view: wgpu::TextureView,
-    pub sampler: wgpu::Sampler,
+    pub(crate) state: Rc<State<'a>>,
+    pub(crate) extent: wgpu::Extent3d,
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) view: wgpu::TextureView,
+    pub(crate) sampler: wgpu::Sampler,
+    pub(crate) xform: Affine2,
 }
 
 impl<'a> Texture<'a> {
@@ -42,6 +45,14 @@ impl<'a> Texture<'a> {
             texture,
             view,
             sampler,
+            xform: Affine2::IDENTITY,
+        }
+    }
+
+    pub fn transform(self, xform: Affine2) -> Self {
+        Self {
+            xform: xform * self.xform,
+            ..self
         }
     }
 

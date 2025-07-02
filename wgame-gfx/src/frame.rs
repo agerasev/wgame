@@ -38,9 +38,8 @@ impl<'a> Frame<'a> {
             let (width, height) = self.state.size();
             width as f32 / height as f32
         };
-        let transformation =
-            Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
-        let bind_group = object.create_uniforms(transformation);
+        let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        let bind_group = object.create_uniforms(xform);
 
         let mut encoder = self
             .state

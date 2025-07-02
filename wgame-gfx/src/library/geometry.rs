@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use glam::{Mat4, Vec4};
+use glam::{Affine2, Mat4, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
 use crate::{Object, State, Transformed, object::Vertices};
@@ -14,11 +14,8 @@ pub trait Geometry<'a> {
 }
 
 pub trait GeometryExt<'a>: Geometry<'a> + Sized {
-    fn transform(self, transformation: Mat4) -> Transformed<Self> {
-        Transformed {
-            inner: self,
-            transformation,
-        }
+    fn transform(self, xform: Mat4) -> Transformed<Self> {
+        Transformed { inner: self, xform }
     }
 
     fn color(self, rgba: Vec4) -> Textured<'a, Self> {
@@ -37,7 +34,12 @@ pub trait GeometryExt<'a>: Geometry<'a> + Sized {
             (2, 2),
             wgpu::TextureFormat::Rgba32Float,
             bytemuck::cast_slice(&colors),
-        );
+        )
+        .transform(Affine2::from_scale_angle_translation(
+            Vec2::new(0.5, 0.5),
+            0.0,
+            Vec2::new(0.25, 0.25),
+        ));
         self.texture(pixels_2x2)
     }
 
@@ -75,27 +77,36 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
         self.geometry.vertices()
     }
 
-    fn create_uniforms(&self, transformation: Mat4) -> wgpu::BindGroup {
+    fn create_uniforms(&self, xform: Mat4) -> wgpu::BindGroup {
         let device = &self.geometry.state().device;
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("transformation"),
-            contents: bytemuck::cast_slice(transformation.as_ref()),
+        let xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("transform"),
+            contents: bytemuck::cast_slice(xform.as_ref()),
             usage: wgpu::BufferUsages::UNIFORM,
         });
-
+        let tex_xform = self.texture.xform.to_cols_array_2d();
+        let text_xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("tex_transform"),
+            contents: bytemuck::cast_slice(&tex_xform),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.pipeline().get_bind_group_layout(0),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: buffer.as_entire_binding(),
+                    resource: xform_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&self.texture.view),
+                    resource: text_xform_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
+                    resource: wgpu::BindingResource::TextureView(&self.texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
                     resource: wgpu::BindingResource::Sampler(&self.texture.sampler),
                 },
             ],
