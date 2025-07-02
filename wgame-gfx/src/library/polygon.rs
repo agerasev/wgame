@@ -1,18 +1,20 @@
-use wgpu::util::DeviceExt;
+use std::rc::Rc;
 
-use crate::object::{Object, Vertices};
+use crate::{State, object::Vertices};
 
-pub struct Polygon<'a> {
+use super::Geometry;
+
+pub struct Polygon<'a, 'b> {
     pub(crate) vertex_count: u32,
-    pub(crate) device: &'a wgpu::Device,
-    pub(crate) vertices: &'a wgpu::Buffer,
-    pub(crate) indices: &'a wgpu::Buffer,
-    pub(crate) pipeline: &'a wgpu::RenderPipeline,
+    pub(crate) state: &'b Rc<State<'a>>,
+    pub(crate) vertices: &'b wgpu::Buffer,
+    pub(crate) indices: &'b wgpu::Buffer,
+    pub(crate) pipeline: &'b wgpu::RenderPipeline,
 }
 
-impl<'a> Object for Polygon<'a> {
-    fn device(&self) -> &wgpu::Device {
-        self.device
+impl<'a> Geometry<'a> for Polygon<'a, '_> {
+    fn state(&self) -> &Rc<State<'a>> {
+        self.state
     }
 
     fn vertices(&self) -> Vertices<'_> {
@@ -21,25 +23,6 @@ impl<'a> Object for Polygon<'a> {
             vertex_buffer: self.vertices,
             index_buffer: self.indices,
         }
-    }
-
-    fn create_uniforms(&self, transformation: glam::Mat4) -> wgpu::BindGroup {
-        let device = self.device();
-
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(transformation.as_ref()),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.pipeline().get_bind_group_layout(0),
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: buffer.as_entire_binding(),
-            }],
-            label: None,
-        })
     }
 
     fn pipeline(&self) -> &wgpu::RenderPipeline {

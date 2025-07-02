@@ -1,4 +1,6 @@
+mod geometry;
 mod polygon;
+mod texture;
 
 use std::{borrow::Cow, mem::offset_of, rc::Rc};
 
@@ -9,7 +11,11 @@ use wgpu::util::DeviceExt;
 
 use crate::state::State;
 
-pub use self::polygon::Polygon;
+pub use self::{
+    geometry::{Geometry, GeometryExt},
+    polygon::Polygon,
+    texture::Texture,
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -43,7 +49,7 @@ impl<'a> Library<'a> {
         // Load the shaders from disk
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders.wgsl"))),
         });
 
         let quad_vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -64,18 +70,36 @@ impl<'a> Library<'a> {
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new(
-                        size_of::<Mat4>() as wgpu::BufferAddress
-                    ),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(
+                            size_of::<Mat4>() as wgpu::BufferAddress
+                        ),
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
         });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -131,20 +155,20 @@ impl<'a> Library<'a> {
         })
     }
 
-    pub fn triangle(&self) -> Polygon<'_> {
+    pub fn triangle(&self) -> Polygon<'a, '_> {
         Polygon {
             vertex_count: 3,
-            device: &self.state.device,
+            state: &self.state,
             vertices: &self.quad_vertices,
             indices: &self.quad_indices,
             pipeline: &self.pipeline,
         }
     }
 
-    pub fn quad(&self) -> Polygon<'_> {
+    pub fn quad(&self) -> Polygon<'a, '_> {
         Polygon {
             vertex_count: 4,
-            device: &self.state.device,
+            state: &self.state,
             vertices: &self.quad_vertices,
             indices: &self.quad_indices,
             pipeline: &self.pipeline,
