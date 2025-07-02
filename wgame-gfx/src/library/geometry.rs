@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
-use glam::{Affine2, Mat4, Vec2, Vec4};
+use glam::{Affine2, Mat4, Vec2};
+use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
 use crate::{Object, State, Transformed, object::Vertices};
@@ -18,7 +19,7 @@ pub trait GeometryExt<'a>: Geometry<'a> + Sized {
         Transformed { inner: self, xform }
     }
 
-    fn color(self, rgba: Vec4) -> Textured<'a, Self> {
+    fn color(self, rgba: Rgba<f32>) -> Textured<'a, Self> {
         let pixel = Texture::with_data(
             self.state(),
             (1, 1),
@@ -28,7 +29,7 @@ pub trait GeometryExt<'a>: Geometry<'a> + Sized {
         self.texture(pixel)
     }
 
-    fn gradient(self, colors: [[Vec4; 2]; 2]) -> Textured<'a, Self> {
+    fn gradient(self, colors: [[Rgba<f32>; 2]; 2]) -> Textured<'a, Self> {
         let pixels_2x2 = Texture::with_data(
             self.state(),
             (2, 2),

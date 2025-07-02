@@ -1,6 +1,7 @@
 use std::{f32::consts::PI, time::Instant};
 
-use glam::{Mat4, Vec4};
+use glam::Mat4;
+use rgb::Rgba;
 use wgame::{
     Runtime, WindowConfig,
     gfx::{self, ObjectExt},
@@ -18,8 +19,11 @@ async fn main(rt: Runtime) {
         .create_window(WindowConfig::default(), async move |mut window| {
             let gfx = gfx::Library::new(window.graphics())?;
             let colors = [
-                [Vec4::new(0.0, 0.0, 1.0, 1.0), Vec4::new(0.0, 1.0, 0.0, 1.0)],
-                [Vec4::new(1.0, 0.0, 0.0, 1.0), Vec4::new(1.0, 1.0, 0.0, 1.0)],
+                [Rgba::new(0.0, 0.0, 1.0, 1.0), Rgba::new(1.0, 0.0, 0.0, 1.0)],
+                [
+                    Rgba::new(0.0, 1.0, 0.0, 1.0),
+                    Rgba::new(1.0, 1.0, -1.0, 1.0),
+                ],
             ];
             let start_time = Instant::now();
             let mut fps = FrameCounter::default();

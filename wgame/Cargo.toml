@@ -16,5 +16,6 @@ futures = { workspace = true, default-features = true }
 winit = { workspace = true, default-features = true }
 wgpu = { workspace = true, default-features = true }
 env_logger.workspace = true
-bytemuck = "1.23.1"
-glam = "0.30.4"
+bytemuck.workspace = true
+glam.workspace = true
+rgb.workspace = true

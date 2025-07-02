@@ -15,6 +15,9 @@ wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 winit = { version = "0.30.11", default-features = false }
 wgpu = { version = "25.0.2", default-features = false }
+bytemuck = "1.23.1"
+glam = { version = "0.30.4", features = ["bytemuck"] }
+rgb = { version = "0.8.50", default-features = false, features = ["bytemuck"] }
 fxhash = "0.2.1"
 anyhow = "1.0.98"
 log = "0.4.27"

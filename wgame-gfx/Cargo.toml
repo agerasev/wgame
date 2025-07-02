@@ -9,5 +9,6 @@ wgpu.workspace = true
 fxhash.workspace = true
 anyhow.workspace = true
 log.workspace = true
-bytemuck = "1.23.1"
-glam = { version = "0.30.4", features = ["bytemuck"] }
+bytemuck.workspace = true
+glam.workspace = true
+rgb.workspace = true
