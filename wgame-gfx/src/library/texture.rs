@@ -1,12 +1,10 @@
-use std::rc::Rc;
-
 use glam::Affine2;
 
-use crate::State;
+use crate::SharedState;
 
 #[derive(Clone)]
 pub struct Texture<'a> {
-    pub(crate) state: Rc<State<'a>>,
+    pub(crate) state: SharedState<'a>,
     pub(crate) extent: wgpu::Extent3d,
     pub(crate) texture: wgpu::Texture,
     pub(crate) view: wgpu::TextureView,
@@ -15,7 +13,7 @@ pub struct Texture<'a> {
 }
 
 impl<'a> Texture<'a> {
-    pub fn new(state: &Rc<State<'a>>, size: (u32, u32), format: wgpu::TextureFormat) -> Self {
+    pub fn new(state: &SharedState<'a>, size: (u32, u32), format: wgpu::TextureFormat) -> Self {
         let extent = wgpu::Extent3d {
             width: size.0,
             height: size.1,
@@ -78,7 +76,7 @@ impl<'a> Texture<'a> {
     }
 
     pub fn with_data(
-        state: &Rc<State<'a>>,
+        state: &SharedState<'a>,
         size: (u32, u32),
         format: wgpu::TextureFormat,
         data: &[u8],

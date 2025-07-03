@@ -2,14 +2,14 @@ mod geometry;
 mod polygon;
 mod texture;
 
-use std::{borrow::Cow, mem::offset_of, rc::Rc};
+use std::{borrow::Cow, mem::offset_of};
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::State;
+use crate::SharedState;
 
 pub use self::{
     geometry::{Geometry, GeometryExt},
@@ -35,14 +35,14 @@ impl Vertex {
 
 /// 2D graphics library
 pub struct Library<'a> {
-    state: Rc<State<'a>>,
+    state: SharedState<'a>,
     quad_vertices: wgpu::Buffer,
     quad_indices: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a> Library<'a> {
-    pub fn new(state: &Rc<State<'a>>) -> Result<Self> {
+    pub fn new(state: &SharedState<'a>) -> Result<Self> {
         let device = &state.device;
         let swapchain_format = state.format;
 

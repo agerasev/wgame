@@ -1,18 +1,16 @@
-use std::rc::Rc;
-
 use glam::{Affine2, Mat4, Vec2};
 use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    Object, State, Transformed,
+    Object, SharedState, Transformed,
     object::{Uniforms, Vertices},
 };
 
 use super::Texture;
 
 pub trait Geometry<'a> {
-    fn state(&self) -> &Rc<State<'a>>;
+    fn state(&self) -> &SharedState<'a>;
     fn vertices(&self) -> Vertices;
     fn transformation(&self) -> Mat4;
     fn pipeline(&self) -> wgpu::RenderPipeline;
@@ -59,7 +57,7 @@ pub trait GeometryExt<'a>: Geometry<'a> + Sized {
 impl<'a, T: Geometry<'a>> GeometryExt<'a> for T {}
 
 impl<'a, T: Geometry<'a>> Geometry<'a> for Transformed<T> {
-    fn state(&self) -> &Rc<State<'a>> {
+    fn state(&self) -> &SharedState<'a> {
         self.inner.state()
     }
 

@@ -1,18 +1,16 @@
-use std::rc::Rc;
-
 use anyhow::{Context, Result};
 use glam::Mat4;
 
-use crate::{State, object::Object};
+use crate::{SharedState, object::Object};
 
 pub struct Frame<'a> {
-    state: Rc<State<'a>>,
+    state: SharedState<'a>,
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
 }
 
 impl<'a> Frame<'a> {
-    pub fn new(state: Rc<State<'a>>) -> Result<Self> {
+    pub(crate) fn new(state: SharedState<'a>) -> Result<Self> {
         let surface = state
             .surface
             .get_current_texture()

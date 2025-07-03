@@ -12,6 +12,8 @@ use std::{cell::Cell, rc::Rc};
 
 use anyhow::{Context, Result};
 
+pub type SharedState<'a> = Rc<State<'a>>;
+
 pub struct State<'a> {
     surface: wgpu::Surface<'a>,
     adapter: wgpu::Adapter,
@@ -86,5 +88,9 @@ impl<'a> State<'a> {
     pub fn resize(&self, new_size: (u32, u32)) {
         self.size.set(new_size);
         self.configure();
+    }
+
+    pub fn frame(self: &Rc<Self>) -> Result<Frame<'a>> {
+        Frame::new(self.clone())
     }
 }

@@ -1,20 +1,18 @@
-use std::rc::Rc;
-
 use glam::{Affine3A, Mat3, Mat4, Vec2, Vec3};
 
-use crate::{State, Transformed, object::Vertices};
+use crate::{SharedState, Transformed, object::Vertices};
 
 use super::{Geometry, GeometryExt};
 
 pub struct Polygon<'a, const N: u32> {
-    pub(crate) state: Rc<State<'a>>,
+    pub(crate) state: SharedState<'a>,
     pub(crate) vertices: wgpu::Buffer,
     pub(crate) indices: Option<wgpu::Buffer>,
     pub(crate) pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a, const N: u32> Geometry<'a> for Polygon<'a, N> {
-    fn state(&self) -> &Rc<State<'a>> {
+    fn state(&self) -> &SharedState<'a> {
         &self.state
     }
 

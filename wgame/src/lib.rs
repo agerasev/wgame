@@ -51,7 +51,7 @@ impl Runtime {
 }
 
 pub struct Window<'a> {
-    gfx: Rc<gfx::State<'a>>,
+    gfx: gfx::SharedState<'a>,
     app: app::Window<'a>,
 }
 
@@ -71,7 +71,7 @@ impl<'a> Window<'a> {
                 }
                 Ok(Some(Frame {
                     app: redraw,
-                    gfx: Some(gfx::Frame::new(self.gfx.clone())?),
+                    gfx: Some(self.gfx.frame()?),
                 }))
             }
         }
