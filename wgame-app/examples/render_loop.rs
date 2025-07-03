@@ -6,15 +6,15 @@ async fn main_(rt: Runtime) {
     env_logger::init();
     println!("Started");
 
-    rt.create_window(WindowAttributes::default(), {
+    rt.create_windowed_task(WindowAttributes::default(), {
         let rt = rt.clone();
         async move |mut window| {
             println!("Window created");
             let mut counter = 0;
-            while let Some(_frame) = window.next_frame().await {
+            while let Some(_) = window.request_redraw().await {
                 println!("Rendered frame #{counter}");
                 counter += 1;
-                rt.sleep(Duration::from_millis(100)).await;
+                rt.create_timer(Duration::from_millis(100)).await;
             }
         }
     })

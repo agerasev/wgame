@@ -1,0 +1,14 @@
+[package]
+name = "wgame-gfx"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+wgpu.workspace = true
+fxhash.workspace = true
+anyhow.workspace = true
+log.workspace = true
+bytemuck.workspace = true
+glam.workspace = true
+rgb.workspace = true

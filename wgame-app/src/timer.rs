@@ -46,7 +46,7 @@ impl Ord for Timer {
 }
 
 #[derive(Default)]
-pub struct TimerQueue {
+pub(crate) struct TimerQueue {
     queue: BinaryHeap<Reverse<Timer>>,
 }
 

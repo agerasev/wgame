@@ -127,6 +127,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.98"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+
+[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -641,6 +647,9 @@ name = "glam"
 version = "0.30.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50a99dbe56b72736564cfa4b85bf9a33079f16ae8b74983ab06af3b1a3696b11"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "glow"
@@ -1527,6 +1536,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
+name = "rgb"
+version = "0.8.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57397d16646700483b67d2dd6511d79318f9d057fdbd21a4066aeac8b41d310a"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2099,12 +2117,14 @@ dependencies = [
 name = "wgame"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bytemuck",
  "env_logger",
  "futures",
  "glam",
+ "rgb",
  "wgame-app",
- "wgame-common",
+ "wgame-gfx",
  "wgame-macros",
  "wgame-utils",
  "wgpu",
@@ -2119,13 +2139,21 @@ dependencies = [
  "futures",
  "fxhash",
  "log",
- "wgame-common",
  "winit",
 ]
 
 [[package]]
-name = "wgame-common"
+name = "wgame-gfx"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "fxhash",
+ "glam",
+ "log",
+ "rgb",
+ "wgpu",
+]
 
 [[package]]
 name = "wgame-macros"

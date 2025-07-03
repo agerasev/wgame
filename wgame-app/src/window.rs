@@ -12,7 +12,7 @@ use winit::{
     error::OsError,
     event::WindowEvent,
     event_loop::ActiveEventLoop,
-    window::{Window as InnerWindow, WindowAttributes},
+    window::{Window as WindowHandle, WindowAttributes},
 };
 
 use crate::{
@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct WindowState {
+pub(crate) struct WindowState {
     pub waker: Option<Waker>,
     pub resized: Option<PhysicalSize<u32>>,
     pub redraw_requested: bool,
@@ -56,34 +56,30 @@ impl WindowState {
 }
 
 pub struct Window<'a> {
-    inner: &'a InnerWindow,
+    handle: &'a WindowHandle,
     state: Rc<RefCell<WindowState>>,
 }
 
 impl<'a> Window<'a> {
-    fn new(inner: &'a InnerWindow, state: Rc<RefCell<WindowState>>) -> Self {
-        Self { inner, state }
-    }
-
-    pub fn inner(&self) -> &'a InnerWindow {
-        self.inner
+    fn new(handle: &'a WindowHandle, state: Rc<RefCell<WindowState>>) -> Self {
+        Self { handle, state }
     }
 }
 
-pub fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
+pub(crate) fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
     app: AppProxy,
     attributes: WindowAttributes,
     event_loop: &ActiveEventLoop,
     window_main: F,
 ) -> Result<(TaskId, SharedCallState<T>), OsError> {
-    let raw = event_loop.create_window(attributes)?;
-    let id = raw.id();
+    let handle = event_loop.create_window(attributes)?;
+    let id = handle.id();
     let state = Rc::new(RefCell::new(WindowState::default()));
     let weak = Rc::downgrade(&state);
     let (task, proxy) = app.create_task({
         let app = app.clone();
         async move {
-            let window = Window::new(&raw, state.clone());
+            let window = Window::new(&handle, state.clone());
             let result = window_main(window).await;
             app.state.borrow_mut().remove_window(id);
             result
@@ -94,17 +90,25 @@ pub fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
 }
 
 impl<'a> Window<'a> {
-    pub fn next_frame<'b>(&'b mut self) -> WaitFrame<'a, 'b> {
-        WaitFrame { owner: Some(self) }
+    pub fn size(&self) -> (u32, u32) {
+        self.handle.inner_size().into()
+    }
+
+    pub fn handle(&self) -> &'a WindowHandle {
+        self.handle
+    }
+
+    pub fn request_redraw(&mut self) -> WaitRedraw<'a, '_> {
+        WaitRedraw { owner: Some(self) }
     }
 }
 
-pub struct WaitFrame<'a, 'b> {
+pub struct WaitRedraw<'a, 'b> {
     owner: Option<&'b mut Window<'a>>,
 }
 
-impl<'a, 'b> Future for WaitFrame<'a, 'b> {
-    type Output = Option<Frame<'b>>;
+impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
+    type Output = Option<Redraw<'b>>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let owner = match self.owner.take() {
@@ -126,8 +130,8 @@ impl<'a, 'b> Future for WaitFrame<'a, 'b> {
 
         if mem::take(&mut state.redraw_requested) {
             drop(state);
-            Poll::Ready(Some(Frame {
-                inner: owner.inner,
+            Poll::Ready(Some(Redraw {
+                handle: owner.handle,
                 resized,
             }))
         } else {
@@ -139,29 +143,29 @@ impl<'a, 'b> Future for WaitFrame<'a, 'b> {
     }
 }
 
-impl<'a, 'b> FusedFuture for WaitFrame<'a, 'b> {
+impl<'a, 'b> FusedFuture for WaitRedraw<'a, 'b> {
     fn is_terminated(&self) -> bool {
         self.owner.is_none()
     }
 }
 
-pub struct Frame<'b> {
-    inner: &'b InnerWindow,
+pub struct Redraw<'b> {
+    handle: &'b WindowHandle,
     resized: Option<PhysicalSize<u32>>,
 }
 
-impl wgame_common::Frame for Frame<'_> {
-    fn resized(&self) -> Option<(u32, u32)> {
+impl Redraw<'_> {
+    pub fn resized(&self) -> Option<(u32, u32)> {
         self.resized.as_ref().copied().map(|s| s.into())
     }
 
-    fn pre_present(&mut self) {
-        self.inner.pre_present_notify();
+    pub fn pre_present(&mut self) {
+        self.handle.pre_present_notify();
     }
 }
 
-impl<'b> Drop for Frame<'b> {
+impl<'b> Drop for Redraw<'b> {
     fn drop(&mut self) {
-        self.inner.request_redraw();
+        self.handle.request_redraw();
     }
 }

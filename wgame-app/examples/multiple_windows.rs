@@ -6,9 +6,9 @@ async fn main_(rt: Runtime) {
     println!("Started");
 
     async fn make_window_and_wait_closed(rt: &Runtime, index: usize) {
-        rt.create_window(WindowAttributes::default(), async move |mut window| {
+        rt.create_windowed_task(WindowAttributes::default(), async move |mut window| {
             println!("Window #{index} created");
-            while let Some(_frame) = window.next_frame().await {}
+            while let Some(_) = window.request_redraw().await {}
         })
         .await
         .unwrap()

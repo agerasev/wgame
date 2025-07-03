@@ -5,11 +5,7 @@ use std::{
 };
 
 use bytemuck::{Pod, Zeroable};
-use wgame::{
-    Runtime,
-    app::{WindowAttributes, window::Frame},
-};
-use wgame_common::Frame as _;
+use wgame_app::{Runtime, WindowAttributes, window::Redraw};
 use wgame_utils::FrameCounter;
 use wgpu::util::DeviceExt;
 
@@ -89,13 +85,13 @@ impl<'a> WgpuState<'a> {
 
 struct WgpuFrame<'a, 'b, 'c> {
     state: &'b mut WgpuState<'a>,
-    inner: Frame<'c>,
+    inner: Redraw<'c>,
     frame: Option<wgpu::SurfaceTexture>,
     view: wgpu::TextureView,
 }
 
 impl<'a> WgpuState<'a> {
-    fn create_frame<'b, 'c>(&'b mut self, inner: Frame<'c>) -> WgpuFrame<'a, 'b, 'c> {
+    fn create_frame<'b, 'c>(&'b mut self, inner: Redraw<'c>) -> WgpuFrame<'a, 'b, 'c> {
         if let Some(new_size) = inner.resized() {
             self.resize(new_size);
         }
@@ -303,16 +299,15 @@ impl TriangleScene {
     }
 }
 
-#[wgame::main]
-async fn main(rt: Runtime) {
+async fn main_(rt: Runtime) {
     env_logger::init();
     println!("Started");
 
     rt.clone()
-        .create_window(WindowAttributes::default(), async move |mut window| {
+        .create_windowed_task(WindowAttributes::default(), async move |mut window| {
             println!("Window created");
 
-            let mut state = WgpuState::new(window.inner()).await;
+            let mut state = WgpuState::new(window.handle()).await;
             println!("Surface created");
 
             let mut scene = TriangleScene::new(&state);
@@ -320,7 +315,7 @@ async fn main(rt: Runtime) {
 
             let start_time = Instant::now();
             let mut fps = FrameCounter::default();
-            while let Some(frame) = window.next_frame().await {
+            while let Some(frame) = window.request_redraw().await {
                 let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
                 let frame = state.create_frame(frame);
                 scene.render(&frame, angle);
@@ -332,3 +327,5 @@ async fn main(rt: Runtime) {
         .await;
     println!("Closed");
 }
+
+wgame_app::run_main!(main_);
