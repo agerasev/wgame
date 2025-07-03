@@ -14,6 +14,7 @@ use super::Texture;
 pub trait Geometry<'a> {
     fn state(&self) -> &Rc<State<'a>>;
     fn vertices(&self) -> Vertices;
+    fn transformation(&self) -> Mat4;
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
@@ -66,6 +67,10 @@ impl<'a, T: Geometry<'a>> Geometry<'a> for Transformed<T> {
         self.inner.vertices()
     }
 
+    fn transformation(&self) -> Mat4 {
+        self.xform * self.inner.transformation()
+    }
+
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.inner.pipeline()
     }
@@ -83,9 +88,10 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
 
     fn create_uniforms(&self, xform: Mat4) -> Uniforms {
         let device = &self.geometry.state().device;
+        let final_xform = xform * self.geometry.transformation();
         let xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("transform"),
-            contents: bytemuck::cast_slice(xform.as_ref()),
+            contents: bytemuck::cast_slice(final_xform.as_ref()),
             usage: wgpu::BufferUsages::UNIFORM,
         });
         let tex_xform = self.texture.xform.to_cols_array_2d();

@@ -175,9 +175,8 @@ impl<'a> Library<'a> {
         })
     }
 
-    pub fn triangle(&self) -> Polygon<'a> {
+    pub fn triangle(&self) -> Polygon<'a, 3> {
         Polygon {
-            vertex_count: 3,
             state: self.state.clone(),
             vertices: self.quad_vertices.clone(),
             indices: None,
@@ -185,9 +184,8 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn quad(&self) -> Polygon<'a> {
+    pub fn quad(&self) -> Polygon<'a, 4> {
         Polygon {
-            vertex_count: 4,
             state: self.state.clone(),
             vertices: self.quad_vertices.clone(),
             indices: Some(self.quad_indices.clone()),
