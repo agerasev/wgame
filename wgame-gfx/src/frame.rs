@@ -63,15 +63,20 @@ impl<'a> Frame<'a> {
             });
             {
                 renderpass.push_debug_group("prepare");
-                renderpass.set_pipeline(object.pipeline());
+                renderpass.set_pipeline(&object.pipeline());
                 renderpass.set_bind_group(0, &bind_group, &[]);
                 renderpass.set_vertex_buffer(0, vertices.vertex_buffer.slice(..));
-                renderpass
-                    .set_index_buffer(vertices.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                if let Some(index_buffer) = &vertices.index_buffer {
+                    renderpass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                }
                 renderpass.pop_debug_group();
             }
             renderpass.insert_debug_marker("draw");
-            renderpass.draw_indexed(0..vertices.count, 0, 0..1);
+            if vertices.index_buffer.is_some() {
+                renderpass.draw_indexed(0..vertices.count, 0, 0..1);
+            } else {
+                renderpass.draw(0..vertices.count, 0..1);
+            }
         }
 
         self.state.queue.submit(Some(encoder.finish()));

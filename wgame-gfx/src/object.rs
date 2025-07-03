@@ -1,15 +1,15 @@
 use glam::Mat4;
 
-pub struct Vertices<'a> {
+pub struct Vertices {
     pub count: u32,
-    pub vertex_buffer: &'a wgpu::Buffer,
-    pub index_buffer: &'a wgpu::Buffer,
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: Option<wgpu::Buffer>,
 }
 
 pub trait Object {
-    fn vertices(&self) -> Vertices<'_>;
+    fn vertices(&self) -> Vertices;
     fn create_uniforms(&self, xform: Mat4) -> wgpu::BindGroup;
-    fn pipeline(&self) -> &wgpu::RenderPipeline;
+    fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
 pub trait ObjectExt: Object + Sized {
@@ -26,7 +26,7 @@ pub struct Transformed<T> {
 }
 
 impl<T: Object> Object for Transformed<T> {
-    fn vertices(&self) -> Vertices<'_> {
+    fn vertices(&self) -> Vertices {
         self.inner.vertices()
     }
 
@@ -34,7 +34,7 @@ impl<T: Object> Object for Transformed<T> {
         self.inner.create_uniforms(xform * self.xform)
     }
 
-    fn pipeline(&self) -> &wgpu::RenderPipeline {
+    fn pipeline(&self) -> wgpu::RenderPipeline {
         self.inner.pipeline()
     }
 }

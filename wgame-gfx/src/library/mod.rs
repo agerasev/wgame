@@ -167,23 +167,23 @@ impl<'a> Library<'a> {
         })
     }
 
-    pub fn triangle(&self) -> Polygon<'a, '_> {
+    pub fn triangle(&self) -> Polygon<'a> {
         Polygon {
             vertex_count: 3,
-            state: &self.state,
-            vertices: &self.quad_vertices,
-            indices: &self.quad_indices,
-            pipeline: &self.pipeline,
+            state: self.state.clone(),
+            vertices: self.quad_vertices.clone(),
+            indices: None,
+            pipeline: self.pipeline.clone(),
         }
     }
 
-    pub fn quad(&self) -> Polygon<'a, '_> {
+    pub fn quad(&self) -> Polygon<'a> {
         Polygon {
             vertex_count: 4,
-            state: &self.state,
-            vertices: &self.quad_vertices,
-            indices: &self.quad_indices,
-            pipeline: &self.pipeline,
+            state: self.state.clone(),
+            vertices: self.quad_vertices.clone(),
+            indices: Some(self.quad_indices.clone()),
+            pipeline: self.pipeline.clone(),
         }
     }
 }

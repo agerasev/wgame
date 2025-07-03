@@ -10,8 +10,8 @@ use super::Texture;
 
 pub trait Geometry<'a> {
     fn state(&self) -> &Rc<State<'a>>;
-    fn vertices(&self) -> Vertices<'_>;
-    fn pipeline(&self) -> &'_ wgpu::RenderPipeline;
+    fn vertices(&self) -> Vertices;
+    fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
 pub trait GeometryExt<'a>: Geometry<'a> + Sized {
@@ -59,11 +59,11 @@ impl<'a, T: Geometry<'a>> Geometry<'a> for Transformed<T> {
         self.inner.state()
     }
 
-    fn vertices(&self) -> Vertices<'_> {
+    fn vertices(&self) -> Vertices {
         self.inner.vertices()
     }
 
-    fn pipeline(&self) -> &'_ wgpu::RenderPipeline {
+    fn pipeline(&self) -> wgpu::RenderPipeline {
         self.inner.pipeline()
     }
 }
@@ -74,7 +74,7 @@ pub struct Textured<'a, T: Geometry<'a>> {
 }
 
 impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
-    fn vertices(&self) -> Vertices<'_> {
+    fn vertices(&self) -> Vertices {
         self.geometry.vertices()
     }
 
@@ -115,7 +115,7 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
         })
     }
 
-    fn pipeline(&self) -> &wgpu::RenderPipeline {
+    fn pipeline(&self) -> wgpu::RenderPipeline {
         self.geometry.pipeline()
     }
 }

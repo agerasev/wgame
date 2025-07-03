@@ -30,7 +30,7 @@ async fn main(rt: Runtime) {
             while let Some(frame) = window.next_frame().await? {
                 let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
                 frame.render(
-                    &gfx.quad()
+                    &gfx.triangle()
                         .gradient(colors)
                         .transform(Mat4::from_rotation_z(angle)),
                 );
