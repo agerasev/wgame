@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 pub trait Window {
     type Handle;
     fn handle(&self) -> Self::Handle;

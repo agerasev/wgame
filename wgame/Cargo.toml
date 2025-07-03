@@ -1,0 +1,20 @@
+[package]
+name = "wgame"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+wgame-common.workspace = true
+wgame-app.workspace = true
+wgame-gfx.workspace = true
+wgame-utils.workspace = true
+wgame-macros.workspace = true
+
+[dev-dependencies]
+futures = { workspace = true, default-features = true }
+winit = { workspace = true, default-features = true }
+wgpu = { workspace = true, default-features = true }
+env_logger.workspace = true
+bytemuck = "1.23.1"
+glam = "0.30.4"
