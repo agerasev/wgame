@@ -4,7 +4,10 @@ use glam::{Affine2, Mat4, Vec2};
 use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
-use crate::{Object, State, Transformed, object::Vertices};
+use crate::{
+    Object, State, Transformed,
+    object::{Uniforms, Vertices},
+};
 
 use super::Texture;
 
@@ -78,7 +81,7 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
         self.geometry.vertices()
     }
 
-    fn create_uniforms(&self, xform: Mat4) -> wgpu::BindGroup {
+    fn create_uniforms(&self, xform: Mat4) -> Uniforms {
         let device = &self.geometry.state().device;
         let xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("transform"),
@@ -91,28 +94,36 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
             contents: bytemuck::cast_slice(&tex_xform),
             usage: wgpu::BufferUsages::UNIFORM,
         });
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.pipeline().get_bind_group_layout(0),
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: xform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: text_xform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::TextureView(&self.texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::Sampler(&self.texture.sampler),
-                },
-            ],
-            label: None,
-        })
+        Uniforms {
+            vertex: device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &self.pipeline().get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: xform_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: text_xform_buffer.as_entire_binding(),
+                    },
+                ],
+                label: None,
+            }),
+            fragment: device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &self.pipeline().get_bind_group_layout(1),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&self.texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&self.texture.sampler),
+                    },
+                ],
+                label: None,
+            }),
+        }
     }
 
     fn pipeline(&self) -> wgpu::RenderPipeline {

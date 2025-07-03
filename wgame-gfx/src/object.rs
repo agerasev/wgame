@@ -6,9 +6,14 @@ pub struct Vertices {
     pub index_buffer: Option<wgpu::Buffer>,
 }
 
+pub struct Uniforms {
+    pub vertex: wgpu::BindGroup,
+    pub fragment: wgpu::BindGroup,
+}
+
 pub trait Object {
     fn vertices(&self) -> Vertices;
-    fn create_uniforms(&self, xform: Mat4) -> wgpu::BindGroup;
+    fn create_uniforms(&self, xform: Mat4) -> Uniforms;
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
@@ -30,7 +35,7 @@ impl<T: Object> Object for Transformed<T> {
         self.inner.vertices()
     }
 
-    fn create_uniforms(&self, xform: Mat4) -> wgpu::BindGroup {
+    fn create_uniforms(&self, xform: Mat4) -> Uniforms {
         self.inner.create_uniforms(xform * self.xform)
     }
 

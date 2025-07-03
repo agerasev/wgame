@@ -39,7 +39,7 @@ impl<'a> Frame<'a> {
             width as f32 / height as f32
         };
         let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
-        let bind_group = object.create_uniforms(xform);
+        let uniforms = object.create_uniforms(xform);
 
         let mut encoder = self
             .state
@@ -64,7 +64,8 @@ impl<'a> Frame<'a> {
             {
                 renderpass.push_debug_group("prepare");
                 renderpass.set_pipeline(&object.pipeline());
-                renderpass.set_bind_group(0, &bind_group, &[]);
+                renderpass.set_bind_group(0, &uniforms.vertex, &[]);
+                renderpass.set_bind_group(1, &uniforms.fragment, &[]);
                 renderpass.set_vertex_buffer(0, vertices.vertex_buffer.slice(..));
                 if let Some(index_buffer) = &vertices.index_buffer {
                     renderpass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
