@@ -14,6 +14,7 @@ var<uniform> {{ u.name }}: {{ u.ty }};
 
 @fragment
 fn main(vertex: VertexOutput) -> @location(0) vec4<f32> {
+    let color = textureSample(texture, sampler_, vertex.tex_coord);
 
     let coord = vertex.local_coord;
     var mask = true;
@@ -22,5 +23,5 @@ fn main(vertex: VertexOutput) -> @location(0) vec4<f32> {
         discard;
     }
 
-    return textureSample(texture, sampler_, vertex.tex_coord);
+    return color;
 }
