@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use glam::Mat4;
+use rgb::{ComponentMap, Rgba};
 
-use crate::{SharedState, object::Object};
+use crate::{SharedState, object::Object, types::Color};
 
 pub struct Frame<'a> {
     state: SharedState<'a>,
@@ -29,6 +30,35 @@ impl<'a> Frame<'a> {
         self.surface.present()
     }
 
+    pub fn clear(&self, color: impl Color) {
+        let color = {
+            let Rgba { r, g, b, a } = color.to_rgba().map(|c| c as f64);
+            wgpu::Color { r, g, b, a }
+        };
+
+        let mut encoder = self
+            .state
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(color),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+
+        self.state.queue.submit(Some(encoder.finish()));
+    }
+
     pub fn render<T: Object>(&self, object: &T) {
         let vertices = object.vertices();
 
@@ -51,7 +81,7 @@ impl<'a> Frame<'a> {
                     view: &self.view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        load: wgpu::LoadOp::Load,
                         store: wgpu::StoreOp::Store,
                     },
                 })],
