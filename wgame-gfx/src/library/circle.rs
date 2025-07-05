@@ -90,10 +90,6 @@ impl<'a> Library<'a> {
             pipeline: self.circle.pipeline.clone(),
             inner_radius,
         }
-        .transform(Affine2::from_mat2_translation(
-            Mat2::from_diagonal(Vec2::new(2.0, 2.0)),
-            Vec2::new(-1.0, -1.0),
-        ))
     }
 
     pub fn ring(&self, pos: Vec2, radius: f32, inner_radius: f32) -> impl Geometry<'a> {

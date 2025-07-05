@@ -1,5 +1,5 @@
 use anyhow::Result;
-use glam::{Affine3A, Mat3, Vec2, Vec3, Vec4};
+use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
 use crate::{SharedState, library::pipeline::create_pipeline, object::Vertices, types::Position};
@@ -9,6 +9,8 @@ use super::{Geometry, GeometryExt, Library, Vertex};
 pub struct PolygonRenderer {
     pub quad_vertices: wgpu::Buffer,
     pub quad_indices: wgpu::Buffer,
+    pub hexagon_vertices: wgpu::Buffer,
+    pub hexagon_indices: wgpu::Buffer,
     pub pipeline: wgpu::RenderPipeline,
 }
 
@@ -19,9 +21,9 @@ impl PolygonRenderer {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_vertices"),
                 contents: bytemuck::cast_slice(&[
-                    Vertex::new(Vec4::new(0.0, 0.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
-                    Vertex::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
-                    Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
+                    Vertex::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
+                    Vertex::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
+                    Vertex::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
                     Vertex::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
                 ]),
                 usage: wgpu::BufferUsages::VERTEX,
@@ -34,11 +36,48 @@ impl PolygonRenderer {
                 usage: wgpu::BufferUsages::INDEX,
             });
 
+        let sqrt_3_2 = 3.0f32.sqrt() / 2.0;
+        let hexagon_vertices = state
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("quad_vertices"),
+                contents: bytemuck::cast_slice(&[
+                    Vertex::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
+                    Vertex::new(
+                        Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
+                        Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.25),
+                    ),
+                    Vertex::new(
+                        Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
+                        Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.75),
+                    ),
+                    Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
+                    Vertex::new(
+                        Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
+                        Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.75),
+                    ),
+                    Vertex::new(
+                        Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
+                        Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
+                    ),
+                ]),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        let hexagon_indices = state
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("quad_indices"),
+                contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 3, 4, 4, 5, 0, 0, 2, 4]),
+                usage: wgpu::BufferUsages::INDEX,
+            });
+
         let pipeline = create_pipeline(state)?;
 
         Ok(Self {
             quad_vertices,
             quad_indices,
+            hexagon_vertices,
+            hexagon_indices,
             pipeline,
         })
     }
@@ -101,17 +140,29 @@ impl<'a> Library<'a> {
     }
 
     pub fn quad(&self, a: Vec2, b: Vec2) -> impl Geometry<'a> {
-        let min = a.min(b);
-        let max = a.max(b);
-        let size = max - min;
+        let center = 0.5 * (a + b);
+        let half_size = 0.5 * (b - a);
         let affine = Affine3A::from_mat3_translation(
-            Mat3::from_cols(
-                Vec3::new(size.x, 0.0, 0.0),
-                Vec3::new(0.0, size.y, 0.0),
-                Vec3::Z,
-            ),
-            Vec3::from((a, 0.0)),
+            Mat3::from_diagonal(Vec3::from((half_size, 1.0))),
+            Vec3::from((center, 0.0)),
         );
         self.unit_quad().transform(affine)
+    }
+
+    pub fn unit_hexagon(&self) -> Polygon<'a, 6> {
+        Polygon {
+            state: self.state.clone(),
+            vertices: self.polygon.hexagon_vertices.clone(),
+            indices: Some(self.polygon.hexagon_indices.clone()),
+            pipeline: self.polygon.pipeline.clone(),
+        }
+    }
+
+    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> impl Geometry<'a> {
+        self.unit_hexagon()
+            .transform(Affine2::from_mat2_translation(
+                Mat2::from_diagonal(Vec2::new(edge_size, edge_size)),
+                center,
+            ))
     }
 }

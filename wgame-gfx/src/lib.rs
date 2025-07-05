@@ -3,7 +3,7 @@
 mod frame;
 pub mod library;
 mod object;
-mod types;
+pub mod types;
 
 pub use frame::Frame;
 pub use library::Library;
