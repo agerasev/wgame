@@ -1,8 +1,9 @@
 use glam::{Affine3A, Mat3, Mat4, Vec2, Vec3};
+use wgpu::util::DeviceExt;
 
-use crate::{SharedState, Transformed, object::Vertices};
+use crate::{SharedState, Transformed, object::Vertices, types::Position};
 
-use super::{Geometry, GeometryExt};
+use super::{Geometry, GeometryExt, Library, Vertex};
 
 pub struct Polygon<'a, const N: u32> {
     pub(crate) state: SharedState<'a>,
@@ -33,28 +34,49 @@ impl<'a, const N: u32> Geometry<'a> for Polygon<'a, N> {
     }
 }
 
-impl Polygon<'_, 3> {
-    pub fn transform_vertices(self, vertices: [Vec3; 3]) -> Transformed<Self> {
-        let offset = vertices[0];
-        let affine = Affine3A::from_mat3_translation(
-            Mat3::from_cols(vertices[1] - offset, vertices[2] - offset, Vec3::Z),
-            offset,
-        );
-        self.transform(affine.into())
+impl<'a> Library<'a> {
+    pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<'a, 3> {
+        let vertices = self
+            .state
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("triangle_vertices"),
+                contents: bytemuck::cast_slice(&[
+                    Vertex::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
+                    Vertex::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
+                    Vertex::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
+                ]),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        Polygon {
+            state: self.state.clone(),
+            vertices,
+            indices: None,
+            pipeline: self.pipeline.clone(),
+        }
     }
-}
 
-impl Polygon<'_, 4> {
-    pub fn transform_to_rect(self, top_left: Vec2, bottom_right: Vec2) -> Transformed<Self> {
-        let size = bottom_right - top_left;
+    pub fn unit_quad(&self) -> Polygon<'a, 4> {
+        Polygon {
+            state: self.state.clone(),
+            vertices: self.quad_vertices.clone(),
+            indices: Some(self.quad_indices.clone()),
+            pipeline: self.pipeline.clone(),
+        }
+    }
+
+    pub fn quad(&self, a: Vec2, b: Vec2) -> Transformed<Polygon<'a, 4>> {
+        let min = a.min(b);
+        let max = a.max(b);
+        let size = max - min;
         let affine = Affine3A::from_mat3_translation(
             Mat3::from_cols(
                 Vec3::new(size.x, 0.0, 0.0),
                 Vec3::new(0.0, size.y, 0.0),
                 Vec3::Z,
             ),
-            Vec3::from((top_left, 0.0)),
+            Vec3::from((a, 0.0)),
         );
-        self.transform(affine.into())
+        self.unit_quad().transform(affine)
     }
 }

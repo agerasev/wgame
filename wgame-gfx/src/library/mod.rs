@@ -174,22 +174,4 @@ impl<'a> Library<'a> {
             pipeline,
         })
     }
-
-    pub fn triangle(&self) -> Polygon<'a, 3> {
-        Polygon {
-            state: self.state.clone(),
-            vertices: self.quad_vertices.clone(),
-            indices: None,
-            pipeline: self.pipeline.clone(),
-        }
-    }
-
-    pub fn quad(&self) -> Polygon<'a, 4> {
-        Polygon {
-            state: self.state.clone(),
-            vertices: self.quad_vertices.clone(),
-            indices: Some(self.quad_indices.clone()),
-            pipeline: self.pipeline.clone(),
-        }
-    }
 }

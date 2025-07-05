@@ -1,10 +1,10 @@
 use glam::{Affine2, Mat4, Vec2};
-use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
 use crate::{
     Object, SharedState, Transformed,
     object::{Uniforms, Vertices},
+    types::Color,
 };
 
 use super::Texture;
@@ -17,21 +17,25 @@ pub trait Geometry<'a> {
 }
 
 pub trait GeometryExt<'a>: Geometry<'a> + Sized {
-    fn transform(self, xform: Mat4) -> Transformed<Self> {
-        Transformed { inner: self, xform }
+    fn transform<T: Into<Mat4>>(self, xform: T) -> Transformed<Self> {
+        Transformed {
+            inner: self,
+            xform: xform.into(),
+        }
     }
 
-    fn color(self, rgba: Rgba<f32>) -> Textured<'a, Self> {
+    fn color<T: Color>(self, color: T) -> Textured<'a, Self> {
         let pixel = Texture::with_data(
             self.state(),
             (1, 1),
             wgpu::TextureFormat::Rgba32Float,
-            bytemuck::cast_slice(&[rgba]),
+            bytemuck::cast_slice(&[color.to_rgba()]),
         );
         self.texture(pixel)
     }
 
-    fn gradient(self, colors: [[Rgba<f32>; 2]; 2]) -> Textured<'a, Self> {
+    fn gradient<T: Color>(self, colors: [[T; 2]; 2]) -> Textured<'a, Self> {
+        let colors = colors.map(|row| row.map(|color| color.to_rgba()));
         let pixels_2x2 = Texture::with_data(
             self.state(),
             (2, 2),

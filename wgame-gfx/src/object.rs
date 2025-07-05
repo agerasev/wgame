@@ -18,8 +18,11 @@ pub trait Object {
 }
 
 pub trait ObjectExt: Object + Sized {
-    fn transform(self, xform: Mat4) -> Transformed<Self> {
-        Transformed { inner: self, xform }
+    fn transform<T: Into<Mat4>>(self, xform: T) -> Transformed<Self> {
+        Transformed {
+            inner: self,
+            xform: xform.into(),
+        }
     }
 }
 
