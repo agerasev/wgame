@@ -19,10 +19,27 @@ impl PolygonRenderer {
         let device = &state.device;
         let swapchain_format = state.format;
 
-        // Load the shaders from disk
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders.wgsl"))),
+        let vertex_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
+            [
+                include_str!("../../shaders/common.wgsl"),
+                include_str!("../../shaders/vertex.wgsl"),
+            ]
+            .join("\n"),
+        ));
+        let vertex_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("vertex"),
+            source: vertex_shader_source,
+        });
+        let fragment_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
+            [
+                include_str!("../../shaders/common.wgsl"),
+                include_str!("../../shaders/fragment.wgsl"),
+            ]
+            .join("\n"),
+        ));
+        let fragment_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("fragment"),
+            source: fragment_shader_source,
         });
 
         let quad_vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -122,14 +139,14 @@ impl PolygonRenderer {
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
+                module: &vertex_shader,
+                entry_point: Some("main"),
                 buffers: &vertex_buffers,
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_main"),
+                module: &fragment_shader,
+                entry_point: Some("main"),
                 compilation_options: Default::default(),
                 targets: &[Some(swapchain_format.into())],
             }),
