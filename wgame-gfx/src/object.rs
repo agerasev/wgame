@@ -1,5 +1,7 @@
 use glam::Mat4;
 
+use crate::types::Transform;
+
 pub struct Vertices {
     pub count: u32,
     pub vertex_buffer: wgpu::Buffer,
@@ -18,10 +20,10 @@ pub trait Object {
 }
 
 pub trait ObjectExt: Object + Sized {
-    fn transform<T: Into<Mat4>>(self, xform: T) -> Transformed<Self> {
+    fn transform<T: Transform>(self, xform: T) -> Transformed<Self> {
         Transformed {
             inner: self,
-            xform: xform.into(),
+            xform: xform.to_mat4(),
         }
     }
 }

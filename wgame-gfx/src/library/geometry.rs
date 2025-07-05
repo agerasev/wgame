@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 use crate::{
     Object, SharedState, Transformed,
     object::{Uniforms, Vertices},
-    types::Color,
+    types::{Color, Transform},
 };
 
 use super::Texture;
@@ -17,10 +17,10 @@ pub trait Geometry<'a> {
 }
 
 pub trait GeometryExt<'a>: Geometry<'a> + Sized {
-    fn transform<T: Into<Mat4>>(self, xform: T) -> Transformed<Self> {
+    fn transform<T: Transform>(self, xform: T) -> Transformed<Self> {
         Transformed {
             inner: self,
-            xform: xform.into(),
+            xform: xform.to_mat4(),
         }
     }
 

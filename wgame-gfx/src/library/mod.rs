@@ -1,4 +1,6 @@
+mod circle;
 mod geometry;
+mod pipeline;
 mod polygon;
 mod texture;
 
@@ -6,7 +8,10 @@ use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 
-use crate::{SharedState, library::polygon::PolygonRenderer};
+use crate::{
+    SharedState,
+    library::{circle::CircleRenderer, polygon::PolygonRenderer},
+};
 
 pub use self::{
     geometry::{Geometry, GeometryExt},
@@ -33,14 +38,16 @@ impl Vertex {
 /// 2D graphics library
 pub struct Library<'a> {
     state: SharedState<'a>,
-    polygons: PolygonRenderer,
+    polygon: PolygonRenderer,
+    circle: CircleRenderer,
 }
 
 impl<'a> Library<'a> {
     pub fn new(state: &SharedState<'a>) -> Result<Self> {
         Ok(Self {
             state: state.clone(),
-            polygons: PolygonRenderer::new(state)?,
+            polygon: PolygonRenderer::new(state)?,
+            circle: CircleRenderer::new(state)?,
         })
     }
 }
