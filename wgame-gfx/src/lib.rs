@@ -81,6 +81,7 @@ impl<'a> State<'a> {
             &self.device,
             &wgpu::SurfaceConfiguration {
                 present_mode: wgpu::PresentMode::AutoVsync,
+                view_formats: vec![self.format.add_srgb_suffix()],
                 ..surface_config
             },
         );

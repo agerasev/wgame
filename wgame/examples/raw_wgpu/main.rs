@@ -68,10 +68,13 @@ impl<'a> WgpuState<'a> {
     }
 
     fn configure_surface(&self) {
-        let surface_config = self
-            .surface
-            .get_default_config(&self.adapter, self.size.0, self.size.1)
-            .unwrap();
+        let surface_config = wgpu::SurfaceConfiguration {
+            view_formats: vec![self.format.add_srgb_suffix()],
+            ..self
+                .surface
+                .get_default_config(&self.adapter, self.size.0, self.size.1)
+                .unwrap()
+        };
         self.surface.configure(&self.device, &surface_config);
     }
 
@@ -101,9 +104,10 @@ impl<'a> WgpuState<'a> {
             .surface
             .get_current_texture()
             .expect("Failed to acquire next swap chain texture");
-        let view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(self.format.add_srgb_suffix()),
+            ..Default::default()
+        });
 
         WgpuFrame {
             state: self,

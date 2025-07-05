@@ -16,9 +16,10 @@ impl<'a> Frame<'a> {
             .surface
             .get_current_texture()
             .context("Failed to acquire next swap chain texture")?;
-        let view = surface
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let view = surface.texture.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(state.format.add_srgb_suffix()),
+            ..Default::default()
+        });
         Ok(Frame {
             state,
             surface,
