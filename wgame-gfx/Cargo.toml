@@ -12,3 +12,5 @@ log.workspace = true
 bytemuck.workspace = true
 glam.workspace = true
 rgb.workspace = true
+serde = { version = "1.0.219", features = ["derive"] }
+minijinja = { version = "2.11.0", features = ["loader"] }

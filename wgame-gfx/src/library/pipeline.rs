@@ -3,7 +3,10 @@ use std::{borrow::Cow, mem::offset_of};
 use anyhow::Result;
 use glam::Mat4;
 
-use crate::SharedState;
+use crate::{
+    SharedState,
+    library::shader::{ShaderSource, SubstContext},
+};
 
 use super::Vertex;
 
@@ -19,22 +22,32 @@ pub fn create_pipeline_masked(
     let swapchain_format = state.format;
 
     let vertex_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
-        [
-            include_str!("../../shaders/common.wgsl"),
-            include_str!("../../shaders/vertex.wgsl"),
-        ]
-        .join("\n"),
+        ShaderSource::new(
+            [
+                include_str!("../../shaders/common.wgsl"),
+                include_str!("../../shaders/vertex.wgsl"),
+            ]
+            .join("\n"),
+        )?
+        .substitute(&SubstContext::default())?,
     ));
     let vertex_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("vertex"),
         source: vertex_shader_source,
     });
     let fragment_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
-        [
-            include_str!("../../shaders/common.wgsl").to_string(),
-            include_str!("../../shaders/fragment_masked.wgsl").replace("{{mask_expr}}", mask_expr),
-        ]
-        .join("\n"),
+        ShaderSource::new(
+            [
+                include_str!("../../shaders/common.wgsl").to_string(),
+                include_str!("../../shaders/fragment_masked.wgsl")
+                    .replace("{{mask_expr}}", mask_expr),
+            ]
+            .join("\n"),
+        )?
+        .substitute(&SubstContext {
+            mask_expr: mask_expr.to_string(),
+            ..Default::default()
+        })?,
     ));
     let fragment_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("fragment"),

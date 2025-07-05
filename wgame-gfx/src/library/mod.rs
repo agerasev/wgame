@@ -2,6 +2,7 @@ mod circle;
 mod geometry;
 mod pipeline;
 mod polygon;
+mod shader;
 mod texture;
 
 use anyhow::Result;
