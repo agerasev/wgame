@@ -32,8 +32,11 @@ impl PolygonRenderer {
         });
         let fragment_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
             [
-                include_str!("../../shaders/common.wgsl"),
-                include_str!("../../shaders/fragment.wgsl"),
+                include_str!("../../shaders/common.wgsl").to_string(),
+                include_str!("../../shaders/fragment_masked.wgsl").replace(
+                    "{{mask_expr}}",
+                    "(x - 0.5)*(x - 0.5) + (y - 0.5)*(y - 0.5) < 0.25",
+                ),
             ]
             .join("\n"),
         ));
@@ -129,7 +132,7 @@ impl PolygonRenderer {
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x2,
-                    offset: offset_of!(Vertex, tex_coord) as wgpu::BufferAddress,
+                    offset: offset_of!(Vertex, local_coord) as wgpu::BufferAddress,
                     shader_location: 1,
                 },
             ],

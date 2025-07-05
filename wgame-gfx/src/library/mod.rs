@@ -18,14 +18,14 @@ pub use self::{
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Vertex {
     pos: [f32; 4],
-    tex_coord: [f32; 2],
+    local_coord: [f32; 2],
 }
 
 impl Vertex {
-    fn new(pos: Vec4, tex_coord: Vec2) -> Self {
+    fn new(pos: Vec4, local_coord: Vec2) -> Self {
         Self {
             pos: pos.into(),
-            tex_coord: tex_coord.into(),
+            local_coord: local_coord.into(),
         }
     }
 }
