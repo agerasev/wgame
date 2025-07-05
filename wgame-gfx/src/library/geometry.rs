@@ -12,7 +12,12 @@ use super::Texture;
 pub trait Geometry<'a> {
     fn state(&self) -> &SharedState<'a>;
     fn vertices(&self) -> Vertices;
-    fn transformation(&self) -> Mat4;
+    fn uniforms(&self) -> Vec<wgpu::Buffer> {
+        Vec::new()
+    }
+    fn transformation(&self) -> Mat4 {
+        Mat4::IDENTITY
+    }
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
@@ -69,6 +74,10 @@ impl<'a, T: Geometry<'a>> Geometry<'a> for Transformed<T> {
         self.inner.vertices()
     }
 
+    fn uniforms(&self) -> Vec<wgpu::Buffer> {
+        self.inner.uniforms()
+    }
+
     fn transformation(&self) -> Mat4 {
         self.xform * self.inner.transformation()
     }
@@ -102,6 +111,7 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
             contents: bytemuck::cast_slice(&tex_xform),
             usage: wgpu::BufferUsages::UNIFORM,
         });
+        let uniforms = self.geometry.uniforms();
         Uniforms {
             vertex: device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout: &self.pipeline().get_bind_group_layout(0),
@@ -119,16 +129,18 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
             }),
             fragment: device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout: &self.pipeline().get_bind_group_layout(1),
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&self.texture.view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&self.texture.sampler),
-                    },
-                ],
+                entries: &([
+                    wgpu::BindingResource::TextureView(&self.texture.view),
+                    wgpu::BindingResource::Sampler(&self.texture.sampler),
+                ]
+                .into_iter())
+                .chain(uniforms.iter().map(|buffer| buffer.as_entire_binding()))
+                .enumerate()
+                .map(|(i, resource)| wgpu::BindGroupEntry {
+                    binding: i as u32,
+                    resource,
+                })
+                .collect::<Vec<_>>(),
                 label: None,
             }),
         }

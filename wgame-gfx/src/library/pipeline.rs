@@ -5,18 +5,18 @@ use glam::Mat4;
 
 use crate::{
     SharedState,
-    library::shader::{ShaderSource, SubstContext},
+    library::shader::{ShaderConfig, ShaderSource},
 };
 
 use super::Vertex;
 
 pub fn create_pipeline(state: &SharedState<'_>) -> Result<wgpu::RenderPipeline> {
-    return create_pipeline_masked(state, "true");
+    return create_pipeline_masked(state, &ShaderConfig::default());
 }
 
 pub fn create_pipeline_masked(
     state: &SharedState<'_>,
-    mask_expr: &str,
+    config: &ShaderConfig,
 ) -> Result<wgpu::RenderPipeline> {
     let device = &state.device;
     let swapchain_format = state.format;
@@ -29,26 +29,23 @@ pub fn create_pipeline_masked(
             ]
             .join("\n"),
         )?
-        .substitute(&SubstContext::default())?,
+        .substitute(&ShaderConfig::default())?,
     ));
+    let fragment_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
+        ShaderSource::new(
+            [
+                include_str!("../../shaders/common.wgsl"),
+                include_str!("../../shaders/fragment_masked.wgsl"),
+            ]
+            .join("\n"),
+        )?
+        .substitute(config)?,
+    ));
+
     let vertex_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("vertex"),
         source: vertex_shader_source,
     });
-    let fragment_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
-        ShaderSource::new(
-            [
-                include_str!("../../shaders/common.wgsl").to_string(),
-                include_str!("../../shaders/fragment_masked.wgsl")
-                    .replace("{{mask_expr}}", mask_expr),
-            ]
-            .join("\n"),
-        )?
-        .substitute(&SubstContext {
-            mask_expr: mask_expr.to_string(),
-            ..Default::default()
-        })?,
-    ));
     let fragment_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("fragment"),
         source: fragment_shader_source,
@@ -88,24 +85,35 @@ pub fn create_pipeline_masked(
     let fragment_bind_group_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    },
-                    count: None,
+            entries: &([
+                wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
+                wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+            ]
+            .into_iter())
+            .chain(
+                config
+                    .uniforms
+                    .iter()
+                    .map(|uniform| wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(
+                            uniform.ty.size() as wgpu::BufferAddress
+                        ),
+                    }),
+            )
+            .enumerate()
+            .map(|(i, ty)| wgpu::BindGroupLayoutEntry {
+                binding: i as u32,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty,
+                count: None,
+            })
+            .collect::<Vec<_>>(),
         });
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use glam::{Affine3A, Mat3, Mat4, Vec2, Vec3, Vec4};
+use glam::{Affine3A, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
 use crate::{SharedState, library::pipeline::create_pipeline, object::Vertices, types::Position};
@@ -45,10 +45,10 @@ impl PolygonRenderer {
 }
 
 pub struct Polygon<'a, const N: u32> {
-    pub(crate) state: SharedState<'a>,
-    pub(crate) vertices: wgpu::Buffer,
-    pub(crate) indices: Option<wgpu::Buffer>,
-    pub(crate) pipeline: wgpu::RenderPipeline,
+    state: SharedState<'a>,
+    vertices: wgpu::Buffer,
+    indices: Option<wgpu::Buffer>,
+    pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a, const N: u32> Geometry<'a> for Polygon<'a, N> {
@@ -62,10 +62,6 @@ impl<'a, const N: u32> Geometry<'a> for Polygon<'a, N> {
             vertex_buffer: self.vertices.clone(),
             index_buffer: self.indices.clone(),
         }
-    }
-
-    fn transformation(&self) -> Mat4 {
-        Mat4::IDENTITY
     }
 
     fn pipeline(&self) -> wgpu::RenderPipeline {

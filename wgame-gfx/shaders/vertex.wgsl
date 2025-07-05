@@ -1,6 +1,7 @@
 @group(0)
 @binding(0)
 var<uniform> xform: mat4x4<f32>;
+
 @group(0)
 @binding(1)
 var<uniform> tex_xform: mat3x2<f32>;
