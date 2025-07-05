@@ -42,7 +42,7 @@ pub trait GeometryExt<'a>: Geometry<'a> + Sized {
             wgpu::TextureFormat::Rgba32Float,
             bytemuck::cast_slice(&colors),
         )
-        .transform(Affine2::from_scale_angle_translation(
+        .transform_coords(Affine2::from_scale_angle_translation(
             Vec2::new(0.5, 0.5),
             0.0,
             Vec2::new(0.25, 0.25),

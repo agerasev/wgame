@@ -47,7 +47,7 @@ impl<'a> Texture<'a> {
         }
     }
 
-    pub fn transform(self, xform: Affine2) -> Self {
+    pub fn transform_coords(self, xform: Affine2) -> Self {
         Self {
             xform: xform * self.xform,
             ..self
