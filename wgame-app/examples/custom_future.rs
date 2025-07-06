@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use wgame_app::{Runtime, run};
+use wgame_app::{Runtime, main};
 
 #[derive(Default)]
 struct LoaderInfo {
@@ -56,4 +56,4 @@ async fn main_(_rt: Runtime) {
     println!("Awakened");
 }
 
-run!(main, main_);
+main!(main_);

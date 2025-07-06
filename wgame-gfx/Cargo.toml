@@ -1,0 +1,22 @@
+[package]
+name = "wgame-gfx"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+vulkan = ["wgpu/vulkan"]
+gles = ["wgpu/gles"]
+webgpu = ["wgpu/webgpu"]
+webgl = ["wgpu/webgl"]
+
+[dependencies]
+wgpu.workspace = true
+fxhash.workspace = true
+anyhow.workspace = true
+log.workspace = true
+bytemuck.workspace = true
+glam.workspace = true
+rgb.workspace = true
+serde = { version = "1.0.219", features = ["derive"] }
+minijinja = { version = "2.11.0", features = ["loader"] }

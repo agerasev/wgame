@@ -1,33 +1,34 @@
 [workspace]
-members = ["wgame-common", "wgame-app", "wgame-macros", "wgame-examples"]
+members = [
+    "wgame",
+    "wgame-app",
+    "wgame-gfx",
+    "wgame-fs",
+    "wgame-utils",
+    "wgame-macros",
+    "wgame-examples",
+]
+resolver = "3"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
 
-[package]
-name = "wgame"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-
 [workspace.dependencies]
-wgame-common = { version = "0.1.0", path = "wgame-common" }
+wgame = { version = "0.1.0", path = "wgame", default-features = false }
+wgame-app = { version = "0.1.0", path = "wgame-app" }
+wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
+wgame-fs = { version = "0.1.0", path = "wgame-fs" }
+wgame-utils = { version = "0.1.0", path = "wgame-utils" }
+wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 winit = { version = "0.30.11", default-features = false, features = ["rwh_06"] }
 wgpu = { version = "25.0.2", default-features = false, features = ["wgsl"] }
+bytemuck = "1.23.1"
+glam = { version = "0.30.4", features = ["bytemuck"] }
+rgb = { version = "0.8.50", default-features = false, features = ["bytemuck"] }
 fxhash = "0.2.1"
+anyhow = "1.0.98"
 log = "0.4.27"
 env_logger = "0.11.8"
-
-[features]
-default = ["desktop"]
-desktop = ["wgame-app/x11", "wgame-app/wayland", "wgpu/vulkan", "wgpu/gles"]
-web = ["wgame-app/web", "wgpu/webgpu", "wgpu/webgl"]
-
-[dependencies]
-wgame-common.workspace = true
-wgame-app = { version = "0.1.0", path = "wgame-app" }
-wgame-macros = { version = "0.1.0", path = "wgame-macros" }
-wgpu.workspace = true

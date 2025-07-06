@@ -4,10 +4,15 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = ["desktop"]
+desktop = ["wgame/desktop"]
+web = ["wgame/web"]
+
 [dependencies]
-wgame = { path = "..", default-features = false }
-winit.workspace = true
-wgpu.workspace = true
+wgame.workspace = true
+wgame-utils.workspace = true
+futures.workspace = true
 env_logger.workspace = true
-bytemuck = "1.23.1"
-glam = "0.30.4"
+glam.workspace = true
+rgb.workspace = true

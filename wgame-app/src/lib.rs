@@ -4,7 +4,7 @@ mod app;
 mod executor;
 mod proxy;
 pub mod runtime;
-mod timer;
+pub mod timer;
 pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};
@@ -12,29 +12,47 @@ pub use crate::{app::App, runtime::Runtime, window::Window};
 pub use wasm_bindgen;
 pub use winit::window::WindowAttributes;
 
-#[cfg(not(feature = "web"))]
 #[macro_export]
 macro_rules! run {
-    ($main:ident, $async_main:path) => {
+    ($crate_:path, $async_main:path) => {{
+        use $crate_::{App, Runtime};
+        let app = App::new().unwrap();
+        let proxy = app.proxy();
+        proxy.create_task($async_main(Runtime::new(proxy.clone())));
+        app.run().unwrap();
+    }};
+}
+
+#[cfg(not(feature = "web"))]
+#[macro_export]
+macro_rules! entry {
+    ($crate_:path, $main:ident, $async_main:path) => {
         pub fn $main() {
-            let app = $crate::App::new().unwrap();
-            let proxy = app.proxy();
-            proxy.create_task($async_main(Runtime::new(proxy.clone())));
-            app.run().unwrap();
+            use $crate_::{/**/ run};
+            run!($crate_, $async_main);
         }
     };
 }
 
 #[cfg(feature = "web")]
 #[macro_export]
-macro_rules! run {
-    ($main:ident, $async_main:path) => {
-        #[wasm_bindgen::prelude::wasm_bindgen]
-        pub fn $main() {
-            let app = $crate::App::new().unwrap();
-            let proxy = app.proxy();
-            proxy.create_task($async_main(Runtime::new(proxy.clone())));
-            app.run().unwrap();
+macro_rules! entry {
+    ($crate_:path, $main:ident, $async_main:path) => {
+        pub mod __wgame_app_mod {
+            use super::{/**/ $async_main};
+            use $crate_::{run, wasm_bindgen};
+
+            #[wasm_bindgen::prelude::wasm_bindgen]
+            pub fn $main() {
+                run!($crate_, $async_main);
+            }
         }
+    };
+}
+
+#[macro_export]
+macro_rules! main {
+    ($async_main:path) => {
+        $crate::entry!($crate, main, $async_main);
     };
 }

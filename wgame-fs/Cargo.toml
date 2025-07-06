@@ -1,0 +1,8 @@
+[package]
+name = "wgame-fs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+async-fs = "2.1.2"
