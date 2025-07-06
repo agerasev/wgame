@@ -1,4 +1,7 @@
 #![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
 
 mod frame;
 pub mod library;
@@ -9,7 +12,8 @@ pub use frame::Frame;
 pub use library::Library;
 pub use object::{Object, ObjectExt, Transformed};
 
-use std::{cell::Cell, rc::Rc};
+use alloc::rc::Rc;
+use core::cell::Cell;
 
 use anyhow::{Context, Result};
 

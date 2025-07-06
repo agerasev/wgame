@@ -1,12 +1,12 @@
-use std::{
-    f32::consts::{FRAC_PI_3, PI, SQRT_2},
-    time::Instant,
-};
+#![no_std]
+
+use core::f32::consts::{FRAC_PI_3, PI, SQRT_2};
 
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
     Runtime, Window, WindowConfig,
+    app::timer::Instant,
     gfx::{self, Library, Object, ObjectExt, library::GeometryExt, types::color},
 };
 use wgame_utils::FrameCounter;

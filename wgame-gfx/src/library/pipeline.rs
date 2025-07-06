@@ -1,4 +1,5 @@
-use std::{borrow::Cow, mem::offset_of};
+use alloc::{borrow::Cow, vec::Vec};
+use core::mem::offset_of;
 
 use anyhow::Result;
 use glam::Mat4;

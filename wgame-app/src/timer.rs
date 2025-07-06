@@ -1,9 +1,11 @@
-use std::{
-    cell::Cell,
-    cmp::Reverse,
+use alloc::{
     collections::{BinaryHeap, binary_heap::PeekMut},
-    pin::Pin,
     rc::Rc,
+};
+use core::{
+    cell::Cell,
+    cmp::{Ordering, Reverse},
+    pin::Pin,
     task::{Context, Poll, Waker},
 };
 
@@ -37,14 +39,14 @@ impl Eq for Timer {}
 
 impl PartialOrd for Timer {
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for Timer {
     #[inline]
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.timestamp.cmp(&other.timestamp)
     }
 }

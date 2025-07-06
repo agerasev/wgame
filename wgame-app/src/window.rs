@@ -1,8 +1,8 @@
-use std::{
+use alloc::rc::Rc;
+use core::{
     cell::RefCell,
     mem,
     pin::Pin,
-    rc::Rc,
     task::{Context, Poll, Waker},
 };
 

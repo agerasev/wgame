@@ -8,7 +8,7 @@ license.workspace = true
 crate-type = ["rlib", "cdylib"]
 
 [features]
-default = ["desktop"]
+default = ["web"]
 desktop = ["wgame/desktop"]
 web = ["wgame/web"]
 
@@ -19,4 +19,3 @@ futures.workspace = true
 env_logger.workspace = true
 glam.workspace = true
 rgb.workspace = true
-console_error_panic_hook = "0.1.7"

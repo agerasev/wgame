@@ -1,4 +1,9 @@
 #![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
+#[cfg(not(feature = "web"))]
+extern crate std;
 
 mod app;
 mod executor;
@@ -8,14 +13,17 @@ pub mod timer;
 pub mod window;
 
 pub use crate::{app::App, runtime::Runtime, window::Window};
+
+pub use winit::window::WindowAttributes;
+
+#[cfg(feature = "web")]
+pub use console_error_panic_hook;
 #[cfg(feature = "web")]
 pub use wasm_bindgen;
-pub use winit::window::WindowAttributes;
 
 #[macro_export]
 macro_rules! run {
     ($crate_:path, $async_main:path) => {{
-        console_error_panic_hook::set_once();
         use $crate_::{App, Runtime};
         let app = App::new().unwrap();
         let proxy = app.proxy();
@@ -41,10 +49,11 @@ macro_rules! entry {
     ($crate_:path, $main:ident, $async_main:path) => {
         pub mod __wgame_app_mod {
             use super::{/**/ $async_main};
-            use $crate_::{run, wasm_bindgen};
+            use $crate_::{console_error_panic_hook, run, wasm_bindgen};
 
             #[wasm_bindgen::prelude::wasm_bindgen]
             pub fn $main() {
+                console_error_panic_hook::set_once();
                 run!($crate_, $async_main);
             }
         }

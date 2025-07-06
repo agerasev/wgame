@@ -1,4 +1,11 @@
-use std::{
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+use core::{
     fmt::{self, Display},
     ops::RangeInclusive,
 };
@@ -56,7 +63,7 @@ impl UniformType {
 }
 
 impl Serialize for UniformType {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {

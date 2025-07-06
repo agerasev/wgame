@@ -12,7 +12,6 @@ webgl = ["wgpu/webgl"]
 
 [dependencies]
 wgpu.workspace = true
-fxhash.workspace = true
 anyhow.workspace = true
 log.workspace = true
 bytemuck.workspace = true

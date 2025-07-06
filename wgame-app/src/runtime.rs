@@ -1,7 +1,7 @@
-use std::{
+use alloc::rc::Rc;
+use core::{
     cell::RefCell,
     pin::Pin,
-    rc::Rc,
     task::{Context, Poll},
     time::Duration,
 };

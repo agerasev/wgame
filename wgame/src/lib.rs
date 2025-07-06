@@ -1,4 +1,7 @@
 #![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
 
 pub use wgame_app as app;
 pub use wgame_gfx as gfx;
@@ -7,7 +10,8 @@ pub use wgame_macros::main;
 pub use anyhow::{Error, Result};
 pub use app::{runtime::JoinHandle, timer::Timer};
 
-use std::{ops::Deref, rc::Rc};
+use alloc::rc::Rc;
+use core::ops::Deref;
 
 #[macro_export]
 macro_rules! run {

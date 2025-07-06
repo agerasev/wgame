@@ -1,6 +1,13 @@
 #![forbid(unsafe_code)]
+#![no_std]
 
+#[cfg(not(feature = "web"))]
+extern crate std;
+
+#[cfg(not(feature = "web"))]
 use std::time::Instant;
+#[cfg(feature = "web")]
+use web_time::Instant;
 
 pub struct FrameCounter {
     pub start: Instant,
@@ -23,7 +30,7 @@ impl FrameCounter {
         let now = Instant::now();
         let secs = (now - self.start).as_secs_f32();
         if secs > 10.0 {
-            println!("FPS: {}", self.count as f32 / secs);
+            log::info!("FPS: {}", self.count as f32 / secs);
             self.start = now;
             self.count = 0;
         }

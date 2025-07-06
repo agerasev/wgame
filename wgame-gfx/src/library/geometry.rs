@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use glam::{Affine2, Mat4, Vec2};
 use wgpu::util::DeviceExt;
 
