@@ -5,13 +5,19 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-x11 = ["winit/x11"]
-wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita"]
-android = ["winit/android-native-activity"]
+x11 = ["winit/x11", "dep:env_logger"]
+wayland = [
+    "winit/wayland",
+    "winit/wayland-dlopen",
+    "winit/wayland-csd-adwaita",
+    "dep:env_logger",
+]
+android = ["winit/android-native-activity", "dep:env_logger"]
 web = [
     "dep:web-time",
     "dep:wasm-bindgen",
     "dep:web-sys",
+    "dep:console_log",
     "dep:console_error_panic_hook",
 ]
 
@@ -30,9 +36,10 @@ web-sys = { version = "0.3.77", optional = true, features = [
     "HtmlCanvasElement",
     "HtmlCollection",
 ] }
+env_logger = { version = "0.11.8", optional = true }
+console_log = { version = "1.0.0", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [dev-dependencies]
 futures = { workspace = true, default-features = true }
 winit = { workspace = true, default-features = true }
-env_logger.workspace = true

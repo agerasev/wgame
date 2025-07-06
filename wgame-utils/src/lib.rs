@@ -1,10 +1,10 @@
 #![forbid(unsafe_code)]
 #![no_std]
 
-#[cfg(not(feature = "web"))]
+#[cfg(feature = "std")]
 extern crate std;
 
-#[cfg(not(feature = "web"))]
+#[cfg(feature = "std")]
 use std::time::Instant;
 #[cfg(feature = "web")]
 use web_time::Instant;

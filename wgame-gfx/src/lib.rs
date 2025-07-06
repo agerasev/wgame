@@ -76,7 +76,11 @@ impl<'a> State<'a> {
     }
 
     fn configure(&self) {
-        let size = self.size.get();
+        let size = self.size();
+        if let (0, _) | (_, 0) = size {
+            log::warn!("Invalid surface size: {size:?}, skipping configuration");
+            return;
+        }
         let surface_config = self
             .surface
             .get_default_config(&self.adapter, size.0, size.1)

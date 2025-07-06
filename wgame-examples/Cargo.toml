@@ -8,14 +8,13 @@ license.workspace = true
 crate-type = ["rlib", "cdylib"]
 
 [features]
-default = ["web"]
-desktop = ["wgame/desktop"]
-web = ["wgame/web"]
+default = ["desktop"]
+desktop = ["wgame/desktop", "wgame-utils/std"]
+web = ["wgame/web", "wgame-utils/web"]
 
 [dependencies]
 wgame.workspace = true
 wgame-utils.workspace = true
 futures.workspace = true
-env_logger.workspace = true
 glam.workspace = true
 rgb.workspace = true

@@ -1,49 +1,47 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <style type="text/css">
+      body {
+        margin: 0;
+        padding: 0;
+        background: #000000;
+        font-family: sans-serif;
+        width: 100%;
+        height: 100%;
+      }
 
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-  <style type="text/css">
-    body {
-      margin: 0;
-      padding: 0;
-      background: #000000;
-      font-family: sans-serif;
-      width: 100%;
-      height: 100%;
+      #content {
+        /* This allows the flexbox to grow to max size, this is needed for WebGPU */
+        flex: 1 1 100%;
+        /* This forces CSS to ignore the width/height of the canvas, this is needed for WebGL */
+        contain: size;
+      }
+
+      .main-canvas {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="content">
+      <canvas class="main-canvas" id="canvas"></canvas>
+    </div>
+  </body>
+
+  <script type="module">
+    import init, { wgame_main } from "../../pkg/wgame_examples.js";
+
+    async function run() {
+      await init();
+      wgame_main();
     }
 
-    #content {
-      /* This allows the flexbox to grow to max size, this is needed for WebGPU */
-      flex: 1 1 100%;
-      /* This forces CSS to ignore the width/height of the canvas, this is needed for WebGL */
-      contain: size;
-    }
-
-    .main-canvas {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-    }
-  </style>
-</head>
-
-<body>
-  <div id="content">
-    <canvas class="main-canvas" id="canvas"></canvas>
-  </div>
-</body>
-
-<script type="module">
-  import init, { wgame_main } from '../../pkg/wgame_examples.js';
-
-  async function run() {
-    await init();
-    wgame_main();
-  }
-
-  run();
-</script>
-
+    run();
+  </script>
 </html>

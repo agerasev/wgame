@@ -6,7 +6,6 @@ use core::{
     task::{Context, Poll, Waker},
 };
 
-use futures::future::FusedFuture;
 use winit::{
     dpi::PhysicalSize,
     error::OsError,
@@ -117,23 +116,19 @@ impl<'a> Window<'a> {
     }
 
     pub fn request_redraw(&mut self) -> WaitRedraw<'a, '_> {
-        WaitRedraw { owner: Some(self) }
+        WaitRedraw { owner: self }
     }
 }
 
 pub struct WaitRedraw<'a, 'b> {
-    owner: Option<&'b mut Window<'a>>,
+    owner: &'b mut Window<'a>,
 }
 
 impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
     type Output = Option<Redraw<'b>>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let owner = match self.owner.take() {
-            Some(owner) => owner,
-            None => panic!("This WaitFrame has already returned Frame"),
-        };
-
+        let owner = &mut self.owner;
         let mut state = owner.state.borrow_mut();
         if state.terminated {
             log::error!("Window terminated but its task still alive");
@@ -144,26 +139,26 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
             return Poll::Ready(None);
         }
 
-        let resized = state.resized.take();
-
-        if mem::take(&mut state.redraw_requested) {
-            drop(state);
-            Poll::Ready(Some(Redraw {
-                handle: owner.handle,
-                resized,
-            }))
+        let result = if mem::take(&mut state.redraw_requested) {
+            if let size @ ((0, _) | (_, 0)) = owner.size() {
+                log::warn!("Redraw requested but window size is zero: {size:?}");
+                owner.handle.request_redraw();
+                Poll::Pending
+            } else {
+                Poll::Ready(Some(Redraw {
+                    handle: owner.handle,
+                    resized: state.resized.take(),
+                }))
+            }
         } else {
-            state.waker = Some(cx.waker().clone());
-            drop(state);
-            self.owner = Some(owner);
             Poll::Pending
-        }
-    }
-}
+        };
 
-impl<'a, 'b> FusedFuture for WaitRedraw<'a, 'b> {
-    fn is_terminated(&self) -> bool {
-        self.owner.is_none()
+        if result.is_pending() {
+            state.waker = Some(cx.waker().clone());
+        }
+
+        result
     }
 }
 

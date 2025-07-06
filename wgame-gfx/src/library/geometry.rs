@@ -107,10 +107,10 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
             contents: bytemuck::cast_slice(final_xform.as_ref()),
             usage: wgpu::BufferUsages::UNIFORM,
         });
-        let tex_xform = self.texture.xform.to_cols_array_2d();
+        let tex_xform = self.texture.xform.to_mat4();
         let text_xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("tex_transform"),
-            contents: bytemuck::cast_slice(&tex_xform),
+            contents: bytemuck::cast_slice(tex_xform.as_ref()),
             usage: wgpu::BufferUsages::UNIFORM,
         });
         let uniforms = self.geometry.uniforms();

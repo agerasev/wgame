@@ -300,9 +300,7 @@ impl TriangleScene {
 }
 
 async fn main_(rt: Runtime) {
-    env_logger::init();
     println!("Started");
-
     rt.clone()
         .create_windowed_task(WindowAttributes::default(), async move |mut window| {
             println!("Window created");

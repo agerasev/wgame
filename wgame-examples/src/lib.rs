@@ -13,8 +13,6 @@ use wgame_utils::FrameCounter;
 
 #[wgame::main]
 pub async fn wgame_main(rt: Runtime) {
-    env_logger::init();
-
     let task = rt
         .clone()
         .create_window(WindowConfig::default(), async move |mut window: Window| {

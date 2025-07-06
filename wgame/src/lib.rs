@@ -24,7 +24,8 @@ macro_rules! run {
 }
 
 /// TODO: Import from `wgame_gfx`.
-type GraphicsConfig = ();
+#[derive(Clone, Default, Debug)]
+pub struct GraphicsConfig;
 
 #[derive(Clone, Default, Debug)]
 pub struct WindowConfig {
