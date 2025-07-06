@@ -1,5 +1,12 @@
 [workspace]
-members = ["wgame", "wgame-app", "wgame-gfx", "wgame-utils", "wgame-macros"]
+members = [
+    "wgame",
+    "wgame-app",
+    "wgame-gfx",
+    "wgame-fs",
+    "wgame-utils",
+    "wgame-macros",
+]
 resolver = "3"
 
 [workspace.package]
@@ -10,6 +17,7 @@ license = "MIT"
 [workspace.dependencies]
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
+wgame-fs = { version = "0.1.0", path = "wgame-fs" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }

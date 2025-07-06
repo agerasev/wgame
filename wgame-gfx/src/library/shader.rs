@@ -1,4 +1,7 @@
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    ops::RangeInclusive,
+};
 
 use anyhow::{Result, bail};
 use minijinja::{Environment, UndefinedBehavior, Value, value::ValueKind};
@@ -23,11 +26,11 @@ pub struct UniformType {
 }
 
 impl UniformType {
-    const MAX_DIM: usize = 4;
+    const DIM_RANGE: RangeInclusive<usize> = 2..=4;
 
     fn check_dim(n: usize) -> Result<usize, anyhow::Error> {
-        if n > Self::MAX_DIM {
-            bail!("Got dimension {n}, but maximum is {}", Self::MAX_DIM)
+        if !Self::DIM_RANGE.contains(&n) {
+            bail!("Dimension must be in range {:?}, got {n}", Self::DIM_RANGE)
         }
         Ok(n)
     }
@@ -43,7 +46,7 @@ impl UniformType {
                     Ok(format!("Mat{m}<{}>", self.item))
                 }
             }
-            other => bail!("Maximum number of dimensions is 2, but got {}", other.len()),
+            other => bail!("Maximum number of dimensions is 2, got {}", other.len()),
         }
     }
 
