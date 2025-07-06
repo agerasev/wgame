@@ -1,3 +1,3 @@
 fn main() {
-    wgame_examples::main_();
+    wgame_examples::wgame_main();
 }

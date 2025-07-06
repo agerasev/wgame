@@ -12,7 +12,7 @@ use wgame::{
 use wgame_utils::FrameCounter;
 
 #[wgame::main]
-pub async fn main_(rt: Runtime) {
+pub async fn wgame_main(rt: Runtime) {
     env_logger::init();
 
     let task = rt

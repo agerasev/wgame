@@ -15,6 +15,7 @@ pub use winit::window::WindowAttributes;
 #[macro_export]
 macro_rules! run {
     ($crate_:path, $async_main:path) => {{
+        console_error_panic_hook::set_once();
         use $crate_::{App, Runtime};
         let app = App::new().unwrap();
         let proxy = app.proxy();

@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [features]
 default = ["desktop"]
 desktop = ["wgame/desktop"]
@@ -16,3 +19,4 @@ futures.workspace = true
 env_logger.workspace = true
 glam.workspace = true
 rgb.workspace = true
+console_error_panic_hook = "0.1.7"

@@ -7,6 +7,7 @@ members = [
     "wgame-utils",
     "wgame-macros",
     "wgame-examples",
+    "wasm-test",
 ]
 resolver = "3"
 
