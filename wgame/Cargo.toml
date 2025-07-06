@@ -12,7 +12,11 @@ desktop = [
     "wgame-gfx/vulkan",
     "wgame-gfx/gles",
 ]
-web = ["wgame-app/web", "wgame-gfx/webgpu", "wgame-gfx/webgl"]
+web = [
+    "wgame-app/web",
+    "wgame-gfx/webgl",
+    # "wgame-gfx/webgpu",
+]
 
 [dependencies]
 wgame-app.workspace = true
