@@ -6,6 +6,7 @@ members = [
     "wgame-fs",
     "wgame-utils",
     "wgame-macros",
+    "wgame-examples",
 ]
 resolver = "3"
 
@@ -15,6 +16,7 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
+wgame = { version = "0.1.0", path = "wgame" }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }

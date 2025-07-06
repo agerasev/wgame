@@ -12,10 +12,10 @@ use std::{ops::Deref, rc::Rc};
 #[macro_export]
 macro_rules! run_main {
     ($async_main:path) => {
-        async fn __wgame_app_wrapper(app_rt: wgame_app::Runtime) {
+        async fn __wgame_app_wrapper(app_rt: $crate::app::Runtime) {
             $async_main($crate::Runtime(app_rt)).await
         }
-        wgame_app::run_main!(__wgame_app_wrapper);
+        $crate::app::run_main!(__wgame_app_wrapper);
     };
 }
 

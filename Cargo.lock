@@ -2276,6 +2276,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "wgame-examples"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "env_logger",
+ "futures",
+ "glam",
+ "rgb",
+ "wgame",
+ "wgame-utils",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "wgame-fs"
 version = "0.1.0"
 dependencies = [
