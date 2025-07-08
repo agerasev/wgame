@@ -6,13 +6,17 @@ use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
     Runtime, Window, WindowConfig,
-    app::timer::Instant,
+    app::{deps::log, timer::Instant},
+    fs::read_bytes,
     gfx::{self, Library, Object, ObjectExt, library::GeometryExt, types::color},
 };
 use wgame_utils::FrameCounter;
 
 #[wgame::main]
 async fn main(rt: Runtime) {
+    let image = read_bytes("./assets/lenna.png").await.unwrap();
+    log::info!("Image compressed size: {} bytes", image.len());
+
     let task = rt
         .clone()
         .create_window(WindowConfig::default(), async move |mut window: Window| {

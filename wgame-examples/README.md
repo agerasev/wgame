@@ -9,5 +9,5 @@ cargo run
 ## Web
 
 ```sh
-trunk serve --no-default-features --features web
+trunk serve --no-spa --no-default-features --features web
 ```

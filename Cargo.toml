@@ -31,4 +31,8 @@ rgb = { version = "0.8.50", default-features = false, features = ["bytemuck"] }
 hashbrown = { version = "0.15.4", features = ["core", "alloc"] }
 anyhow = "1.0.98"
 log = "0.4.27"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
+web-sys = "0.3.77"
 web-time = "1.1.0"
+js-sys = "0.3.77"

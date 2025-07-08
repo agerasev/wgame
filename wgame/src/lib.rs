@@ -4,6 +4,7 @@
 extern crate alloc;
 
 pub use wgame_app as app;
+pub use wgame_fs as fs;
 pub use wgame_gfx as gfx;
 pub use wgame_macros::main;
 
