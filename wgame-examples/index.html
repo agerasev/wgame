@@ -26,6 +26,7 @@
         height: 100%;
       }
     </style>
+    <link data-trunk rel="rust" />
   </head>
 
   <body>
@@ -33,15 +34,4 @@
       <canvas class="main-canvas" id="canvas"></canvas>
     </div>
   </body>
-
-  <script type="module">
-    import init, { wgame_main } from "./pkg/wgame_examples.js";
-
-    async function run() {
-      await init();
-      wgame_main();
-    }
-
-    run();
-  </script>
 </html>

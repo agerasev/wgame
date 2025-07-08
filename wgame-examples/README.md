@@ -1,9 +1,13 @@
 # wgame-examples
 
-## Web
-
-### Build
+## Desktop
 
 ```sh
-wasm-pack build --target web --no-opt --debug -- --no-default-features --features=web
+cargo run
+```
+
+## Web
+
+```sh
+trunk serve --no-default-features --features web
 ```

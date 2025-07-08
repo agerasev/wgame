@@ -64,17 +64,13 @@ macro_rules! entry {
 #[macro_export]
 macro_rules! entry {
     ($crate_:path, $main:ident, $async_main:path) => {
-        pub mod __wgame_app_mod {
-            use super::{/**/ $async_main};
+        pub fn $main() {
             use $crate_::{deps::*, run};
 
-            #[wasm_bindgen::prelude::wasm_bindgen]
-            pub fn $main() {
-                console_error_panic_hook::set_once();
-                console_log::init_with_level(log::Level::Info).unwrap();
+            console_error_panic_hook::set_once();
+            console_log::init_with_level(log::Level::Info).unwrap();
 
-                run!($crate_, $async_main);
-            }
+            run!($crate_, $async_main);
         }
     };
 }

@@ -4,9 +4,6 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
-[lib]
-crate-type = ["rlib", "cdylib"]
-
 [features]
 default = ["desktop"]
 desktop = ["wgame/desktop", "wgame-utils/std"]
