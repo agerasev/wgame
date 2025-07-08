@@ -1,13 +1,13 @@
 use wgame_app::{Runtime, WindowAttributes, main};
 
 async fn main_(rt: Runtime) {
-    env_logger::init();
-    println!("Started");
+    log::info!("Started");
 
     rt.create_windowed_task(WindowAttributes::default(), async |mut window| {
-        println!("Window created");
-        while let Some(_) = window.request_redraw().await {
-            // println!("Event: {:?}", event);
+        log::info!("Window created");
+        while let Some(frame) = window.request_redraw().await {
+            let _ = frame;
+            // log::info!("Event: {:?}", event);
             todo!("Collect events in Frame")
         }
     })
@@ -15,7 +15,7 @@ async fn main_(rt: Runtime) {
     .unwrap()
     .await;
 
-    println!("Closed");
+    log::info!("Closed");
 }
 
 main!(main_);

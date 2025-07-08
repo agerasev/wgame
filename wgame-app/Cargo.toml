@@ -5,14 +5,15 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-x11 = ["winit/x11", "dep:env_logger"]
+x11 = ["std", "winit/x11"]
 wayland = [
+    "std",
     "winit/wayland",
     "winit/wayland-dlopen",
     "winit/wayland-csd-adwaita",
-    "dep:env_logger",
 ]
-android = ["winit/android-native-activity", "dep:env_logger"]
+android = ["std", "winit/android-native-activity"]
+std = ["dep:env_logger"]
 web = [
     "dep:web-time",
     "dep:wasm-bindgen",

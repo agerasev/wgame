@@ -16,22 +16,25 @@ pub use crate::{app::App, runtime::Runtime, window::Window};
 
 pub use winit::window::WindowAttributes;
 
-pub use log;
+pub mod deps {
+    pub use log;
 
-#[cfg(not(feature = "web"))]
-pub use env_logger;
+    #[cfg(not(feature = "web"))]
+    pub use env_logger;
 
-#[cfg(feature = "web")]
-pub use console_error_panic_hook;
-#[cfg(feature = "web")]
-pub use console_log;
-#[cfg(feature = "web")]
-pub use wasm_bindgen;
+    #[cfg(feature = "web")]
+    pub use console_error_panic_hook;
+    #[cfg(feature = "web")]
+    pub use console_log;
+    #[cfg(feature = "web")]
+    pub use wasm_bindgen;
+}
 
 #[macro_export]
 macro_rules! run {
     ($crate_:path, $async_main:path) => {{
-        use $crate_::{App, Runtime, log};
+        use $crate_::{App, Runtime, deps::*};
+
         log::info!("Running App");
         let app = App::new().unwrap();
         let proxy = app.proxy();
@@ -45,7 +48,7 @@ macro_rules! run {
 macro_rules! entry {
     ($crate_:path, $main:ident, $async_main:path) => {
         pub fn $main() {
-            use $crate_::{env_logger, log, run};
+            use $crate_::{deps::*, run};
 
             env_logger::Builder::from_env(
                 env_logger::Env::default().default_filter_or("info"), //
@@ -63,7 +66,7 @@ macro_rules! entry {
     ($crate_:path, $main:ident, $async_main:path) => {
         pub mod __wgame_app_mod {
             use super::{/**/ $async_main};
-            use $crate_::{console_error_panic_hook, console_log, log, run, wasm_bindgen};
+            use $crate_::{deps::*, run};
 
             #[wasm_bindgen::prelude::wasm_bindgen]
             pub fn $main() {

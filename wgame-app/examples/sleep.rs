@@ -1,12 +1,11 @@
-use std::time::Duration;
+use core::time::Duration;
 
 use wgame_app::{Runtime, main};
 
 async fn main_(rt: Runtime) {
-    env_logger::init();
-    println!("Going to sleep");
+    log::info!("Going to sleep");
     rt.create_timer(Duration::from_secs(1)).await;
-    println!("Awakened");
+    log::info!("Awakened");
 }
 
 main!(main_);
