@@ -2,9 +2,9 @@ use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::{SharedState, library::pipeline::create_pipeline, object::Vertices, types::Position};
+use wgame_gfx::{SharedState, object::Vertices, types::Position};
 
-use super::{Geometry, GeometryExt, Library, Vertex};
+use crate::{Geometry, GeometryExt, Library, Vertex, pipeline::create_pipeline};
 
 pub struct PolygonRenderer {
     pub quad_vertices: wgpu::Buffer,
@@ -17,7 +17,7 @@ pub struct PolygonRenderer {
 impl PolygonRenderer {
     pub fn new(state: &SharedState<'_>) -> Result<Self> {
         let quad_vertices = state
-            .device
+            .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_vertices"),
                 contents: bytemuck::cast_slice(&[
@@ -29,7 +29,7 @@ impl PolygonRenderer {
                 usage: wgpu::BufferUsages::VERTEX,
             });
         let quad_indices = state
-            .device
+            .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_indices"),
                 contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 1, 3]),
@@ -37,39 +37,41 @@ impl PolygonRenderer {
             });
 
         let sqrt_3_2 = 3.0f32.sqrt() / 2.0;
-        let hexagon_vertices = state
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("quad_vertices"),
-                contents: bytemuck::cast_slice(&[
-                    Vertex::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
-                    Vertex::new(
-                        Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
-                        Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.25),
-                    ),
-                    Vertex::new(
-                        Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
-                        Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.75),
-                    ),
-                    Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
-                    Vertex::new(
-                        Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
-                        Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.75),
-                    ),
-                    Vertex::new(
-                        Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
-                        Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
-                    ),
-                ]),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        let hexagon_indices = state
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("quad_indices"),
-                contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 3, 4, 4, 5, 0, 0, 2, 4]),
-                usage: wgpu::BufferUsages::INDEX,
-            });
+        let hexagon_vertices =
+            state
+                .device()
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("quad_vertices"),
+                    contents: bytemuck::cast_slice(&[
+                        Vertex::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
+                        Vertex::new(
+                            Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
+                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.25),
+                        ),
+                        Vertex::new(
+                            Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
+                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.75),
+                        ),
+                        Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
+                        Vertex::new(
+                            Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
+                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.75),
+                        ),
+                        Vertex::new(
+                            Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
+                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
+                        ),
+                    ]),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+        let hexagon_indices =
+            state
+                .device()
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("quad_indices"),
+                    contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 3, 4, 4, 5, 0, 0, 2, 4]),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
 
         let pipeline = create_pipeline(state)?;
 
@@ -112,7 +114,7 @@ impl<'a> Library<'a> {
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<'a, 3> {
         let vertices = self
             .state
-            .device
+            .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("triangle_vertices"),
                 contents: bytemuck::cast_slice(&[

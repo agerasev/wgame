@@ -5,9 +5,8 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["desktop"]
-desktop = ["wgame/desktop", "wgame-utils/std"]
-web = ["wgame/web", "wgame-utils/web"]
+default = ["wgame/default"]
+web = ["wgame/web"]
 
 [dependencies]
 wgame.workspace = true

@@ -3,13 +3,13 @@ use alloc::vec::Vec;
 use glam::{Affine2, Mat4, Vec2};
 use wgpu::util::DeviceExt;
 
-use crate::{
+use wgame_gfx::{
     Object, SharedState, Transformed,
     object::{Uniforms, Vertices},
     types::{Color, Transform},
 };
 
-use super::Texture;
+use crate::Texture;
 
 pub trait Geometry<'a> {
     fn state(&self) -> &SharedState<'a>;
@@ -100,7 +100,7 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
     }
 
     fn create_uniforms(&self, xform: Mat4) -> Uniforms {
-        let device = &self.geometry.state().device;
+        let device = &self.geometry.state().device();
         let final_xform = xform * self.geometry.transformation();
         let xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("transform"),

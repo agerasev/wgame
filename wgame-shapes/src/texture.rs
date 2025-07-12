@@ -1,6 +1,6 @@
 use glam::Affine2;
 
-use crate::SharedState;
+use wgame_gfx::SharedState;
 
 #[derive(Clone)]
 pub struct Texture<'a> {
@@ -19,7 +19,7 @@ impl<'a> Texture<'a> {
             height: size.1,
             depth_or_array_layers: 1,
         };
-        let texture = state.device.create_texture(&wgpu::TextureDescriptor {
+        let texture = state.device().create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: extent,
             mip_level_count: 1,
@@ -30,7 +30,7 @@ impl<'a> Texture<'a> {
             view_formats: &[],
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = state.device.create_sampler(&wgpu::SamplerDescriptor {
+        let sampler = state.device().create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
@@ -61,7 +61,7 @@ impl<'a> Texture<'a> {
             (self.extent.width * self.extent.height * bytes_per_block) as usize,
             data.len()
         );
-        self.state.queue.write_texture(
+        self.state.queue().write_texture(
             self.texture.as_image_copy(),
             data,
             wgpu::TexelCopyBufferLayout {

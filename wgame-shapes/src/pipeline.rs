@@ -4,10 +4,9 @@ use core::mem::{offset_of, size_of};
 use anyhow::Result;
 use glam::Mat4;
 
-use crate::{
-    SharedState,
-    library::shader::{ShaderConfig, ShaderSource},
-};
+use crate::shader::{ShaderConfig, ShaderSource};
+
+use wgame_gfx::SharedState;
 
 use super::Vertex;
 
@@ -19,14 +18,14 @@ pub fn create_pipeline_masked(
     state: &SharedState<'_>,
     config: &ShaderConfig,
 ) -> Result<wgpu::RenderPipeline> {
-    let device = &state.device;
-    let swapchain_format = state.format;
+    let device = &state.device();
+    let swapchain_format = state.format();
 
     let vertex_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
         ShaderSource::new(
             [
-                include_str!("../../shaders/common.wgsl"),
-                include_str!("../../shaders/vertex.wgsl"),
+                include_str!("../shaders/common.wgsl"),
+                include_str!("../shaders/vertex.wgsl"),
             ]
             .join("\n"),
         )?
@@ -35,8 +34,8 @@ pub fn create_pipeline_masked(
     let fragment_shader_source = wgpu::ShaderSource::Wgsl(Cow::Owned(
         ShaderSource::new(
             [
-                include_str!("../../shaders/common.wgsl"),
-                include_str!("../../shaders/fragment_masked.wgsl"),
+                include_str!("../shaders/common.wgsl"),
+                include_str!("../shaders/fragment_masked.wgsl"),
             ]
             .join("\n"),
         )?

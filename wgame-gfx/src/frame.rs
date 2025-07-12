@@ -13,6 +13,7 @@ pub struct Frame<'a> {
 impl<'a> Frame<'a> {
     pub(crate) fn new(state: SharedState<'a>) -> Result<Self> {
         let surface = state
+            .0
             .surface
             .get_current_texture()
             .context("Failed to acquire next swap chain texture")?;
@@ -38,6 +39,7 @@ impl<'a> Frame<'a> {
 
         let mut encoder = self
             .state
+            .0
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -56,7 +58,7 @@ impl<'a> Frame<'a> {
             occlusion_query_set: None,
         });
 
-        self.state.queue.submit(Some(encoder.finish()));
+        self.state.0.queue.submit(Some(encoder.finish()));
     }
 
     pub fn render<T: Object>(&self, object: &T) {
@@ -71,6 +73,7 @@ impl<'a> Frame<'a> {
 
         let mut encoder = self
             .state
+            .0
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -108,6 +111,6 @@ impl<'a> Frame<'a> {
             }
         }
 
-        self.state.queue.submit(Some(encoder.finish()));
+        self.state.0.queue.submit(Some(encoder.finish()));
     }
 }

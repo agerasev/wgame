@@ -1,3 +1,8 @@
+#![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
+
 mod circle;
 mod geometry;
 mod pipeline;
@@ -9,10 +14,9 @@ use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 
-use crate::{
-    SharedState,
-    library::{circle::CircleRenderer, polygon::PolygonRenderer},
-};
+use wgame_gfx::SharedState;
+
+use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 
 pub use self::{
     geometry::{Geometry, GeometryExt},

@@ -4,12 +4,10 @@
 extern crate alloc;
 
 mod frame;
-pub mod library;
-mod object;
+pub mod object;
 pub mod types;
 
 pub use frame::Frame;
-pub use library::Library;
 pub use object::{Object, ObjectExt, Transformed};
 
 use alloc::rc::Rc;
@@ -17,9 +15,10 @@ use core::cell::Cell;
 
 use anyhow::{Context, Result};
 
-pub type SharedState<'a> = Rc<State<'a>>;
+#[derive(Clone)]
+pub struct SharedState<'a>(Rc<State<'a>>);
 
-pub struct State<'a> {
+struct State<'a> {
     surface: wgpu::Surface<'a>,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
@@ -29,7 +28,7 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    pub async fn new(window_handle: impl Into<wgpu::SurfaceTarget<'a>>) -> Result<Self> {
+    async fn new(window_handle: impl Into<wgpu::SurfaceTarget<'a>>) -> Result<Self> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
 
         let surface = instance
@@ -71,12 +70,8 @@ impl<'a> State<'a> {
         Ok(this)
     }
 
-    pub fn size(&self) -> (u32, u32) {
-        self.size.get()
-    }
-
     fn configure(&self) {
-        let size = self.size();
+        let size = self.size.get();
         if let (0, _) | (_, 0) = size {
             log::debug!("Invalid surface size: {size:?}, skipping configuration");
             return;
@@ -93,13 +88,32 @@ impl<'a> State<'a> {
             },
         );
     }
+}
 
-    pub fn resize(&self, new_size: (u32, u32)) {
-        self.size.set(new_size);
-        self.configure();
+impl<'a> SharedState<'a> {
+    pub async fn new(window_handle: impl Into<wgpu::SurfaceTarget<'a>>) -> Result<Self> {
+        Ok(SharedState(Rc::new(State::new(window_handle).await?)))
     }
 
-    pub fn frame(self: &Rc<Self>) -> Result<Frame<'a>> {
+    pub fn size(&self) -> (u32, u32) {
+        self.0.size.get()
+    }
+    pub fn resize(&self, new_size: (u32, u32)) {
+        self.0.size.set(new_size);
+        self.0.configure();
+    }
+
+    pub fn device(&self) -> &wgpu::Device {
+        &self.0.device
+    }
+    pub fn queue(&self) -> &wgpu::Queue {
+        &self.0.queue
+    }
+    pub fn format(&self) -> wgpu::TextureFormat {
+        self.0.format
+    }
+
+    pub fn frame(&self) -> Result<Frame<'a>> {
         Frame::new(self.clone())
     }
 }

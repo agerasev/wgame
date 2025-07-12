@@ -4,14 +4,12 @@ use anyhow::Result;
 use glam::{Affine2, Mat2, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
+use wgame_gfx::{SharedState, object::Vertices};
+
 use crate::{
-    SharedState,
-    library::{
-        GeometryExt,
-        pipeline::create_pipeline_masked,
-        shader::{ScalarType, ShaderConfig, UniformInfo, UniformType},
-    },
-    object::Vertices,
+    GeometryExt,
+    pipeline::create_pipeline_masked,
+    shader::{ScalarType, ShaderConfig, UniformInfo, UniformType},
 };
 
 use super::{Geometry, Library};
@@ -69,7 +67,7 @@ impl<'a> Geometry<'a> for Circle<'a> {
     fn uniforms(&self) -> Vec<wgpu::Buffer> {
         vec![
             self.state
-                .device
+                .device()
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("inner_radius"),
                     contents: bytemuck::cast_slice(

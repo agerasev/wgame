@@ -4,14 +4,19 @@
 extern crate alloc;
 
 pub use wgame_app as app;
-pub use wgame_fs as fs;
 pub use wgame_gfx as gfx;
 pub use wgame_macros::main;
+
+#[cfg(feature = "fs")]
+pub use wgame_fs as fs;
+#[cfg(feature = "shapes")]
+pub use wgame_shapes as shapes;
+#[cfg(feature = "utils")]
+pub use wgame_utils as utils;
 
 pub use anyhow::{Error, Result};
 pub use app::{runtime::JoinHandle, timer::Timer};
 
-use alloc::rc::Rc;
 use core::ops::Deref;
 
 #[macro_export]
@@ -63,7 +68,7 @@ pub struct Window<'a> {
 
 impl<'a> Window<'a> {
     async fn new(app: app::Window<'a>, _gfx_cfg: GraphicsConfig) -> Result<Self> {
-        let gfx = Rc::new(gfx::State::new(app.handle()).await?);
+        let gfx = gfx::SharedState::new(app.handle()).await?;
         gfx.resize(app.size());
         Ok(Self { app, gfx })
     }
@@ -83,7 +88,7 @@ impl<'a> Window<'a> {
         }
     }
 
-    pub fn graphics(&self) -> &Rc<gfx::State<'a>> {
+    pub fn graphics(&self) -> &gfx::SharedState<'a> {
         &self.gfx
     }
 }

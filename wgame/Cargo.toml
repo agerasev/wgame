@@ -5,26 +5,32 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["desktop"]
+default = ["desktop", "shapes", "fs", "utils"]
 desktop = [
     "wgame-app/x11",
     "wgame-app/wayland",
     "wgame-gfx/vulkan",
     "wgame-gfx/gles",
     "wgame-fs/std",
+    "wgame-utils/std",
 ]
 web = [
     "wgame-app/web",
     "wgame-gfx/webgl",
     # "wgame-gfx/webgpu",
     "wgame-fs/web",
+    "wgame-utils/web",
 ]
+shapes = ["dep:wgame-shapes"]
+fs = ["dep:wgame-fs"]
+utils = ["dep:wgame-utils"]
 
 [dependencies]
 wgame-app.workspace = true
 wgame-gfx.workspace = true
-wgame-fs.workspace = true
-wgame-utils.workspace = true
+wgame-shapes = { workspace = true, optional = true }
+wgame-fs = { workspace = true, optional = true }
+wgame-utils = { workspace = true, optional = true }
 wgame-macros.workspace = true
 anyhow.workspace = true
 

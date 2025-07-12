@@ -8,9 +8,10 @@ use wgame::{
     Runtime, Window, WindowConfig,
     app::{deps::log, timer::Instant},
     fs::read_bytes,
-    gfx::{self, Library, Object, ObjectExt, library::GeometryExt, types::color},
+    gfx::{Object, ObjectExt, types::color},
+    shapes::{GeometryExt, Library},
+    utils::FrameCounter,
 };
-use wgame_utils::FrameCounter;
 
 #[wgame::main]
 async fn main(rt: Runtime) {
@@ -20,7 +21,7 @@ async fn main(rt: Runtime) {
     let task = rt
         .clone()
         .create_window(WindowConfig::default(), async move |mut window: Window| {
-            let gfx = gfx::Library::new(window.graphics())?;
+            let gfx = Library::new(window.graphics())?;
             let scale = 1.0 / 3.0;
             let start_time = Instant::now();
             let mut fps = FrameCounter::default();

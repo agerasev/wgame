@@ -2286,6 +2286,7 @@ dependencies = [
  "wgame-fs",
  "wgame-gfx",
  "wgame-macros",
+ "wgame-shapes",
  "wgame-utils",
  "wgpu",
  "winit",
@@ -2339,9 +2340,7 @@ dependencies = [
  "bytemuck",
  "glam",
  "log",
- "minijinja",
  "rgb",
- "serde",
  "wgpu",
 ]
 
@@ -2352,6 +2351,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "wgame-shapes"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "glam",
+ "log",
+ "minijinja",
+ "rgb",
+ "serde",
+ "wgame-gfx",
+ "wgpu",
 ]
 
 [[package]]

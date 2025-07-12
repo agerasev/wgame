@@ -19,6 +19,7 @@ license = "MIT"
 wgame = { version = "0.1.0", path = "wgame", default-features = false }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
+wgame-shapes = { version = "0.1.0", path = "wgame-shapes" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
