@@ -1,8 +1,6 @@
 use alloc::vec::Vec;
 
 use glam::{Affine2, Mat4, Vec2};
-use half::f16;
-use rgb::ComponentMap;
 use wgpu::util::DeviceExt;
 
 use wgame_gfx::{
@@ -42,28 +40,18 @@ pub trait ShapeExt<'a>: Shape<'a> + Sized {
     }
 
     fn color<T: Color>(self, color: T) -> Textured<'a, Self> {
-        let pixel = Texture::with_data(
-            self.state(),
-            (1, 1),
-            wgpu::TextureFormat::Rgba16Float,
-            bytemuck::cast_slice(&[color.to_rgba().map(f16::from_f32)]),
-        );
+        let pixel = Texture::with_data(self.state(), (1, 1), &[color.to_rgba()]);
         self.texture(pixel)
     }
 
     fn gradient<T: Color>(self, colors: [[T; 2]; 2]) -> Textured<'a, Self> {
-        let colors = colors.map(|row| row.map(|color| color.to_rgba().map(f16::from_f32)));
-        let pixels_2x2 = Texture::with_data(
-            self.state(),
-            (2, 2),
-            wgpu::TextureFormat::Rgba16Float,
-            bytemuck::cast_slice(&colors),
-        )
-        .transform_coord(Affine2::from_scale_angle_translation(
-            Vec2::new(0.5, 0.5),
-            0.0,
-            Vec2::new(0.25, 0.25),
-        ));
+        let colors = colors.map(|row| row.map(|color| color.to_rgba()));
+        let pixels_2x2 = Texture::with_data(self.state(), (2, 2), colors.as_flattened())
+            .transform_coord(Affine2::from_scale_angle_translation(
+                Vec2::new(0.5, 0.5),
+                0.0,
+                Vec2::new(0.25, 0.25),
+            ));
         self.texture(pixels_2x2)
     }
 

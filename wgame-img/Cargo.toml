@@ -10,7 +10,6 @@ png = ["image/png"]
 
 [dependencies]
 wgame-gfx.workspace = true
-wgame-fs.workspace = true
 wgpu.workspace = true
 image.workspace = true
 bytemuck.workspace = true

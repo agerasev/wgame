@@ -33,7 +33,7 @@ impl<'a> Frame<'a> {
 
     pub fn clear(&self, color: impl Color) {
         let color = {
-            let Rgba { r, g, b, a } = color.to_rgba().map(|c| c as f64);
+            let Rgba { r, g, b, a } = color.to_rgba().map(|c| c.to_f64());
             wgpu::Color { r, g, b, a }
         };
 

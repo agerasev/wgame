@@ -5,11 +5,11 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["wgame/default"]
+default = ["wgame/desktop"]
 web = ["wgame/web"]
 
 [dependencies]
-wgame.workspace = true
+wgame = { workspace = true, features = ["shapes", "fs", "img", "utils"] }
 wgame-utils.workspace = true
 futures.workspace = true
 glam.workspace = true

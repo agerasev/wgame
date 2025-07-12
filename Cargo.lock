@@ -2423,6 +2423,7 @@ dependencies = [
  "anyhow",
  "bytemuck",
  "glam",
+ "half",
  "log",
  "rgb",
  "wgpu",
@@ -2436,7 +2437,6 @@ dependencies = [
  "bytemuck",
  "half",
  "image",
- "wgame-fs",
  "wgame-gfx",
  "wgpu",
 ]

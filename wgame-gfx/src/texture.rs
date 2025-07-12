@@ -1,4 +1,6 @@
 use glam::Affine2;
+use half::f16;
+use rgb::Rgba;
 
 use crate::State;
 
@@ -13,7 +15,7 @@ pub struct Texture<'a> {
 }
 
 impl<'a> Texture<'a> {
-    pub fn new(state: &State<'a>, size: (u32, u32), format: wgpu::TextureFormat) -> Self {
+    pub fn new(state: &State<'a>, size: (u32, u32)) -> Self {
         let extent = wgpu::Extent3d {
             width: size.0,
             height: size.1,
@@ -25,7 +27,7 @@ impl<'a> Texture<'a> {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format,
+            format: wgpu::TextureFormat::Rgba16Float,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -54,16 +56,17 @@ impl<'a> Texture<'a> {
         }
     }
 
-    pub fn write(&self, data: &[u8]) {
+    pub fn write(&self, data: &[Rgba<f16>]) {
         let format = self.texture.format();
         let bytes_per_block = format.block_copy_size(None).unwrap();
         assert_eq!(
             (self.extent.width * self.extent.height * bytes_per_block) as usize,
-            data.len()
+            size_of_val(data),
+            "Texture data size mismatch"
         );
         self.state.queue().write_texture(
             self.texture.as_image_copy(),
-            data,
+            bytemuck::cast_slice(data),
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(
@@ -75,13 +78,8 @@ impl<'a> Texture<'a> {
         );
     }
 
-    pub fn with_data(
-        state: &State<'a>,
-        size: (u32, u32),
-        format: wgpu::TextureFormat,
-        data: &[u8],
-    ) -> Self {
-        let this = Self::new(state, size, format);
+    pub fn with_data(state: &State<'a>, size: (u32, u32), data: &[Rgba<f16>]) -> Self {
+        let this = Self::new(state, size);
         this.write(data);
         this
     }

@@ -11,15 +11,15 @@ desktop = [
     "wgame-app/wayland",
     "wgame-gfx/vulkan",
     "wgame-gfx/gles",
-    "wgame-fs/std",
-    "wgame-utils/std",
+    "wgame-fs?/std",
+    "wgame-utils?/std",
 ]
 web = [
     "wgame-app/web",
     "wgame-gfx/webgl",
     # "wgame-gfx/webgpu",
-    "wgame-fs/web",
-    "wgame-utils/web",
+    "wgame-fs?/web",
+    "wgame-utils?/web",
 ]
 shapes = ["dep:wgame-shapes"]
 fs = ["dep:wgame-fs"]

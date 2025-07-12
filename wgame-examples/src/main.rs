@@ -7,8 +7,9 @@ use rgb::Rgb;
 use wgame::{
     Runtime, Window, WindowConfig,
     app::{deps::log, timer::Instant},
+    fs::read_bytes,
     gfx::{Object, ObjectExt, Texture, types::color},
-    img::read_image,
+    img::image_to_texture,
     shapes::{Library, ShapeExt},
     utils::FrameCounter,
 };
@@ -19,9 +20,11 @@ async fn main(rt: Runtime) {
         .clone()
         .create_window(WindowConfig::default(), async move |mut window: Window| {
             let gfx = Library::new(window.graphics())?;
-            let tex = read_image(window.graphics(), "assets/lenna.png")
-                .await
-                .unwrap();
+            let tex = image_to_texture(
+                window.graphics(),
+                &read_bytes("assets/lenna.png").await.unwrap(),
+            )
+            .unwrap();
             let scale = 1.0 / 3.0;
             let start_time = Instant::now();
             let mut fps = FrameCounter::default();
