@@ -14,15 +14,31 @@ pub use self::{
     texture::Texture,
 };
 
+pub use wgpu;
+
 use alloc::rc::Rc;
 use core::cell::Cell;
 
 use anyhow::{Context, Result};
 
+#[derive(Clone, Debug)]
+pub struct Config {
+    pub present_mode: wgpu::PresentMode,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            present_mode: wgpu::PresentMode::AutoVsync,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct State<'a>(Rc<InnerState<'a>>);
 
 struct InnerState<'a> {
+    config: Config,
     surface: wgpu::Surface<'a>,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
@@ -32,7 +48,10 @@ struct InnerState<'a> {
 }
 
 impl<'a> InnerState<'a> {
-    async fn new(window_handle: impl Into<wgpu::SurfaceTarget<'a>>) -> Result<Self> {
+    async fn new(
+        config: Config,
+        window_handle: impl Into<wgpu::SurfaceTarget<'a>>,
+    ) -> Result<Self> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
 
         let surface = instance
@@ -54,7 +73,7 @@ impl<'a> InnerState<'a> {
                 required_features: wgpu::Features::empty(),
                 required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                     .using_resolution(adapter.limits()),
-                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                memory_hints: wgpu::MemoryHints::Performance,
                 trace: wgpu::Trace::Off,
             })
             .await
@@ -63,6 +82,7 @@ impl<'a> InnerState<'a> {
         let caps = surface.get_capabilities(&adapter);
 
         let this = Self {
+            config,
             surface,
             adapter,
             device,
@@ -87,7 +107,7 @@ impl<'a> InnerState<'a> {
         self.surface.configure(
             &self.device,
             &wgpu::SurfaceConfiguration {
-                present_mode: wgpu::PresentMode::AutoVsync,
+                present_mode: self.config.present_mode,
                 ..surface_config
             },
         );
@@ -95,8 +115,13 @@ impl<'a> InnerState<'a> {
 }
 
 impl<'a> State<'a> {
-    pub async fn new(window_handle: impl Into<wgpu::SurfaceTarget<'a>>) -> Result<Self> {
-        Ok(State(Rc::new(InnerState::new(window_handle).await?)))
+    pub async fn new(
+        config: Config,
+        window_handle: impl Into<wgpu::SurfaceTarget<'a>>,
+    ) -> Result<Self> {
+        Ok(State(Rc::new(
+            InnerState::new(config, window_handle).await?,
+        )))
     }
 
     pub fn size(&self) -> (u32, u32) {

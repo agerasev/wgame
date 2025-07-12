@@ -1,6 +1,9 @@
 #![no_std]
 
-use core::f32::consts::{FRAC_PI_3, PI, SQRT_2};
+use core::{
+    f32::consts::{FRAC_PI_3, PI, SQRT_2},
+    time::Duration,
+};
 
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
@@ -27,7 +30,7 @@ async fn main(rt: Runtime) {
             .unwrap();
             let scale = 1.0 / 3.0;
             let start_time = Instant::now();
-            let mut fps = FrameCounter::default();
+            let mut fps = FrameCounter::new(Duration::from_secs(4));
             while let Some(frame) = window.next_frame().await? {
                 frame.clear(Rgb::new(0.0, 0.0, 0.0));
                 let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;

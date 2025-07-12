@@ -31,14 +31,10 @@ macro_rules! run {
     };
 }
 
-/// TODO: Import from `wgame_gfx`.
-#[derive(Clone, Default, Debug)]
-pub struct GraphicsConfig;
-
 #[derive(Clone, Default, Debug)]
 pub struct WindowConfig {
     pub app: app::WindowAttributes,
-    pub gfx: GraphicsConfig,
+    pub gfx: gfx::Config,
 }
 
 #[derive(Clone)]
@@ -69,8 +65,8 @@ pub struct Window<'a> {
 }
 
 impl<'a> Window<'a> {
-    async fn new(app: app::Window<'a>, _gfx_cfg: GraphicsConfig) -> Result<Self> {
-        let gfx = gfx::State::new(app.handle()).await?;
+    async fn new(app: app::Window<'a>, gfx_cfg: gfx::Config) -> Result<Self> {
+        let gfx = gfx::State::new(gfx_cfg, app.handle()).await?;
         gfx.resize(app.size());
         Ok(Self { app, gfx })
     }
