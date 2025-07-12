@@ -1,14 +1,14 @@
 use alloc::vec::Vec;
 
 use glam::{Affine2, Mat4, Vec2};
+use half::f16;
+use rgb::ComponentMap;
 use wgpu::util::DeviceExt;
 
 use wgame_gfx::{
-    Object, State, Transformed,
+    Object, State, Texture, Transformed,
     types::{Color, Transform},
 };
-
-use crate::Texture;
 
 pub struct Vertices {
     pub count: u32,
@@ -45,21 +45,21 @@ pub trait ShapeExt<'a>: Shape<'a> + Sized {
         let pixel = Texture::with_data(
             self.state(),
             (1, 1),
-            wgpu::TextureFormat::Rgba32Float,
-            bytemuck::cast_slice(&[color.to_rgba()]),
+            wgpu::TextureFormat::Rgba16Float,
+            bytemuck::cast_slice(&[color.to_rgba().map(f16::from_f32)]),
         );
         self.texture(pixel)
     }
 
     fn gradient<T: Color>(self, colors: [[T; 2]; 2]) -> Textured<'a, Self> {
-        let colors = colors.map(|row| row.map(|color| color.to_rgba()));
+        let colors = colors.map(|row| row.map(|color| color.to_rgba().map(f16::from_f32)));
         let pixels_2x2 = Texture::with_data(
             self.state(),
             (2, 2),
-            wgpu::TextureFormat::Rgba32Float,
+            wgpu::TextureFormat::Rgba16Float,
             bytemuck::cast_slice(&colors),
         )
-        .transform_coords(Affine2::from_scale_angle_translation(
+        .transform_coord(Affine2::from_scale_angle_translation(
             Vec2::new(0.5, 0.5),
             0.0,
             Vec2::new(0.25, 0.25),
@@ -67,10 +67,10 @@ pub trait ShapeExt<'a>: Shape<'a> + Sized {
         self.texture(pixels_2x2)
     }
 
-    fn texture(self, texture: Texture<'a>) -> Textured<'a, Self> {
+    fn texture(self, texture: impl Into<Texture<'a>>) -> Textured<'a, Self> {
         Textured {
             shape: self,
-            texture,
+            texture: texture.into(),
         }
     }
 }
@@ -113,7 +113,7 @@ impl<'a, T: Shape<'a>> Textured<'a, T> {
             contents: bytemuck::cast_slice(final_xform.as_ref()),
             usage: wgpu::BufferUsages::UNIFORM,
         });
-        let tex_xform = self.texture.xform.to_mat4();
+        let tex_xform = self.texture.coord_xform().to_mat4();
         let text_xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("tex_transform"),
             contents: bytemuck::cast_slice(tex_xform.as_ref()),
@@ -139,8 +139,8 @@ impl<'a, T: Shape<'a>> Textured<'a, T> {
             fragment: device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout: &pipeline.get_bind_group_layout(1),
                 entries: &([
-                    wgpu::BindingResource::TextureView(&self.texture.view),
-                    wgpu::BindingResource::Sampler(&self.texture.sampler),
+                    wgpu::BindingResource::TextureView(self.texture.view()),
+                    wgpu::BindingResource::Sampler(self.texture.sampler()),
                 ]
                 .into_iter())
                 .chain(uniforms.iter().map(|buffer| buffer.as_entire_binding()))

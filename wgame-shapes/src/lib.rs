@@ -8,7 +8,6 @@ mod pipeline;
 mod polygon;
 mod shader;
 mod shape;
-mod texture;
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
@@ -21,7 +20,6 @@ use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 pub use self::{
     polygon::Polygon,
     shape::{Shape, ShapeExt},
-    texture::Texture,
 };
 
 #[repr(C)]

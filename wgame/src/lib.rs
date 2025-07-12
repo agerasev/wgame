@@ -9,6 +9,8 @@ pub use wgame_macros::main;
 
 #[cfg(feature = "fs")]
 pub use wgame_fs as fs;
+#[cfg(feature = "img")]
+pub use wgame_img as img;
 #[cfg(feature = "shapes")]
 pub use wgame_shapes as shapes;
 #[cfg(feature = "utils")]

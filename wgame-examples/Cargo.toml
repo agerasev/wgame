@@ -14,3 +14,4 @@ wgame-utils.workspace = true
 futures.workspace = true
 glam.workspace = true
 rgb.workspace = true
+image = { workspace = true, features = ["png"] }

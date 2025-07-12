@@ -3,7 +3,9 @@ members = [
     "wgame",
     "wgame-app",
     "wgame-gfx",
+    "wgame-shapes",
     "wgame-fs",
+    "wgame-img",
     "wgame-utils",
     "wgame-macros",
     "wgame-examples",
@@ -21,6 +23,7 @@ wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-shapes = { version = "0.1.0", path = "wgame-shapes" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
+wgame-img = { version = "0.1.0", path = "wgame-img" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
@@ -29,6 +32,8 @@ wgpu = { version = "25.0.2", default-features = false, features = ["wgsl"] }
 bytemuck = "1.23.1"
 glam = { version = "0.30.4", features = ["bytemuck"] }
 rgb = { version = "0.8.50", default-features = false, features = ["bytemuck"] }
+half = { version = "2.6.0", default-features = false, features = ["bytemuck"] }
+image = { version = "0.25.6", default-features = false }
 hashbrown = { version = "0.15.4", features = ["core", "alloc"] }
 anyhow = "1.0.98"
 log = "0.4.27"

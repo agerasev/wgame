@@ -4,11 +4,15 @@
 extern crate alloc;
 
 mod frame;
-pub mod object;
+mod object;
+mod texture;
 pub mod types;
 
-pub use frame::Frame;
-pub use object::{Object, ObjectExt, Transformed};
+pub use self::{
+    frame::Frame,
+    object::{Object, ObjectExt, Transformed},
+    texture::Texture,
+};
 
 use alloc::rc::Rc;
 use core::cell::Cell;
@@ -47,7 +51,7 @@ impl<'a> InnerState<'a> {
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
-                required_features: wgpu::Features::FLOAT32_FILTERABLE | wgpu::Features::empty(),
+                required_features: wgpu::Features::empty(),
                 required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                     .using_resolution(adapter.limits()),
                 memory_hints: wgpu::MemoryHints::MemoryUsage,

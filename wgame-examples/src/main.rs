@@ -7,21 +7,21 @@ use rgb::Rgb;
 use wgame::{
     Runtime, Window, WindowConfig,
     app::{deps::log, timer::Instant},
-    fs::read_bytes,
-    gfx::{Object, ObjectExt, types::color},
-    shapes::{ShapeExt, Library},
+    gfx::{Object, ObjectExt, Texture, types::color},
+    img::read_image,
+    shapes::{Library, ShapeExt},
     utils::FrameCounter,
 };
 
 #[wgame::main]
 async fn main(rt: Runtime) {
-    let image = read_bytes("./assets/lenna.png").await.unwrap();
-    log::info!("Image compressed size: {} bytes", image.len());
-
     let task = rt
         .clone()
         .create_window(WindowConfig::default(), async move |mut window: Window| {
             let gfx = Library::new(window.graphics())?;
+            let tex = read_image(window.graphics(), "assets/lenna.png")
+                .await
+                .unwrap();
             let scale = 1.0 / 3.0;
             let start_time = Instant::now();
             let mut fps = FrameCounter::default();
@@ -35,11 +35,13 @@ async fn main(rt: Runtime) {
                         Vec2::new(-2.0 * scale, scale),
                     )),
                 );
-                frame.render(&quad(&gfx).transform(Affine2::from_scale_angle_translation(
-                    Vec2::splat(scale),
-                    angle,
-                    Vec2::new(0.0, scale),
-                )));
+                frame.render(
+                    &quad(&gfx, &tex).transform(Affine2::from_scale_angle_translation(
+                        Vec2::splat(scale),
+                        angle,
+                        Vec2::new(0.0, scale),
+                    )),
+                );
                 frame.render(
                     &hexagon(&gfx).transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
@@ -81,9 +83,9 @@ fn triangle(gfx: &Library<'_>) -> impl Object {
     ])
 }
 
-fn quad(gfx: &Library<'_>) -> impl Object {
+fn quad<'a, 'b: 'a>(gfx: &'b Library<'a>, tex: &Texture<'a>) -> impl Object + 'a {
     gfx.quad(-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2))
-        .gradient([[color::BLACK, color::RED], [color::GREEN, color::YELLOW]])
+        .texture(tex.clone())
 }
 
 fn hexagon(gfx: &Library<'_>) -> impl Object {

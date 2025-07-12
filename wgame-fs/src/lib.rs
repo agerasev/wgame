@@ -1,5 +1,15 @@
 #![forbid(unsafe_code)]
 
+#[cfg(not(any(feature = "std", feature = "web")))]
+pub async fn read_bytes(path: &str) -> anyhow::Result<Vec<u8>> {
+    unimplemented!("Either 'std' or 'web' feature should be enabled")
+}
+
+#[cfg(not(any(feature = "std", feature = "web")))]
+pub async fn read_string(path: &str) -> anyhow::Result<String> {
+    unimplemented!("Either 'std' or 'web' feature should be enabled")
+}
+
 #[cfg(feature = "std")]
 pub async fn read_bytes(path: &str) -> anyhow::Result<Vec<u8>> {
     Ok(async_fs::read(path).await?)

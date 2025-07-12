@@ -1,15 +1,15 @@
 use glam::Affine2;
 
-use wgame_gfx::State;
+use crate::State;
 
 #[derive(Clone)]
 pub struct Texture<'a> {
-    pub(crate) state: State<'a>,
-    pub(crate) extent: wgpu::Extent3d,
-    pub(crate) texture: wgpu::Texture,
-    pub(crate) view: wgpu::TextureView,
-    pub(crate) sampler: wgpu::Sampler,
-    pub(crate) xform: Affine2,
+    state: State<'a>,
+    extent: wgpu::Extent3d,
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    sampler: wgpu::Sampler,
+    xform: Affine2,
 }
 
 impl<'a> Texture<'a> {
@@ -47,7 +47,7 @@ impl<'a> Texture<'a> {
         }
     }
 
-    pub fn transform_coords(self, xform: Affine2) -> Self {
+    pub fn transform_coord(self, xform: Affine2) -> Self {
         Self {
             xform: xform * self.xform,
             ..self
@@ -84,5 +84,15 @@ impl<'a> Texture<'a> {
         let this = Self::new(state, size, format);
         this.write(data);
         this
+    }
+
+    pub fn view(&self) -> &wgpu::TextureView {
+        &self.view
+    }
+    pub fn sampler(&self) -> &wgpu::Sampler {
+        &self.sampler
+    }
+    pub fn coord_xform(&self) -> Affine2 {
+        self.xform
     }
 }
