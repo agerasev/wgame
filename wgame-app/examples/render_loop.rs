@@ -1,18 +1,17 @@
-use std::time::Duration;
+use core::time::Duration;
 
-use wgame_app::{Runtime, WindowAttributes, run_main};
+use wgame_app::{Runtime, WindowAttributes, main};
 
 async fn main_(rt: Runtime) {
-    env_logger::init();
-    println!("Started");
+    log::info!("Started");
 
     rt.create_windowed_task(WindowAttributes::default(), {
         let rt = rt.clone();
         async move |mut window| {
-            println!("Window created");
+            log::info!("Window created");
             let mut counter = 0;
-            while let Some(_) = window.request_redraw().await {
-                println!("Rendered frame #{counter}");
+            while window.request_redraw().await.is_some() {
+                log::info!("Frame #{counter}");
                 counter += 1;
                 rt.create_timer(Duration::from_millis(100)).await;
             }
@@ -22,7 +21,7 @@ async fn main_(rt: Runtime) {
     .unwrap()
     .await;
 
-    println!("Closed");
+    log::info!("Closed");
 }
 
-run_main!(main_);
+main!(main_);

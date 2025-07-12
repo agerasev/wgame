@@ -4,9 +4,26 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = ["desktop"]
+desktop = [
+    "wgame-app/x11",
+    "wgame-app/wayland",
+    "wgame-gfx/vulkan",
+    "wgame-gfx/gles",
+    "wgame-fs/std",
+]
+web = [
+    "wgame-app/web",
+    "wgame-gfx/webgl",
+    # "wgame-gfx/webgpu",
+    "wgame-fs/web",
+]
+
 [dependencies]
 wgame-app.workspace = true
 wgame-gfx.workspace = true
+wgame-fs.workspace = true
 wgame-utils.workspace = true
 wgame-macros.workspace = true
 anyhow.workspace = true
@@ -15,7 +32,6 @@ anyhow.workspace = true
 futures = { workspace = true, default-features = true }
 winit = { workspace = true, default-features = true }
 wgpu = { workspace = true, default-features = true }
-env_logger.workspace = true
 bytemuck.workspace = true
 glam.workspace = true
 rgb.workspace = true

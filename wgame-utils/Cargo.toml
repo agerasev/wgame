@@ -3,3 +3,11 @@ name = "wgame-utils"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+
+[features]
+std = []
+web = []
+
+[dependencies]
+web-time.workspace = true
+log.workspace = true

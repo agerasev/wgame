@@ -20,17 +20,12 @@ fn main_impl(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
     }
 
     let mut amain = parse2::<ItemFn>(item)?;
-    if amain.sig.ident != "main" {
-        return Err(Error::new(
-            amain.sig.ident.span(),
-            "Main function name must be `main`",
-        ));
-    }
-    let ident = Ident::new("__wgame_async_main", amain.sig.ident.span());
+    let main = amain.sig.ident;
+    let ident = Ident::new("__wgame_async_main", main.span());
     amain.sig.ident = ident.clone();
 
     Ok(quote! {
         #amain
-        wgame::run_main!(#ident);
+        wgame::run!(#main, #ident);
     })
 }

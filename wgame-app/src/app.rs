@@ -1,11 +1,10 @@
-use std::{
-    cell::RefCell,
-    collections::hash_map::Entry,
+use alloc::{
     rc::{Rc, Weak},
-    task::Poll,
+    vec::Vec,
 };
+use core::{cell::RefCell, task::Poll};
 
-use fxhash::FxHashMap as HashMap;
+use hashbrown::hash_map::{Entry, HashMap};
 use winit::{
     application::ApplicationHandler,
     error::EventLoopError,

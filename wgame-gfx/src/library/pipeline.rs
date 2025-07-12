@@ -1,4 +1,5 @@
-use std::{borrow::Cow, mem::offset_of};
+use alloc::{borrow::Cow, vec::Vec};
+use core::mem::{offset_of, size_of};
 
 use anyhow::Result;
 use glam::Mat4;
@@ -11,7 +12,7 @@ use crate::{
 use super::Vertex;
 
 pub fn create_pipeline(state: &SharedState<'_>) -> Result<wgpu::RenderPipeline> {
-    return create_pipeline_masked(state, &ShaderConfig::default());
+    create_pipeline_masked(state, &ShaderConfig::default())
 }
 
 pub fn create_pipeline_masked(
@@ -74,7 +75,7 @@ pub fn create_pipeline_masked(
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
                         min_binding_size: wgpu::BufferSize::new(
-                            size_of::<[[f32; 2]; 3]>() as wgpu::BufferAddress
+                            size_of::<Mat4>() as wgpu::BufferAddress
                         ),
                     },
                     count: None,

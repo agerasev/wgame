@@ -1,15 +1,16 @@
-use std::{
+use alloc::{boxed::Box, rc::Rc, sync::Arc, vec::Vec};
+use core::{
     cell::RefCell,
-    collections::hash_map::Entry,
     future::Future,
     pin::Pin,
-    rc::Rc,
-    sync::Arc,
     task::{Context, Poll, Waker},
 };
 
 use futures::task::{ArcWake, waker};
-use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use hashbrown::{
+    HashSet,
+    hash_map::{Entry, HashMap},
+};
 use winit::event_loop::EventLoopProxy;
 
 type FutureObj = Pin<Box<dyn Future<Output = ()>>>;

@@ -1,9 +1,8 @@
-use std::time::Duration;
+use core::time::Duration;
 
-use wgame_app::{Runtime, run_main};
+use wgame_app::{Runtime, main};
 
 async fn main_(rt: Runtime) {
-    env_logger::init();
     println!("Spawning new task");
     rt.create_task({
         let rt = rt.clone();
@@ -18,4 +17,4 @@ async fn main_(rt: Runtime) {
     println!("Awakened task 0");
 }
 
-run_main!(main_);
+main!(main_);

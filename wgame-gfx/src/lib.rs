@@ -1,4 +1,7 @@
 #![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
 
 mod frame;
 pub mod library;
@@ -9,7 +12,8 @@ pub use frame::Frame;
 pub use library::Library;
 pub use object::{Object, ObjectExt, Transformed};
 
-use std::{cell::Cell, rc::Rc};
+use alloc::rc::Rc;
+use core::cell::Cell;
 
 use anyhow::{Context, Result};
 
@@ -72,7 +76,11 @@ impl<'a> State<'a> {
     }
 
     fn configure(&self) {
-        let size = self.size.get();
+        let size = self.size();
+        if let (0, _) | (_, 0) = size {
+            log::debug!("Invalid surface size: {size:?}, skipping configuration");
+            return;
+        }
         let surface_config = self
             .surface
             .get_default_config(&self.adapter, size.0, size.1)

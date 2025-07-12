@@ -1,4 +1,11 @@
-use std::{
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+use core::{
     fmt::{self, Display},
     ops::RangeInclusive,
 };
@@ -38,12 +45,12 @@ impl UniformType {
     pub fn to_wgsl(&self) -> Result<String, anyhow::Error> {
         match self.dims.as_slice() {
             [] => Ok(self.item.to_string()),
-            [n] => Ok(format!("Vec{}<{}>", Self::check_dim(*n)?, self.item)),
+            [n] => Ok(format!("vec{}<{}>", Self::check_dim(*n)?, self.item)),
             [m, n] => {
                 if Self::check_dim(*m)? == Self::check_dim(*n)? {
-                    Ok(format!("Mat{m}x{n}<{}>", self.item))
+                    Ok(format!("mat{m}x{n}<{}>", self.item))
                 } else {
-                    Ok(format!("Mat{m}<{}>", self.item))
+                    Ok(format!("mat{m}<{}>", self.item))
                 }
             }
             other => bail!("Maximum number of dimensions is 2, got {}", other.len()),
@@ -51,12 +58,12 @@ impl UniformType {
     }
 
     pub fn size(&self) -> usize {
-        self.item.size() * self.dims.iter().fold(1, |a, n| a * n)
+        self.item.size() * self.dims.iter().product::<usize>()
     }
 }
 
 impl Serialize for UniformType {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {

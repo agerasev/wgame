@@ -16,19 +16,23 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
-wgame = { version = "0.1.0", path = "wgame" }
+wgame = { version = "0.1.0", path = "wgame", default-features = false }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
-winit = { version = "0.30.11", default-features = false }
-wgpu = { version = "25.0.2", default-features = false }
+winit = { version = "0.30.11", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "25.0.2", default-features = false, features = ["wgsl"] }
 bytemuck = "1.23.1"
 glam = { version = "0.30.4", features = ["bytemuck"] }
 rgb = { version = "0.8.50", default-features = false, features = ["bytemuck"] }
-fxhash = "0.2.1"
+hashbrown = { version = "0.15.4", features = ["core", "alloc"] }
 anyhow = "1.0.98"
 log = "0.4.27"
-env_logger = "0.11.8"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
+web-sys = "0.3.77"
+web-time = "1.1.0"
+js-sys = "0.3.77"

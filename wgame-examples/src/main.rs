@@ -1,19 +1,21 @@
-use std::{
-    f32::consts::{FRAC_PI_3, PI, SQRT_2},
-    time::Instant,
-};
+#![no_std]
+
+use core::f32::consts::{FRAC_PI_3, PI, SQRT_2};
 
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
     Runtime, Window, WindowConfig,
+    app::{deps::log, timer::Instant},
+    fs::read_bytes,
     gfx::{self, Library, Object, ObjectExt, library::GeometryExt, types::color},
 };
 use wgame_utils::FrameCounter;
 
 #[wgame::main]
 async fn main(rt: Runtime) {
-    env_logger::init();
+    let image = read_bytes("./assets/lenna.png").await.unwrap();
+    log::info!("Image compressed size: {} bytes", image.len());
 
     let task = rt
         .clone()

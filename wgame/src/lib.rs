@@ -1,26 +1,32 @@
 #![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
 
 pub use wgame_app as app;
+pub use wgame_fs as fs;
 pub use wgame_gfx as gfx;
 pub use wgame_macros::main;
 
 pub use anyhow::{Error, Result};
 pub use app::{runtime::JoinHandle, timer::Timer};
 
-use std::{ops::Deref, rc::Rc};
+use alloc::rc::Rc;
+use core::ops::Deref;
 
 #[macro_export]
-macro_rules! run_main {
-    ($async_main:path) => {
+macro_rules! run {
+    ($main:ident, $async_main:path) => {
         async fn __wgame_app_wrapper(app_rt: $crate::app::Runtime) {
             $async_main($crate::Runtime(app_rt)).await
         }
-        $crate::app::run_main!(__wgame_app_wrapper);
+        $crate::app::entry!($crate::app, $main, __wgame_app_wrapper);
     };
 }
 
 /// TODO: Import from `wgame_gfx`.
-type GraphicsConfig = ();
+#[derive(Clone, Default, Debug)]
+pub struct GraphicsConfig;
 
 #[derive(Clone, Default, Debug)]
 pub struct WindowConfig {

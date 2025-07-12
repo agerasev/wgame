@@ -1,5 +1,7 @@
+use alloc::{string::ToString, vec, vec::Vec};
+
 use anyhow::Result;
-use glam::{Affine2, Mat2, Vec2};
+use glam::{Affine2, Mat2, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
 use crate::{
@@ -26,13 +28,13 @@ impl CircleRenderer {
                 mask_stmt: "
                     let c = coord - vec2(0.5, 0.5);
                     let l = 2.0 * length(c);
-                    mask = l < 1.0 && l >= inner_radius;
+                    mask = l < 1.0 && l >= inner_radius.x;
                 "
                 .to_string(),
                 uniforms: vec![UniformInfo {
                     name: "inner_radius".to_string(),
                     ty: UniformType {
-                        dims: vec![],
+                        dims: vec![4],
                         item: ScalarType::F32,
                     },
                 }],
@@ -70,7 +72,9 @@ impl<'a> Geometry<'a> for Circle<'a> {
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("inner_radius"),
-                    contents: bytemuck::cast_slice([self.inner_radius].as_ref()),
+                    contents: bytemuck::cast_slice(
+                        Vec4::new(self.inner_radius, 0.0, 0.0, 0.0).as_ref(),
+                    ),
                     usage: wgpu::BufferUsages::UNIFORM,
                 }),
         ]

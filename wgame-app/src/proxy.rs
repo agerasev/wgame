@@ -1,7 +1,7 @@
-use std::{
+use alloc::{boxed::Box, rc::Rc};
+use core::{
     cell::{Cell, RefCell},
     pin::Pin,
-    rc::Rc,
     task::{Context, Poll, Waker},
 };
 
