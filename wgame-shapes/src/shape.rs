@@ -4,15 +4,25 @@ use glam::{Affine2, Mat4, Vec2};
 use wgpu::util::DeviceExt;
 
 use wgame_gfx::{
-    Object, SharedState, Transformed,
-    object::{Uniforms, Vertices},
+    Object, State, Transformed,
     types::{Color, Transform},
 };
 
 use crate::Texture;
 
-pub trait Geometry<'a> {
-    fn state(&self) -> &SharedState<'a>;
+pub struct Vertices {
+    pub count: u32,
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: Option<wgpu::Buffer>,
+}
+
+pub struct Uniforms {
+    pub vertex: wgpu::BindGroup,
+    pub fragment: wgpu::BindGroup,
+}
+
+pub trait Shape<'a> {
+    fn state(&self) -> &State<'a>;
     fn vertices(&self) -> Vertices;
     fn uniforms(&self) -> Vec<wgpu::Buffer> {
         Vec::new()
@@ -23,7 +33,7 @@ pub trait Geometry<'a> {
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
-pub trait GeometryExt<'a>: Geometry<'a> + Sized {
+pub trait ShapeExt<'a>: Shape<'a> + Sized {
     fn transform<T: Transform>(self, xform: T) -> Transformed<Self> {
         Transformed {
             inner: self,
@@ -59,16 +69,16 @@ pub trait GeometryExt<'a>: Geometry<'a> + Sized {
 
     fn texture(self, texture: Texture<'a>) -> Textured<'a, Self> {
         Textured {
-            geometry: self,
+            shape: self,
             texture,
         }
     }
 }
 
-impl<'a, T: Geometry<'a>> GeometryExt<'a> for T {}
+impl<'a, T: Shape<'a>> ShapeExt<'a> for T {}
 
-impl<'a, T: Geometry<'a>> Geometry<'a> for Transformed<T> {
-    fn state(&self) -> &SharedState<'a> {
+impl<'a, T: Shape<'a>> Shape<'a> for Transformed<T> {
+    fn state(&self) -> &State<'a> {
         self.inner.state()
     }
 
@@ -89,19 +99,15 @@ impl<'a, T: Geometry<'a>> Geometry<'a> for Transformed<T> {
     }
 }
 
-pub struct Textured<'a, T: Geometry<'a>> {
-    pub geometry: T,
+pub struct Textured<'a, T: Shape<'a>> {
+    pub shape: T,
     pub texture: Texture<'a>,
 }
 
-impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
-    fn vertices(&self) -> Vertices {
-        self.geometry.vertices()
-    }
-
+impl<'a, T: Shape<'a>> Textured<'a, T> {
     fn create_uniforms(&self, xform: Mat4) -> Uniforms {
-        let device = &self.geometry.state().device();
-        let final_xform = xform * self.geometry.transformation();
+        let device = &self.shape.state().device();
+        let final_xform = xform * self.shape.transformation();
         let xform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("transform"),
             contents: bytemuck::cast_slice(final_xform.as_ref()),
@@ -113,10 +119,11 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
             contents: bytemuck::cast_slice(tex_xform.as_ref()),
             usage: wgpu::BufferUsages::UNIFORM,
         });
-        let uniforms = self.geometry.uniforms();
+        let uniforms = self.shape.uniforms();
+        let pipeline = self.shape.pipeline();
         Uniforms {
             vertex: device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &self.pipeline().get_bind_group_layout(0),
+                layout: &pipeline.get_bind_group_layout(0),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -130,7 +137,7 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
                 label: None,
             }),
             fragment: device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &self.pipeline().get_bind_group_layout(1),
+                layout: &pipeline.get_bind_group_layout(1),
                 entries: &([
                     wgpu::BindingResource::TextureView(&self.texture.view),
                     wgpu::BindingResource::Sampler(&self.texture.sampler),
@@ -147,8 +154,34 @@ impl<'a, T: Geometry<'a>> Object for Textured<'a, T> {
             }),
         }
     }
+}
 
-    fn pipeline(&self) -> wgpu::RenderPipeline {
-        self.geometry.pipeline()
+impl<'a, T: Shape<'a>> Object for Textured<'a, T> {
+    fn render(
+        &self,
+        attachments: &wgpu::RenderPassDescriptor<'_>,
+        encoder: &mut wgpu::CommandEncoder,
+        xform: Mat4,
+    ) {
+        let vertices = self.shape.vertices();
+        let uniforms = self.create_uniforms(xform);
+        let mut renderpass = encoder.begin_render_pass(attachments);
+        {
+            renderpass.push_debug_group("prepare");
+            renderpass.set_pipeline(&self.shape.pipeline());
+            renderpass.set_bind_group(0, &uniforms.vertex, &[]);
+            renderpass.set_bind_group(1, &uniforms.fragment, &[]);
+            renderpass.set_vertex_buffer(0, vertices.vertex_buffer.slice(..));
+            if let Some(index_buffer) = &vertices.index_buffer {
+                renderpass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+            }
+            renderpass.pop_debug_group();
+        }
+        renderpass.insert_debug_marker("draw");
+        if vertices.index_buffer.is_some() {
+            renderpass.draw_indexed(0..vertices.count, 0, 0..1);
+        } else {
+            renderpass.draw(0..vertices.count, 0..1);
+        }
     }
 }

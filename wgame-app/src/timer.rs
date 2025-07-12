@@ -65,7 +65,7 @@ impl TimerQueue {
 
         let timestamp = timer.timestamp;
         self.queue.push(Reverse(timer.clone()));
-        log::trace!("timer added: {:?}", timestamp);
+        log::trace!("timer added: {timestamp:?}");
 
         timer
     }

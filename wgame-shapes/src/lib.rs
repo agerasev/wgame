@@ -4,23 +4,23 @@
 extern crate alloc;
 
 mod circle;
-mod geometry;
 mod pipeline;
 mod polygon;
 mod shader;
+mod shape;
 mod texture;
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 
-use wgame_gfx::SharedState;
+use wgame_gfx::State;
 
 use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 
 pub use self::{
-    geometry::{Geometry, GeometryExt},
     polygon::Polygon,
+    shape::{Shape, ShapeExt},
     texture::Texture,
 };
 
@@ -42,13 +42,13 @@ impl Vertex {
 
 /// 2D graphics library
 pub struct Library<'a> {
-    state: SharedState<'a>,
+    state: State<'a>,
     polygon: PolygonRenderer,
     circle: CircleRenderer,
 }
 
 impl<'a> Library<'a> {
-    pub fn new(state: &SharedState<'a>) -> Result<Self> {
+    pub fn new(state: &State<'a>) -> Result<Self> {
         Ok(Self {
             state: state.clone(),
             polygon: PolygonRenderer::new(state)?,

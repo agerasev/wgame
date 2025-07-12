@@ -6,16 +6,16 @@ use glam::Mat4;
 
 use crate::shader::{ShaderConfig, ShaderSource};
 
-use wgame_gfx::SharedState;
+use wgame_gfx::State;
 
 use super::Vertex;
 
-pub fn create_pipeline(state: &SharedState<'_>) -> Result<wgpu::RenderPipeline> {
+pub fn create_pipeline(state: &State<'_>) -> Result<wgpu::RenderPipeline> {
     create_pipeline_masked(state, &ShaderConfig::default())
 }
 
 pub fn create_pipeline_masked(
-    state: &SharedState<'_>,
+    state: &State<'_>,
     config: &ShaderConfig,
 ) -> Result<wgpu::RenderPipeline> {
     let device = &state.device();

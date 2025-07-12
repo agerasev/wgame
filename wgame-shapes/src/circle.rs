@@ -4,22 +4,21 @@ use anyhow::Result;
 use glam::{Affine2, Mat2, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{SharedState, object::Vertices};
+use wgame_gfx::State;
 
 use crate::{
-    GeometryExt,
+    Library, Shape, ShapeExt,
     pipeline::create_pipeline_masked,
     shader::{ScalarType, ShaderConfig, UniformInfo, UniformType},
+    shape::Vertices,
 };
-
-use super::{Geometry, Library};
 
 pub struct CircleRenderer {
     pipeline: wgpu::RenderPipeline,
 }
 
 impl CircleRenderer {
-    pub fn new(state: &SharedState<'_>) -> Result<Self> {
+    pub fn new(state: &State<'_>) -> Result<Self> {
         let pipeline = create_pipeline_masked(
             state,
             &ShaderConfig {
@@ -44,15 +43,15 @@ impl CircleRenderer {
 }
 
 pub struct Circle<'a> {
-    state: SharedState<'a>,
+    state: State<'a>,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
 }
 
-impl<'a> Geometry<'a> for Circle<'a> {
-    fn state(&self) -> &SharedState<'a> {
+impl<'a> Shape<'a> for Circle<'a> {
+    fn state(&self) -> &State<'a> {
         &self.state
     }
 
@@ -84,7 +83,7 @@ impl<'a> Geometry<'a> for Circle<'a> {
 }
 
 impl<'a> Library<'a> {
-    pub fn unit_ring(&self, inner_radius: f32) -> impl Geometry<'a> {
+    pub fn unit_ring(&self, inner_radius: f32) -> impl Shape<'a> {
         Circle {
             state: self.state.clone(),
             vertices: self.polygon.quad_vertices.clone(),
@@ -94,7 +93,7 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn ring(&self, pos: Vec2, radius: f32, inner_radius: f32) -> impl Geometry<'a> {
+    pub fn ring(&self, pos: Vec2, radius: f32, inner_radius: f32) -> impl Shape<'a> {
         self.unit_ring(inner_radius / radius)
             .transform(Affine2::from_mat2_translation(
                 Mat2::from_diagonal(Vec2::new(radius, radius)),
@@ -102,11 +101,11 @@ impl<'a> Library<'a> {
             ))
     }
 
-    pub fn unit_circle(&self) -> impl Geometry<'a> {
+    pub fn unit_circle(&self) -> impl Shape<'a> {
         self.unit_ring(0.0)
     }
 
-    pub fn circle(&self, pos: Vec2, radius: f32) -> impl Geometry<'a> {
+    pub fn circle(&self, pos: Vec2, radius: f32) -> impl Shape<'a> {
         self.ring(pos, radius, 0.0)
     }
 }

@@ -9,7 +9,7 @@ use wgame::{
     app::{deps::log, timer::Instant},
     fs::read_bytes,
     gfx::{Object, ObjectExt, types::color},
-    shapes::{GeometryExt, Library},
+    shapes::{ShapeExt, Library},
     utils::FrameCounter,
 };
 

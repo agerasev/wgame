@@ -2,9 +2,9 @@ use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{SharedState, object::Vertices, types::Position};
+use wgame_gfx::{State, types::Position};
 
-use crate::{Geometry, GeometryExt, Library, Vertex, pipeline::create_pipeline};
+use crate::{Library, Shape, ShapeExt, Vertex, pipeline::create_pipeline, shape::Vertices};
 
 pub struct PolygonRenderer {
     pub quad_vertices: wgpu::Buffer,
@@ -15,7 +15,7 @@ pub struct PolygonRenderer {
 }
 
 impl PolygonRenderer {
-    pub fn new(state: &SharedState<'_>) -> Result<Self> {
+    pub fn new(state: &State<'_>) -> Result<Self> {
         let quad_vertices = state
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -86,14 +86,14 @@ impl PolygonRenderer {
 }
 
 pub struct Polygon<'a, const N: u32> {
-    state: SharedState<'a>,
+    state: State<'a>,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl<'a, const N: u32> Geometry<'a> for Polygon<'a, N> {
-    fn state(&self) -> &SharedState<'a> {
+impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
+    fn state(&self) -> &State<'a> {
         &self.state
     }
 
@@ -141,7 +141,7 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn quad(&self, a: Vec2, b: Vec2) -> impl Geometry<'a> {
+    pub fn quad(&self, a: Vec2, b: Vec2) -> impl Shape<'a> {
         let center = 0.5 * (a + b);
         let half_size = 0.5 * (b - a);
         let affine = Affine3A::from_mat3_translation(
@@ -160,7 +160,7 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> impl Geometry<'a> {
+    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> impl Shape<'a> {
         self.unit_hexagon()
             .transform(Affine2::from_mat2_translation(
                 Mat2::from_diagonal(Vec2::new(edge_size, edge_size)),

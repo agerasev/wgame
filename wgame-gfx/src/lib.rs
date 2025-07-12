@@ -16,9 +16,9 @@ use core::cell::Cell;
 use anyhow::{Context, Result};
 
 #[derive(Clone)]
-pub struct SharedState<'a>(Rc<State<'a>>);
+pub struct State<'a>(Rc<InnerState<'a>>);
 
-struct State<'a> {
+struct InnerState<'a> {
     surface: wgpu::Surface<'a>,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
@@ -27,7 +27,7 @@ struct State<'a> {
     size: Rc<Cell<(u32, u32)>>,
 }
 
-impl<'a> State<'a> {
+impl<'a> InnerState<'a> {
     async fn new(window_handle: impl Into<wgpu::SurfaceTarget<'a>>) -> Result<Self> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
 
@@ -90,9 +90,9 @@ impl<'a> State<'a> {
     }
 }
 
-impl<'a> SharedState<'a> {
+impl<'a> State<'a> {
     pub async fn new(window_handle: impl Into<wgpu::SurfaceTarget<'a>>) -> Result<Self> {
-        Ok(SharedState(Rc::new(State::new(window_handle).await?)))
+        Ok(State(Rc::new(InnerState::new(window_handle).await?)))
     }
 
     pub fn size(&self) -> (u32, u32) {

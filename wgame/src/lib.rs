@@ -62,13 +62,13 @@ impl Runtime {
 }
 
 pub struct Window<'a> {
-    gfx: gfx::SharedState<'a>,
+    gfx: gfx::State<'a>,
     app: app::Window<'a>,
 }
 
 impl<'a> Window<'a> {
     async fn new(app: app::Window<'a>, _gfx_cfg: GraphicsConfig) -> Result<Self> {
-        let gfx = gfx::SharedState::new(app.handle()).await?;
+        let gfx = gfx::State::new(app.handle()).await?;
         gfx.resize(app.size());
         Ok(Self { app, gfx })
     }
@@ -88,7 +88,7 @@ impl<'a> Window<'a> {
         }
     }
 
-    pub fn graphics(&self) -> &gfx::SharedState<'a> {
+    pub fn graphics(&self) -> &gfx::State<'a> {
         &self.gfx
     }
 }
