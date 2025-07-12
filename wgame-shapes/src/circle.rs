@@ -48,6 +48,33 @@ pub struct Circle<'a> {
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
+    uniform_buffer: wgpu::Buffer,
+}
+
+impl<'a> Circle<'a> {
+    fn new(
+        state: State<'a>,
+        vertices: wgpu::Buffer,
+        indices: Option<wgpu::Buffer>,
+        pipeline: wgpu::RenderPipeline,
+        inner_radius: f32,
+    ) -> Self {
+        let uniform_buffer = state
+            .device()
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("inner_radius"),
+                contents: bytemuck::cast_slice(Vec4::new(inner_radius, 0.0, 0.0, 0.0).as_ref()),
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
+        Self {
+            state,
+            vertices,
+            indices,
+            pipeline,
+            inner_radius,
+            uniform_buffer,
+        }
+    }
 }
 
 impl<'a> Shape<'a> for Circle<'a> {
@@ -64,17 +91,7 @@ impl<'a> Shape<'a> for Circle<'a> {
     }
 
     fn uniforms(&self) -> Vec<wgpu::Buffer> {
-        vec![
-            self.state
-                .device()
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("inner_radius"),
-                    contents: bytemuck::cast_slice(
-                        Vec4::new(self.inner_radius, 0.0, 0.0, 0.0).as_ref(),
-                    ),
-                    usage: wgpu::BufferUsages::UNIFORM,
-                }),
-        ]
+        vec![self.uniform_buffer.clone()]
     }
 
     fn pipeline(&self) -> wgpu::RenderPipeline {
@@ -84,13 +101,13 @@ impl<'a> Shape<'a> for Circle<'a> {
 
 impl<'a> Library<'a> {
     pub fn unit_ring(&self, inner_radius: f32) -> impl Shape<'a> {
-        Circle {
-            state: self.state.clone(),
-            vertices: self.polygon.quad_vertices.clone(),
-            indices: Some(self.polygon.quad_indices.clone()),
-            pipeline: self.circle.pipeline.clone(),
+        Circle::new(
+            self.state.clone(),
+            self.polygon.quad_vertices.clone(),
+            Some(self.polygon.quad_indices.clone()),
+            self.circle.pipeline.clone(),
             inner_radius,
-        }
+        )
     }
 
     pub fn ring(&self, pos: Vec2, radius: f32, inner_radius: f32) -> impl Shape<'a> {

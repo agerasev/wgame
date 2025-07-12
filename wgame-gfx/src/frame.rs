@@ -61,7 +61,7 @@ impl<'a> Frame<'a> {
         self.state.0.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn render<T: Object>(&self, object: &T) {
+    pub fn render<T: Object>(&self, object: T) {
         let aspect_ratio = {
             let (width, height) = self.state.size();
             width as f32 / height as f32
