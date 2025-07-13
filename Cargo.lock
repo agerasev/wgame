@@ -2424,6 +2424,7 @@ dependencies = [
  "bytemuck",
  "glam",
  "half",
+ "hashbrown",
  "log",
  "rgb",
  "wgpu",

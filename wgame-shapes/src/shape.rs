@@ -7,18 +7,7 @@ use wgame_gfx::{
     types::{Color, Transform},
 };
 
-use crate::textured::Textured;
-
-pub struct Vertices {
-    pub count: u32,
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: Option<wgpu::Buffer>,
-}
-
-pub struct Uniforms {
-    pub vertex: wgpu::BindGroup,
-    pub fragment: wgpu::BindGroup,
-}
+use crate::{Textured, Vertices};
 
 pub trait Shape<'a> {
     fn state(&self) -> &State<'a>;

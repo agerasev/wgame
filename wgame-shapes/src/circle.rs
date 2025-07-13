@@ -7,10 +7,9 @@ use wgpu::util::DeviceExt;
 use wgame_gfx::State;
 
 use crate::{
-    Library, Shape, ShapeExt,
+    Library, Shape, ShapeExt, Vertices,
     pipeline::create_pipeline_masked,
     shader::{ScalarType, ShaderConfig, UniformInfo, UniformType},
-    shape::Vertices,
 };
 
 pub struct CircleRenderer {

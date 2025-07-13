@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 
 use wgame_gfx::{State, types::Position};
 
-use crate::{Library, Shape, ShapeExt, Vertex, pipeline::create_pipeline, shape::Vertices};
+use crate::{Library, Shape, ShapeExt, Vertex, Vertices, pipeline::create_pipeline};
 
 pub struct PolygonRenderer {
     pub quad_vertices: wgpu::Buffer,

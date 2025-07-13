@@ -18,3 +18,4 @@ bytemuck.workspace = true
 glam.workspace = true
 rgb.workspace = true
 half.workspace = true
+hashbrown.workspace = true

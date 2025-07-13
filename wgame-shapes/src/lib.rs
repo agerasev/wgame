@@ -4,11 +4,14 @@
 extern crate alloc;
 
 mod circle;
+mod group;
 mod pipeline;
 mod polygon;
 mod shader;
 mod shape;
 mod textured;
+
+use alloc::vec::Vec;
 
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
@@ -38,6 +41,11 @@ impl Vertex {
             local_coord: local_coord.into(),
         }
     }
+}
+
+pub struct Instances {
+    pub count: u32,
+    pub buffer: wgpu::Buffer,
 }
 
 /// 2D graphics library

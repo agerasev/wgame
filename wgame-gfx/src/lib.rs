@@ -5,6 +5,7 @@ extern crate alloc;
 
 mod frame;
 mod object;
+mod renderer;
 mod texture;
 pub mod types;
 

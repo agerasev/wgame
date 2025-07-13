@@ -1,11 +1,11 @@
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 
 use glam::Mat4;
 use wgpu::util::DeviceExt;
 
 use wgame_gfx::{Object, Texture, types::Transform};
 
-use crate::{Shape, shape::Uniforms};
+use crate::Shape;
 
 pub struct Textured<'a, T: Shape<'a>> {
     shape: T,
@@ -78,7 +78,7 @@ impl<'a, T: Shape<'a>> Textured<'a, T> {
         }
     }
 
-    fn get_uniforms(&self, xform: Mat4) -> Uniforms {
+    fn get_uniforms(&self, xform: Mat4) -> Vec<wgpu::BindGroup> {
         let final_xform = xform * self.shape.xform();
         self.shape.state().queue().write_buffer(
             &self.xform_buffer,
@@ -86,10 +86,10 @@ impl<'a, T: Shape<'a>> Textured<'a, T> {
             bytemuck::cast_slice(final_xform.as_ref()),
         );
 
-        Uniforms {
-            vertex: self.vertex_bind_group.clone(),
-            fragment: self.fragment_bind_group.clone(),
-        }
+        vec![
+            self.vertex_bind_group.clone(),
+            self.fragment_bind_group.clone(),
+        ]
     }
 }
 
@@ -106,8 +106,9 @@ impl<'a, T: Shape<'a>> Object for Textured<'a, T> {
         {
             renderpass.push_debug_group("prepare");
             renderpass.set_pipeline(&self.shape.pipeline());
-            renderpass.set_bind_group(0, &uniforms.vertex, &[]);
-            renderpass.set_bind_group(1, &uniforms.fragment, &[]);
+            for (i, bind_group) in uniforms.into_iter().enumerate() {
+                renderpass.set_bind_group(i as u32, &bind_group, &[]);
+            }
             renderpass.set_vertex_buffer(0, vertices.vertex_buffer.slice(..));
             if let Some(index_buffer) = &vertices.index_buffer {
                 renderpass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);

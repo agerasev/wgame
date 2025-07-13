@@ -1,24 +1,35 @@
+use alloc::vec::Vec;
+
 use glam::Mat4;
 
 use crate::types::Transform;
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct Vertices {
+    pub count: u32,
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: Option<wgpu::Buffer>,
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct Model {
+    pub index: u32,
+    pub vertices: Vertices,
+    pub uniforms: Vec<wgpu::BindGroup>,
+    pub pipeline: wgpu::RenderPipeline,
+}
+
 pub trait Object {
-    fn render(
-        &self,
-        attachments: &wgpu::RenderPassDescriptor<'_>,
-        encoder: &mut wgpu::CommandEncoder,
-        xform: Mat4,
-    );
+    fn model(&self) -> Model;
+    fn store_instance<D: Extend<u8>>(&self, xform: Mat4, buffer: &mut D);
 }
 
 impl<T: Object> Object for &'_ T {
-    fn render(
-        &self,
-        attachments: &wgpu::RenderPassDescriptor<'_>,
-        encoder: &mut wgpu::CommandEncoder,
-        xform: Mat4,
-    ) {
-        T::render(*self, attachments, encoder, xform);
+    fn model(&self) -> Model {
+        T::model(self)
+    }
+    fn store_instance<D: Extend<u8>>(&self, xform: Mat4, buffer: &mut D) {
+        T::store_instance(self, xform, buffer);
     }
 }
 
@@ -45,12 +56,10 @@ impl<T: Object> Transformed<T> {
 }
 
 impl<T: Object> Object for Transformed<T> {
-    fn render(
-        &self,
-        attachments: &wgpu::RenderPassDescriptor<'_>,
-        encoder: &mut wgpu::CommandEncoder,
-        xform: Mat4,
-    ) {
-        self.inner.render(attachments, encoder, xform * self.xform);
+    fn model(&self) -> Model {
+        self.inner.model()
+    }
+    fn store_instance<D: Extend<u8>>(&self, xform: Mat4, buffer: &mut D) {
+        self.inner.store_instance(xform * self.xform, buffer);
     }
 }

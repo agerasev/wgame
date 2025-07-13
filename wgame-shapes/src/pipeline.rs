@@ -4,11 +4,12 @@ use core::mem::{offset_of, size_of};
 use anyhow::Result;
 use glam::Mat4;
 
-use crate::shader::{ShaderConfig, ShaderSource};
-
 use wgame_gfx::State;
 
-use super::Vertex;
+use crate::{
+    Vertex,
+    shader::{ShaderConfig, ShaderSource},
+};
 
 pub fn create_pipeline(state: &State<'_>) -> Result<wgpu::RenderPipeline> {
     create_pipeline_masked(state, &ShaderConfig::default())
