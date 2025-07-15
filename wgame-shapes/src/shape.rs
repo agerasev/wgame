@@ -3,11 +3,11 @@ use alloc::vec::Vec;
 use glam::{Affine2, Mat4, Vec2};
 
 use wgame_gfx::{
-    State, Texture, Transformed,
+    State, Texture, Transformed, Vertices,
     types::{Color, Transform},
 };
 
-use crate::{Textured, Vertices};
+use crate::Textured;
 
 pub trait Shape<'a> {
     fn state(&self) -> &State<'a>;

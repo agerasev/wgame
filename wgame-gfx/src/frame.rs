@@ -1,13 +1,21 @@
+use core::{cell::RefCell, mem};
+
 use anyhow::{Context, Result};
 use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
-use crate::{State, object::Object, types::Color};
+use crate::{
+    State,
+    object::Object,
+    renderer::{RenderContext, Renderer},
+    types::Color,
+};
 
 pub struct Frame<'a> {
     state: State<'a>,
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
+    renderer: RefCell<Renderer>,
 }
 
 impl<'a> Frame<'a> {
@@ -20,18 +28,26 @@ impl<'a> Frame<'a> {
         let view = surface
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut renderer = Renderer::default();
+        let aspect_ratio = {
+            let (width, height) = state.size();
+            width as f32 / height as f32
+        };
+        let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        renderer.set_xform(xform);
+
         Ok(Frame {
             state,
             surface,
             view,
+            renderer: RefCell::new(renderer),
         })
     }
 
-    pub fn present(self) {
-        self.surface.present()
-    }
-
     pub fn clear(&self, color: impl Color) {
+        self.renderer.borrow_mut().clear();
+
         let color = {
             let Rgba { r, g, b, a } = color.to_rgba().map(|c| c.to_f64());
             wgpu::Color { r, g, b, a }
@@ -61,35 +77,15 @@ impl<'a> Frame<'a> {
         self.state.0.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn render<T: Object>(&self, object: T) {
-        let aspect_ratio = {
-            let (width, height) = self.state.size();
-            width as f32 / height as f32
-        };
-        let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+    pub fn add<T: Object>(&self, object: T) {
+        self.renderer.borrow_mut().enqueue_object(object);
+    }
 
-        let attachments = wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &self.view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        };
-        let mut encoder = self
-            .state
-            .0
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        object.render(&attachments, &mut encoder, xform);
-
-        self.state.0.queue.submit(Some(encoder.finish()));
+    pub fn present(self) {
+        mem::take(&mut *self.renderer.borrow_mut()).render(RenderContext {
+            state: &self.state,
+            view: &self.view,
+        });
+        self.surface.present()
     }
 }

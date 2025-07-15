@@ -13,7 +13,7 @@ pub struct Vertices {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Model {
-    pub index: u32,
+    pub index: i64,
     pub vertices: Vertices,
     pub uniforms: Vec<wgpu::BindGroup>,
     pub pipeline: wgpu::RenderPipeline,

@@ -16,23 +16,24 @@ use serde::Serialize;
 
 #[derive(Clone, Default, Debug, Serialize)]
 pub struct ShaderConfig {
-    pub mask_stmt: String,
-    pub uniforms: Vec<UniformInfo>,
+    pub fragment_modifier: String,
+    pub instances: Vec<BindingInfo>,
+    pub uniforms: Vec<BindingInfo>,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct UniformInfo {
+pub struct BindingInfo {
     pub name: String,
-    pub ty: UniformType,
+    pub ty: BindingType,
 }
 
 #[derive(Clone, Debug)]
-pub struct UniformType {
+pub struct BindingType {
     pub dims: Vec<usize>,
     pub item: ScalarType,
 }
 
-impl UniformType {
+impl BindingType {
     const DIM_RANGE: RangeInclusive<usize> = 2..=4;
 
     fn check_dim(n: usize) -> Result<usize, anyhow::Error> {
@@ -62,7 +63,7 @@ impl UniformType {
     }
 }
 
-impl Serialize for UniformType {
+impl Serialize for BindingType {
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -135,13 +136,13 @@ impl From<ScalarType> for String {
 
 #[derive(Clone, Debug)]
 pub struct ShaderSource {
+    name: String,
     env: Environment<'static>,
 }
 
 impl ShaderSource {
-    const TEMPLATE_NAME: &str = "shader_source";
-
-    pub fn new(source: impl Into<String>) -> Result<Self> {
+    pub fn new(name: impl Into<String>, source: impl Into<String>) -> Result<Self> {
+        let name = name.into();
         let mut env = Environment::new();
 
         env.set_undefined_behavior(UndefinedBehavior::Strict);
@@ -152,13 +153,13 @@ impl ShaderSource {
         env.add_filter("add", add);
         env.add_filter("enumerate", enumerate);
 
-        env.add_template_owned(Self::TEMPLATE_NAME, source.into())?;
+        env.add_template_owned(name.clone(), source.into())?;
 
-        Ok(Self { env })
+        Ok(Self { name, env })
     }
 
     pub fn substitute(&self, ctx: &ShaderConfig) -> Result<String> {
-        let template = self.env.get_template(Self::TEMPLATE_NAME)?;
+        let template = self.env.get_template(&self.name)?;
         let rendered = template.render(ctx)?;
         Ok(rendered)
     }

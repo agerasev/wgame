@@ -55,6 +55,7 @@ async fn main(rt: Runtime) {
                     .hexagon(Vec2::ZERO, 1.0)
                     .gradient([[color::BLUE, color::MAGENTA], [color::CYAN, color::WHITE]]);
 
+                /*
                 let circle = gfx
                     .circle(Vec2::ZERO, 0.8)
                     .gradient([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
@@ -62,6 +63,7 @@ async fn main(rt: Runtime) {
                 let ring = gfx
                     .ring(Vec2::ZERO, 0.8, 0.4)
                     .gradient([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
+                */
 
                 let scale = 1.0 / 3.0;
                 let start_time = Instant::now();
@@ -69,31 +71,33 @@ async fn main(rt: Runtime) {
                 while let Some(frame) = window.next_frame().await? {
                     frame.clear(Rgb::new(0.0, 0.0, 0.0));
                     let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
-                    frame.render(triangle.transform(Affine2::from_scale_angle_translation(
+                    frame.add(triangle.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
                         -angle,
                         Vec2::new(-2.0 * scale, scale),
                     )));
-                    frame.render(quad.transform(Affine2::from_scale_angle_translation(
+                    frame.add(quad.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
                         angle,
                         Vec2::new(0.0, scale),
                     )));
-                    frame.render(hexagon.transform(Affine2::from_scale_angle_translation(
+                    frame.add(hexagon.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
                         angle,
                         Vec2::new(2.0 * scale, scale),
                     )));
-                    frame.render(circle.transform(Affine2::from_scale_angle_translation(
+                    /*
+                    frame.add(circle.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
                         10.0 * angle,
                         Vec2::new(-1.5 * scale, -scale),
                     )));
-                    frame.render(ring.transform(Affine2::from_scale_angle_translation(
+                    frame.add(ring.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
                         -10.0 * angle,
                         Vec2::new(1.5 * scale, -scale),
                     )));
+                    */
                     fps.count();
                 }
                 Ok(())
