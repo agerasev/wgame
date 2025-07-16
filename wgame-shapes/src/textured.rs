@@ -1,11 +1,11 @@
 use glam::Mat4;
 
-use wgame_gfx::{BytesSink, Model, Object, Texture};
-
-use crate::{
-    Shape,
-    primitive::{Instance, StoreBytes},
+use wgame_gfx::{
+    Model, Object, Texture,
+    bytes::{BytesSink, StoreBytes},
 };
+
+use crate::{Shape, primitive::Instance};
 
 pub struct Textured<'a, T: Shape<'a>> {
     shape: T,

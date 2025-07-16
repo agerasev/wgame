@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+pub mod bytes;
 mod frame;
 mod object;
 pub mod registry;
@@ -12,7 +13,7 @@ pub mod types;
 
 pub use self::{
     frame::Frame,
-    object::{BytesSink, Model, Object, ObjectExt, Transformed, Vertices},
+    object::{Model, Object, ObjectExt, Transformed, Vertices},
     registry::Registry,
     texture::Texture,
 };

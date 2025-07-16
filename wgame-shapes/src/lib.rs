@@ -4,6 +4,7 @@
 extern crate alloc;
 
 //mod circle;
+pub mod attributes;
 pub mod binding;
 mod pipeline;
 mod polygon;

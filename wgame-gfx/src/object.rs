@@ -1,9 +1,7 @@
-use alloc::vec::Vec;
-
 use glam::Mat4;
 use smallvec::SmallVec;
 
-use crate::types::Transform;
+use crate::{bytes::BytesSink, types::Transform};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Vertices {
@@ -18,16 +16,6 @@ pub struct Model {
     pub vertices: Vertices,
     pub uniforms: SmallVec<[wgpu::BindGroup; 2]>,
     pub pipeline: wgpu::RenderPipeline,
-}
-
-pub trait BytesSink {
-    fn push_bytes(&mut self, data: &[u8]);
-}
-
-impl BytesSink for Vec<u8> {
-    fn push_bytes(&mut self, data: &[u8]) {
-        self.extend_from_slice(data);
-    }
 }
 
 pub trait Object {

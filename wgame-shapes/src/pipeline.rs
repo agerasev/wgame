@@ -5,7 +5,8 @@ use anyhow::Result;
 use wgame_gfx::State;
 
 use crate::{
-    primitive::{Attributes, Instance, Vertex},
+    attributes::Attributes,
+    primitive::{Instance, Vertex},
     shader::{ShaderConfig, ShaderSource},
 };
 

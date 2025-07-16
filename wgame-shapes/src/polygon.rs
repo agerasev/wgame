@@ -2,13 +2,9 @@ use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{State, Vertices, types::Position};
+use wgame_gfx::{State, Vertices, bytes::StoreBytes, types::Position};
 
-use crate::{
-    Library, Shape, ShapeExt,
-    pipeline::create_pipeline,
-    primitive::{StoreBytes, Vertex},
-};
+use crate::{Library, Shape, ShapeExt, pipeline::create_pipeline, primitive::Vertex};
 
 pub struct PolygonRenderer {
     pub quad_vertices: wgpu::Buffer,
