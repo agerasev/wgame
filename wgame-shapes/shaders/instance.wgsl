@@ -8,9 +8,8 @@ struct InstanceInput {
     @location(3) xform_1: vec4<f32>,
     @location(4) xform_2: vec4<f32>,
     @location(5) xform_3: vec4<f32>,
-    @location(6) tex_xform_0: vec2<f32>,
-    @location(7) tex_xform_1: vec2<f32>,
-    @location(8) tex_xform_2: vec2<f32>,
+    @location(6) tex_xform_m: vec4<f32>,
+    @location(7) tex_xform_v: vec2<f32>,
     
     {% for (i, a) in instances|enumerate %}
     @location({{ i|add(9) }}) {{ a.name }}: {{ a.ty }},
@@ -39,9 +38,9 @@ fn vertex_main(
         instance.xform_3,
     );
     let tex_xform = mat3x2<f32>(
-        instance.tex_xform_0,
-        instance.tex_xform_1,
-        instance.tex_xform_2,
+        instance.tex_xform_m.xy,
+        instance.tex_xform_m.zw,
+        instance.tex_xform_v,
     );
 
     var output: VertexOutput;

@@ -19,3 +19,4 @@ glam.workspace = true
 rgb.workspace = true
 half.workspace = true
 hashbrown.workspace = true
+smallvec.workspace = true

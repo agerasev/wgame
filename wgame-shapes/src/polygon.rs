@@ -4,7 +4,11 @@ use wgpu::util::DeviceExt;
 
 use wgame_gfx::{State, Vertices, types::Position};
 
-use crate::{Library, Shape, ShapeExt, pipeline::create_pipeline, primitive::Vertex};
+use crate::{
+    Library, Shape, ShapeExt,
+    pipeline::create_pipeline,
+    primitive::{StoreBytes, Vertex},
+};
 
 pub struct PolygonRenderer {
     pub quad_vertices: wgpu::Buffer,
@@ -20,12 +24,13 @@ impl PolygonRenderer {
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_vertices"),
-                contents: bytemuck::cast_slice(&[
+                contents: &[
                     Vertex::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
                     Vertex::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
                     Vertex::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
                     Vertex::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
-                ]),
+                ]
+                .to_bytes(),
                 usage: wgpu::BufferUsages::VERTEX,
             });
         let quad_indices = state
@@ -42,7 +47,7 @@ impl PolygonRenderer {
                 .device()
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("quad_vertices"),
-                    contents: bytemuck::cast_slice(&[
+                    contents: &[
                         Vertex::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
                         Vertex::new(
                             Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
@@ -61,7 +66,8 @@ impl PolygonRenderer {
                             Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
                             Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
                         ),
-                    ]),
+                    ]
+                    .to_bytes(),
                     usage: wgpu::BufferUsages::VERTEX,
                 });
         let hexagon_indices =
@@ -117,11 +123,12 @@ impl<'a> Library<'a> {
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("triangle_vertices"),
-                contents: bytemuck::cast_slice(&[
+                contents: &[
                     Vertex::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
                     Vertex::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
                     Vertex::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
-                ]),
+                ]
+                .to_bytes(),
                 usage: wgpu::BufferUsages::VERTEX,
             });
         Polygon {

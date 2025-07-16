@@ -5,7 +5,7 @@ use anyhow::Result;
 use wgame_gfx::State;
 
 use crate::{
-    primitive::{Instance, Vertex},
+    primitive::{Attributes, Instance, Vertex},
     shader::{ShaderConfig, ShaderSource},
 };
 
@@ -33,7 +33,20 @@ pub fn create_pipeline(state: &State<'_>, config: &ShaderConfig) -> Result<wgpu:
         push_constant_ranges: &[],
     });
 
-    let vertex_buffers = [Vertex::layout(), Instance::layout()];
+    let vertex_attributes = Vertex::attributes();
+    let instance_attributes = Instance::attributes();
+    let vertex_buffers = [
+        wgpu::VertexBufferLayout {
+            array_stride: vertex_attributes.size(),
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &vertex_attributes.layout(0)?,
+        },
+        wgpu::VertexBufferLayout {
+            array_stride: instance_attributes.size(),
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: &instance_attributes.layout(vertex_attributes.count())?,
+        },
+    ];
 
     let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: None,

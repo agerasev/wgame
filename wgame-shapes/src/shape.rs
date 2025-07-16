@@ -1,5 +1,3 @@
-use alloc::vec::Vec;
-
 use glam::{Affine2, Mat4, Vec2};
 
 use wgame_gfx::{
@@ -12,8 +10,8 @@ use crate::Textured;
 pub trait Shape<'a> {
     fn state(&self) -> &State<'a>;
     fn vertices(&self) -> Vertices;
-    fn uniforms(&self) -> Vec<wgpu::Buffer> {
-        Vec::new()
+    fn uniforms(&self) -> Option<wgpu::BindGroup> {
+        None
     }
     fn xform(&self) -> Mat4 {
         Mat4::IDENTITY
@@ -28,7 +26,7 @@ impl<'a, T: Shape<'a>> Shape<'a> for &T {
     fn vertices(&self) -> Vertices {
         T::vertices(self)
     }
-    fn uniforms(&self) -> Vec<wgpu::Buffer> {
+    fn uniforms(&self) -> Option<wgpu::BindGroup> {
         T::uniforms(self)
     }
     fn xform(&self) -> Mat4 {
@@ -74,19 +72,15 @@ impl<'a, T: Shape<'a>> Shape<'a> for Transformed<T> {
     fn state(&self) -> &State<'a> {
         self.inner.state()
     }
-
     fn vertices(&self) -> Vertices {
         self.inner.vertices()
     }
-
-    fn uniforms(&self) -> Vec<wgpu::Buffer> {
+    fn uniforms(&self) -> Option<wgpu::BindGroup> {
         self.inner.uniforms()
     }
-
     fn xform(&self) -> Mat4 {
         self.xform * self.inner.xform()
     }
-
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.inner.pipeline()
     }

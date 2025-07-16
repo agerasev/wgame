@@ -2427,6 +2427,7 @@ dependencies = [
  "hashbrown",
  "log",
  "rgb",
+ "smallvec",
  "wgpu",
 ]
 
@@ -2463,6 +2464,7 @@ dependencies = [
  "minijinja",
  "rgb",
  "serde",
+ "smallvec",
  "wgame-gfx",
  "wgpu",
 ]

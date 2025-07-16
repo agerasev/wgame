@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use glam::Mat4;
+use smallvec::SmallVec;
 
 use crate::types::Transform;
 
@@ -15,20 +16,30 @@ pub struct Vertices {
 pub struct Model {
     pub index: i64,
     pub vertices: Vertices,
-    pub uniforms: Vec<wgpu::BindGroup>,
+    pub uniforms: SmallVec<[wgpu::BindGroup; 2]>,
     pub pipeline: wgpu::RenderPipeline,
+}
+
+pub trait BytesSink {
+    fn push_bytes(&mut self, data: &[u8]);
+}
+
+impl BytesSink for Vec<u8> {
+    fn push_bytes(&mut self, data: &[u8]) {
+        self.extend_from_slice(data);
+    }
 }
 
 pub trait Object {
     fn model(&self) -> Model;
-    fn store_instance<D: Extend<u8>>(&self, xform: Mat4, buffer: &mut D);
+    fn store_instance<D: BytesSink>(&self, xform: Mat4, buffer: &mut D);
 }
 
 impl<T: Object> Object for &'_ T {
     fn model(&self) -> Model {
         T::model(self)
     }
-    fn store_instance<D: Extend<u8>>(&self, xform: Mat4, buffer: &mut D) {
+    fn store_instance<D: BytesSink>(&self, xform: Mat4, buffer: &mut D) {
         T::store_instance(self, xform, buffer);
     }
 }
@@ -59,7 +70,7 @@ impl<T: Object> Object for Transformed<T> {
     fn model(&self) -> Model {
         self.inner.model()
     }
-    fn store_instance<D: Extend<u8>>(&self, xform: Mat4, buffer: &mut D) {
+    fn store_instance<D: BytesSink>(&self, xform: Mat4, buffer: &mut D) {
         self.inner.store_instance(xform * self.xform, buffer);
     }
 }

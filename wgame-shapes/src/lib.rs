@@ -4,9 +4,10 @@
 extern crate alloc;
 
 //mod circle;
+pub mod binding;
 mod pipeline;
 mod polygon;
-mod primitive;
+pub mod primitive;
 mod shader;
 mod shape;
 mod textured;

@@ -1,10 +1,11 @@
-use alloc::vec;
-
 use glam::Mat4;
 
-use wgame_gfx::{Model, Object, Texture};
+use wgame_gfx::{BytesSink, Model, Object, Texture};
 
-use crate::{Shape, primitive::Instance};
+use crate::{
+    Shape,
+    primitive::{Instance, StoreBytes},
+};
 
 pub struct Textured<'a, T: Shape<'a>> {
     shape: T,
@@ -22,18 +23,15 @@ impl<'a, T: Shape<'a>> Object for Textured<'a, T> {
         Model {
             index: 0,
             vertices: self.shape.vertices(),
-            uniforms: vec![self.texture.bind_group().clone()],
+            uniforms: [self.texture.bind_group().clone()]
+                .into_iter()
+                .chain(self.shape.uniforms())
+                .collect(),
             pipeline: self.shape.pipeline(),
         }
     }
-    fn store_instance<D: Extend<u8>>(&self, xform: Mat4, buffer: &mut D) {
-        buffer.extend(
-            bytemuck::cast_slice(&[Instance::new(
-                xform * self.shape.xform(),
-                self.texture.coord_xform(),
-            )])
-            .iter()
-            .copied(),
-        )
+
+    fn store_instance<D: BytesSink>(&self, xform: Mat4, buffer: &mut D) {
+        Instance::new(xform * self.shape.xform(), self.texture.coord_xform()).store_bytes(buffer);
     }
 }

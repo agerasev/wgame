@@ -12,7 +12,7 @@ pub mod types;
 
 pub use self::{
     frame::Frame,
-    object::{Model, Object, ObjectExt, Transformed, Vertices},
+    object::{BytesSink, Model, Object, ObjectExt, Transformed, Vertices},
     registry::Registry,
     texture::Texture,
 };
