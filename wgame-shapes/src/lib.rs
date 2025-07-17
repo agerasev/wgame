@@ -3,15 +3,17 @@
 
 extern crate alloc;
 
+pub mod attributes;
+pub mod binding;
 mod circle;
 mod pipeline;
 mod polygon;
+pub mod primitive;
 mod shader;
 mod shape;
+mod textured;
 
 use anyhow::Result;
-use bytemuck::{Pod, Zeroable};
-use glam::{Vec2, Vec4};
 
 use wgame_gfx::State;
 
@@ -20,23 +22,8 @@ use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 pub use self::{
     polygon::Polygon,
     shape::{Shape, ShapeExt},
+    textured::{Textured, gradient, gradient2},
 };
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-struct Vertex {
-    pos: [f32; 4],
-    local_coord: [f32; 2],
-}
-
-impl Vertex {
-    fn new(pos: Vec4, local_coord: Vec2) -> Self {
-        Self {
-            pos: pos.into(),
-            local_coord: local_coord.into(),
-        }
-    }
-}
 
 /// 2D graphics library
 pub struct Library<'a> {

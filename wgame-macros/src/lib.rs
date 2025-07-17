@@ -1,31 +1,33 @@
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
-use syn::{Error, Ident, ItemFn, Result, parse2, spanned::Spanned};
+mod attributes;
+mod main_;
+mod store_bytes;
+
+use proc_macro::TokenStream;
+use quote::ToTokens;
 
 #[proc_macro_attribute]
-pub fn main(
-    attr: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    match main_impl(attr.into(), item.into()) {
+pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
+    match main_::impl_(attr.into(), item.into()) {
         Ok(expr) => expr.into_token_stream(),
         Err(err) => err.into_compile_error(),
     }
     .into()
 }
 
-fn main_impl(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
-    if !attr.is_empty() {
-        return Err(Error::new(attr.span(), "No attributes expected"));
+#[proc_macro_derive(StoreBytes)]
+pub fn store_bytes(input: TokenStream) -> TokenStream {
+    match store_bytes::derive(input.into()) {
+        Ok(expr) => expr.into_token_stream(),
+        Err(err) => err.into_compile_error(),
     }
+    .into()
+}
 
-    let mut amain = parse2::<ItemFn>(item)?;
-    let main = amain.sig.ident;
-    let ident = Ident::new("__wgame_async_main", main.span());
-    amain.sig.ident = ident.clone();
-
-    Ok(quote! {
-        #amain
-        wgame::run!(#main, #ident);
-    })
+#[proc_macro_derive(Attributes)]
+pub fn attributes(input: TokenStream) -> TokenStream {
+    match attributes::derive(input.into()) {
+        Ok(expr) => expr.into_token_stream(),
+        Err(err) => err.into_compile_error(),
+    }
+    .into()
 }

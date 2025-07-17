@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 wgame-gfx.workspace = true
+wgame-macros.workspace = true
 wgpu.workspace = true
 anyhow.workspace = true
 log.workspace = true
@@ -13,5 +14,6 @@ bytemuck.workspace = true
 glam.workspace = true
 rgb.workspace = true
 half.workspace = true
+smallvec.workspace = true
 serde = { version = "1.0.219", features = ["derive"] }
 minijinja = { version = "2.11.0", features = ["loader"] }

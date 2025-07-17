@@ -35,6 +35,7 @@ rgb = { version = "0.8.50", default-features = false, features = ["bytemuck"] }
 half = { version = "2.6.0", default-features = false, features = ["bytemuck"] }
 image = { version = "0.25.6", default-features = false }
 hashbrown = { version = "0.15.4", features = ["core", "alloc"] }
+smallvec = "1.15.1"
 anyhow = "1.0.98"
 log = "0.4.27"
 wasm-bindgen = "0.2.100"

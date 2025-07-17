@@ -9,12 +9,45 @@ pub struct Texture<'a> {
     state: State<'a>,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
-    view: wgpu::TextureView,
-    sampler: wgpu::Sampler,
+    bind_group: wgpu::BindGroup,
     xform: Affine2,
 }
 
 impl<'a> Texture<'a> {
+    pub(crate) fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("texture_bind_group"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        })
+    }
+
+    pub(crate) fn create_sampler_linear(device: &wgpu::Device) -> wgpu::Sampler {
+        device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        })
+    }
+
     pub fn new(state: &State<'a>, size: (u32, u32)) -> Self {
         let extent = wgpu::Extent3d {
             width: size.0,
@@ -32,19 +65,31 @@ impl<'a> Texture<'a> {
             view_formats: &[],
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = state.device().create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        });
+
+        let bind_group = state
+            .device()
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &state.registry().texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(
+                            &state.registry().texture_sampler_linear,
+                        ),
+                    },
+                ],
+                label: None,
+            });
+
         Self {
             state: state.clone(),
             extent,
             texture,
-            view,
-            sampler,
+            bind_group,
             xform: Affine2::IDENTITY,
         }
     }
@@ -84,12 +129,13 @@ impl<'a> Texture<'a> {
         this
     }
 
-    pub fn view(&self) -> &wgpu::TextureView {
-        &self.view
+    pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
+        &self.state.registry().texture_bind_group_layout
     }
-    pub fn sampler(&self) -> &wgpu::Sampler {
-        &self.sampler
+    pub fn bind_group(&self) -> &wgpu::BindGroup {
+        &self.bind_group
     }
+
     pub fn coord_xform(&self) -> Affine2 {
         self.xform
     }

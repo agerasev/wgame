@@ -2424,8 +2424,10 @@ dependencies = [
  "bytemuck",
  "glam",
  "half",
+ "hashbrown",
  "log",
  "rgb",
+ "smallvec",
  "wgpu",
 ]
 
@@ -2462,7 +2464,9 @@ dependencies = [
  "minijinja",
  "rgb",
  "serde",
+ "smallvec",
  "wgame-gfx",
+ "wgame-macros",
  "wgpu",
 ]
 

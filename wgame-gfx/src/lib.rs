@@ -3,14 +3,18 @@
 
 extern crate alloc;
 
+pub mod bytes;
 mod frame;
 mod object;
+pub mod registry;
+mod renderer;
 mod texture;
 pub mod types;
 
 pub use self::{
     frame::Frame,
-    object::{Object, ObjectExt, Transformed},
+    object::{Model, Object, ObjectExt, Transformed, Vertices},
+    registry::Registry,
     texture::Texture,
 };
 
@@ -44,7 +48,8 @@ struct InnerState<'a> {
     device: wgpu::Device,
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
-    size: Rc<Cell<(u32, u32)>>,
+    size: Cell<(u32, u32)>,
+    registry: Registry,
 }
 
 impl<'a> InnerState<'a> {
@@ -81,14 +86,17 @@ impl<'a> InnerState<'a> {
 
         let caps = surface.get_capabilities(&adapter);
 
+        let registry = Registry::new(&device);
+
         let this = Self {
             config,
             surface,
             adapter,
             device,
             queue,
-            size: Default::default(),
             format: caps.formats[0],
+            size: Default::default(),
+            registry,
         };
 
         Ok(this)
@@ -142,7 +150,11 @@ impl<'a> State<'a> {
         self.0.format
     }
 
-    pub fn frame(&self) -> Result<Frame<'a>> {
+    pub fn frame(&mut self) -> Result<Frame<'a>> {
         Frame::new(self.clone())
+    }
+
+    pub fn registry(&self) -> &Registry {
+        &self.0.registry
     }
 }
