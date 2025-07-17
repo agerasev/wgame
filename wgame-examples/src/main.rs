@@ -55,7 +55,6 @@ async fn main(rt: Runtime) {
                     .hexagon(Vec2::ZERO, 1.0)
                     .gradient([[color::BLUE, color::MAGENTA], [color::CYAN, color::WHITE]]);
 
-                /*
                 let circle = gfx
                     .circle(Vec2::ZERO, 0.8)
                     .gradient([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
@@ -63,7 +62,6 @@ async fn main(rt: Runtime) {
                 let ring = gfx
                     .ring(Vec2::ZERO, 0.8, 0.4)
                     .gradient([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
-                */
 
                 let scale = 1.0 / 3.0;
                 let start_time = Instant::now();
@@ -71,9 +69,10 @@ async fn main(rt: Runtime) {
                 while let Some(frame) = window.next_frame().await? {
                     frame.clear(Rgb::new(0.0, 0.0, 0.0));
                     let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
+
                     frame.add(triangle.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
-                        -angle,
+                        angle,
                         Vec2::new(-2.0 * scale, scale),
                     )));
                     frame.add(quad.transform(Affine2::from_scale_angle_translation(
@@ -86,7 +85,6 @@ async fn main(rt: Runtime) {
                         angle,
                         Vec2::new(2.0 * scale, scale),
                     )));
-                    /*
                     frame.add(circle.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
                         10.0 * angle,
@@ -97,7 +95,7 @@ async fn main(rt: Runtime) {
                         -10.0 * angle,
                         Vec2::new(1.5 * scale, -scale),
                     )));
-                    */
+
                     fps.count();
                 }
                 Ok(())

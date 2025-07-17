@@ -4,20 +4,16 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::mem::replace;
+use core::{marker::PhantomData, mem::replace};
+use serde::Serialize;
+use wgame_gfx::bytes::StoreBytes;
 
 use anyhow::Result;
 
-use crate::{binding::BindingType, binding_type};
+use crate::{binding::BindingInfo, binding_type};
 
-#[derive(Clone, Debug)]
-pub struct AttributeInfo {
-    name: String,
-    ty: BindingType,
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct AttributeList(pub Vec<AttributeInfo>);
+#[derive(Clone, Default, Debug, Serialize)]
+pub struct AttributeList(pub Vec<BindingInfo>);
 
 impl AttributeList {
     pub fn chain(mut self, other: Self) -> Self {
@@ -26,7 +22,7 @@ impl AttributeList {
     }
 
     pub fn with_prefix(mut self, prefix: &str) -> Self {
-        for AttributeInfo { name, .. } in self.0.iter_mut() {
+        for BindingInfo { name, .. } in self.0.iter_mut() {
             *name = if name.is_empty() {
                 prefix.to_string()
             } else {
@@ -37,10 +33,7 @@ impl AttributeList {
     }
 
     pub fn size(&self) -> u64 {
-        self.0
-            .iter()
-            .map(|AttributeInfo { ty, .. }| ty.size())
-            .sum()
+        self.0.iter().map(|BindingInfo { ty, .. }| ty.size()).sum()
     }
 
     pub fn count(&self) -> u32 {
@@ -52,7 +45,7 @@ impl AttributeList {
             .iter()
             .scan(
                 (start_location, 0),
-                |(index, offset), AttributeInfo { name, ty }| {
+                |(index, offset), BindingInfo { name, ty }| {
                     Some(Ok(wgpu::VertexAttribute {
                         shader_location: replace(index, *index + 1),
                         offset: replace(offset, *offset + ty.size()),
@@ -71,8 +64,20 @@ impl AttributeList {
     }
 }
 
-pub trait Attributes {
+pub trait Attributes: StoreBytes {
     fn attributes() -> AttributeList;
+}
+
+impl<T> Attributes for PhantomData<T> {
+    fn attributes() -> AttributeList {
+        AttributeList::default()
+    }
+}
+
+impl Attributes for () {
+    fn attributes() -> AttributeList {
+        AttributeList::default()
+    }
 }
 
 macro_rules! impl_attributes_pod {
@@ -81,7 +86,7 @@ macro_rules! impl_attributes_pod {
             fn attributes() -> AttributeList {
                 let mut attrs: Vec<_> = $layout
                     .into_iter()
-                    .map(|ty| AttributeInfo {
+                    .map(|ty| BindingInfo {
                         name: String::new(),
                         ty,
                     })
@@ -108,11 +113,11 @@ impl_attributes_pod!(f32, [binding_type!(F32)]);
 impl Attributes for glam::Affine2 {
     fn attributes() -> AttributeList {
         AttributeList(vec![
-            AttributeInfo {
+            BindingInfo {
                 name: "m".into(),
                 ty: binding_type!(F32, 4),
             },
-            AttributeInfo {
+            BindingInfo {
                 name: "v".into(),
                 ty: binding_type!(F32, 2),
             },

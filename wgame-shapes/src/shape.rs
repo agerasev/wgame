@@ -5,9 +5,11 @@ use wgame_gfx::{
     types::{Color, Transform},
 };
 
-use crate::Textured;
+use crate::{Textured, attributes::Attributes};
 
 pub trait Shape<'a> {
+    type Attributes: Attributes;
+
     fn state(&self) -> &State<'a>;
     fn vertices(&self) -> Vertices;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
@@ -16,10 +18,13 @@ pub trait Shape<'a> {
     fn xform(&self) -> Mat4 {
         Mat4::IDENTITY
     }
+    fn attributes(&self) -> Self::Attributes;
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
 impl<'a, T: Shape<'a>> Shape<'a> for &T {
+    type Attributes = T::Attributes;
+
     fn state(&self) -> &State<'a> {
         T::state(self)
     }
@@ -31,6 +36,9 @@ impl<'a, T: Shape<'a>> Shape<'a> for &T {
     }
     fn xform(&self) -> Mat4 {
         T::xform(self)
+    }
+    fn attributes(&self) -> Self::Attributes {
+        T::attributes(self)
     }
     fn pipeline(&self) -> wgpu::RenderPipeline {
         T::pipeline(self)
@@ -69,6 +77,8 @@ pub trait ShapeExt<'a>: Shape<'a> + Sized {
 impl<'a, T: Shape<'a>> ShapeExt<'a> for T {}
 
 impl<'a, T: Shape<'a>> Shape<'a> for Transformed<T> {
+    type Attributes = T::Attributes;
+
     fn state(&self) -> &State<'a> {
         self.inner.state()
     }
@@ -80,6 +90,9 @@ impl<'a, T: Shape<'a>> Shape<'a> for Transformed<T> {
     }
     fn xform(&self) -> Mat4 {
         self.xform * self.inner.xform()
+    }
+    fn attributes(&self) -> Self::Attributes {
+        self.inner.attributes()
     }
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.inner.pipeline()

@@ -3,9 +3,9 @@
 
 extern crate alloc;
 
-//mod circle;
 pub mod attributes;
 pub mod binding;
+mod circle;
 mod pipeline;
 mod polygon;
 pub mod primitive;
@@ -17,10 +17,7 @@ use anyhow::Result;
 
 use wgame_gfx::State;
 
-use crate::{
-    //circle::CircleRenderer,
-    polygon::PolygonRenderer,
-};
+use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 
 pub use self::{
     polygon::Polygon,
@@ -32,7 +29,7 @@ pub use self::{
 pub struct Library<'a> {
     state: State<'a>,
     polygon: PolygonRenderer,
-    //circle: CircleRenderer,
+    circle: CircleRenderer,
 }
 
 impl<'a> Library<'a> {
@@ -40,7 +37,7 @@ impl<'a> Library<'a> {
         Ok(Self {
             state: state.clone(),
             polygon: PolygonRenderer::new(state)?,
-            //circle: CircleRenderer::new(state)?,
+            circle: CircleRenderer::new(state)?,
         })
     }
 }

@@ -12,7 +12,7 @@ struct InstanceInput {
     @location(7) tex_xform_v: vec2<f32>,
     
     {% for (i, a) in instances|enumerate %}
-    @location({{ i|add(9) }}) {{ a.name }}: {{ a.ty }},
+    @location({{ i|add(8) }}) {{ a.name }}: {{ a.ty }},
     {% endfor %}
 };
 
@@ -65,7 +65,7 @@ var sampler_: sampler;
 
 {% for (i, a) in uniforms|enumerate %}
 @group(1)
-@binding({{ i|add(0) }})
+@binding({{ i }})
 var<uniform> {{ a.name }}: {{ a.ty }};
 {% endfor %}
 

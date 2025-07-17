@@ -2,7 +2,7 @@ use glam::{Affine2, Mat4, Vec2, Vec4};
 
 use wgame_macros::{Attributes, StoreBytes};
 
-use crate as wgame_shapes;
+use crate::{self as wgame_shapes, attributes::Attributes};
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
 pub struct Vertex {
@@ -17,13 +17,18 @@ impl Vertex {
 }
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
-pub struct Instance {
+pub struct Instance<T: Attributes = ()> {
     xform: Mat4,
     tex_xform: Affine2,
+    custom: T,
 }
 
-impl Instance {
-    pub fn new(xform: Mat4, tex_xform: Affine2) -> Self {
-        Self { xform, tex_xform }
+impl<T: Attributes> Instance<T> {
+    pub fn new(xform: Mat4, tex_xform: Affine2, custom: T) -> Self {
+        Self {
+            xform,
+            tex_xform,
+            custom,
+        }
     }
 }

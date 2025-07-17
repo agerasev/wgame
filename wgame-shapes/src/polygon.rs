@@ -95,6 +95,8 @@ pub struct Polygon<'a, const N: u32> {
 }
 
 impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
+    type Attributes = ();
+
     fn state(&self) -> &State<'a> {
         &self.state
     }
@@ -105,6 +107,10 @@ impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
             vertex_buffer: self.vertices.clone(),
             index_buffer: self.indices.clone(),
         }
+    }
+
+    fn attributes(&self) -> Self::Attributes {
+        ()
     }
 
     fn pipeline(&self) -> wgpu::RenderPipeline {

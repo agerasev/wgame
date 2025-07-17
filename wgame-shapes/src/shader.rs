@@ -4,12 +4,12 @@ use anyhow::Result;
 use minijinja::{Environment, UndefinedBehavior, Value, value::ValueKind};
 use serde::Serialize;
 
-use crate::binding::BindingInfo;
+use crate::{attributes::AttributeList, binding::BindingInfo};
 
 #[derive(Clone, Default, Debug, Serialize)]
 pub struct ShaderConfig {
     pub fragment_modifier: String,
-    pub instances: Vec<BindingInfo>,
+    pub instances: AttributeList,
     pub uniforms: Vec<BindingInfo>,
 }
 
@@ -40,6 +40,12 @@ impl ShaderSource {
     pub fn substitute(&self, ctx: &ShaderConfig) -> Result<String> {
         let template = self.env.get_template(&self.name)?;
         let rendered = template.render(ctx)?;
+        log::debug!(
+            "Shader '{}' substitution:\nConfig: {:?}\nSource:\n{}",
+            self.name,
+            ctx,
+            rendered
+        );
         Ok(rendered)
     }
 }

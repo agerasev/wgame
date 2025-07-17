@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use alloc::vec::Vec;
 
 pub trait BytesSink {
@@ -20,6 +22,16 @@ pub trait StoreBytes {
         self.store_bytes(&mut dst);
         dst
     }
+}
+
+impl<T> StoreBytes for PhantomData<T> {
+    const SIZE: usize = 0;
+    fn store_bytes<D: BytesSink>(&self, _: &mut D) {}
+}
+
+impl StoreBytes for () {
+    const SIZE: usize = 0;
+    fn store_bytes<D: BytesSink>(&self, _: &mut D) {}
 }
 
 impl<T: StoreBytes, const N: usize> StoreBytes for [T; N] {

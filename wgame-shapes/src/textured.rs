@@ -32,6 +32,11 @@ impl<'a, T: Shape<'a>> Object for Textured<'a, T> {
     }
 
     fn store_instance<D: BytesSink>(&self, xform: Mat4, buffer: &mut D) {
-        Instance::new(xform * self.shape.xform(), self.texture.coord_xform()).store_bytes(buffer);
+        Instance::new(
+            xform * self.shape.xform(),
+            self.texture.coord_xform(),
+            self.shape.attributes(),
+        )
+        .store_bytes(buffer);
     }
 }

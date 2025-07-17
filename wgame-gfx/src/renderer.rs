@@ -48,6 +48,14 @@ impl Renderer {
     }
 
     pub fn render(self, ctx: RenderContext<'_, '_>) {
+        log::trace!(
+            "Render passes with number of instances: {:?}",
+            self.render_passes
+                .values()
+                .map(|inst| inst.count)
+                .collect::<Vec<_>>()
+        );
+
         let mut encoder = ctx
             .state
             .0

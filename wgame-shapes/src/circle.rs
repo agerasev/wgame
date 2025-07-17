@@ -1,16 +1,20 @@
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::string::ToString;
 
 use anyhow::Result;
-use glam::{Affine2, Mat2, Vec2, Vec4};
-use wgpu::util::DeviceExt;
+use glam::{Affine2, Mat2, Vec2};
+use wgame_macros::{Attributes, StoreBytes};
 
-use wgame_gfx::State;
+use wgame_gfx::{State, Vertices};
 
 use crate::{
-    Library, Shape, ShapeExt, Vertices,
-    pipeline::create_pipeline_masked,
-    shader::{ScalarType, ShaderConfig, UniformInfo, UniformType},
+    self as wgame_shapes, Library, Shape, ShapeExt, attributes::Attributes,
+    pipeline::create_pipeline, shader::ShaderConfig,
 };
+
+#[derive(Clone, Copy, StoreBytes, Attributes)]
+pub struct CircleAttrs {
+    inner_radius: f32,
+}
 
 pub struct CircleRenderer {
     pipeline: wgpu::RenderPipeline,
@@ -18,22 +22,19 @@ pub struct CircleRenderer {
 
 impl CircleRenderer {
     pub fn new(state: &State<'_>) -> Result<Self> {
-        let pipeline = create_pipeline_masked(
+        let pipeline = create_pipeline(
             state,
             &ShaderConfig {
-                mask_stmt: "
+                fragment_modifier: "
                     let c = coord - vec2(0.5, 0.5);
                     let l = 2.0 * length(c);
-                    mask = l < 1.0 && l >= inner_radius.x;
+                    if (l > 1.0 || l < vertex.custom_inner_radius) {
+                        discard;
+                    }
                 "
                 .to_string(),
-                uniforms: vec![UniformInfo {
-                    name: "inner_radius".to_string(),
-                    ty: UniformType {
-                        dims: vec![4],
-                        item: ScalarType::F32,
-                    },
-                }],
+                instances: CircleAttrs::attributes().with_prefix("custom"),
+                ..Default::default()
             },
         )?;
 
@@ -47,7 +48,6 @@ pub struct Circle<'a> {
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
-    uniform_buffer: wgpu::Buffer,
 }
 
 impl<'a> Circle<'a> {
@@ -58,25 +58,19 @@ impl<'a> Circle<'a> {
         pipeline: wgpu::RenderPipeline,
         inner_radius: f32,
     ) -> Self {
-        let uniform_buffer = state
-            .device()
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("inner_radius"),
-                contents: bytemuck::cast_slice(Vec4::new(inner_radius, 0.0, 0.0, 0.0).as_ref()),
-                usage: wgpu::BufferUsages::UNIFORM,
-            });
         Self {
             state,
             vertices,
             indices,
             pipeline,
             inner_radius,
-            uniform_buffer,
         }
     }
 }
 
 impl<'a> Shape<'a> for Circle<'a> {
+    type Attributes = CircleAttrs;
+
     fn state(&self) -> &State<'a> {
         &self.state
     }
@@ -89,8 +83,10 @@ impl<'a> Shape<'a> for Circle<'a> {
         }
     }
 
-    fn uniforms(&self) -> Vec<wgpu::Buffer> {
-        vec![self.uniform_buffer.clone()]
+    fn attributes(&self) -> Self::Attributes {
+        CircleAttrs {
+            inner_radius: self.inner_radius,
+        }
     }
 
     fn pipeline(&self) -> wgpu::RenderPipeline {
