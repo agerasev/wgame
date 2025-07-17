@@ -1,9 +1,6 @@
-use glam::{Affine2, Mat4, Vec2};
+use glam::Mat4;
 
-use wgame_gfx::{
-    State, Texture, Transformed, Vertices,
-    types::{Color, Transform},
-};
+use wgame_gfx::{State, Texture, Transformed, Vertices, types::Transform};
 
 use crate::{Textured, attributes::Attributes};
 
@@ -51,22 +48,6 @@ pub trait ShapeExt<'a>: Shape<'a> + Sized {
             inner: self,
             xform: xform.to_mat4(),
         }
-    }
-
-    fn color<T: Color>(self, color: T) -> Textured<'a, Self> {
-        let pixel = Texture::with_data(self.state(), (1, 1), &[color.to_rgba()]);
-        self.texture(pixel)
-    }
-
-    fn gradient<T: Color>(self, colors: [[T; 2]; 2]) -> Textured<'a, Self> {
-        let colors = colors.map(|row| row.map(|color| color.to_rgba()));
-        let pixels_2x2 = Texture::with_data(self.state(), (2, 2), colors.as_flattened())
-            .transform_coord(Affine2::from_scale_angle_translation(
-                Vec2::new(0.5, 0.5),
-                0.0,
-                Vec2::new(0.25, 0.25),
-            ));
-        self.texture(pixels_2x2)
     }
 
     fn texture(self, texture: Texture<'a>) -> Textured<'a, Self> {

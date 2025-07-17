@@ -1,8 +1,9 @@
-use glam::Mat4;
+use glam::{Affine2, Mat4, Vec2};
 
 use wgame_gfx::{
-    Model, Object, Texture,
+    Model, Object, State, Texture,
     bytes::{BytesSink, StoreBytes},
+    types::Color,
 };
 
 use crate::{Shape, primitive::Instance};
@@ -39,4 +40,19 @@ impl<'a, T: Shape<'a>> Object for Textured<'a, T> {
         )
         .store_bytes(buffer);
     }
+}
+
+pub fn gradient<'a, T: Color, const N: usize>(state: &State<'a>, colors: [T; N]) -> Texture<'a> {
+    gradient2(state, [colors])
+}
+
+pub fn gradient2<'a, T: Color, const M: usize, const N: usize>(
+    state: &State<'a>,
+    colors: [[T; M]; N],
+) -> Texture<'a> {
+    let colors = colors.map(|row| row.map(|color| color.to_rgba()));
+    let pix_size = Vec2::new(M as f32, N as f32).recip();
+    Texture::with_data(state, (M as u32, N as u32), colors.as_flattened()).transform_coord(
+        Affine2::from_scale_angle_translation(1.0 - pix_size, 0.0, 0.5 * pix_size),
+    )
 }

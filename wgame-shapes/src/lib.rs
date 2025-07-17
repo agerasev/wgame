@@ -22,7 +22,7 @@ use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 pub use self::{
     polygon::Polygon,
     shape::{Shape, ShapeExt},
-    textured::Textured,
+    textured::{Textured, gradient, gradient2},
 };
 
 /// 2D graphics library

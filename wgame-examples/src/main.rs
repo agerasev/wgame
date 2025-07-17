@@ -13,7 +13,7 @@ use wgame::{
     fs::read_bytes,
     gfx::{self, ObjectExt, types::color},
     img::image_to_texture,
-    shapes::{Library, ShapeExt},
+    shapes::{Library, ShapeExt, gradient2},
     utils::FrameCounter,
 };
 
@@ -29,39 +29,41 @@ async fn main(rt: Runtime) {
                 ..Default::default()
             },
             async move |mut window: Window| {
-                let gfx = Library::new(window.graphics())?;
-                let tex = image_to_texture(
-                    window.graphics(),
-                    &read_bytes("assets/lenna.png").await.unwrap(),
-                )
-                .unwrap();
+                let gfx = window.graphics().clone();
+                let lib = Library::new(&gfx)?;
+                let tex =
+                    image_to_texture(&gfx, &read_bytes("assets/lenna.png").await.unwrap()).unwrap();
 
-                let triangle = gfx
+                let triangle = lib
                     .triangle(
                         Vec2::new(0.0, 1.0),
                         Vec2::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos()),
                         Vec2::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos()),
                     )
-                    .gradient([
-                        [color::BLUE, color::RED],
-                        [color::GREEN, color::RED + color::GREEN - color::BLUE],
-                    ]);
+                    .texture(gradient2(
+                        &gfx,
+                        [
+                            [color::BLUE, color::RED],
+                            [color::GREEN, color::RED + color::GREEN - color::BLUE],
+                        ],
+                    ));
 
-                let quad = gfx
+                let quad = lib
                     .quad(-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2))
                     .texture(tex.clone());
 
-                let hexagon = gfx
-                    .hexagon(Vec2::ZERO, 1.0)
-                    .gradient([[color::BLUE, color::MAGENTA], [color::CYAN, color::WHITE]]);
+                let hexagon = lib.hexagon(Vec2::ZERO, 1.0).texture(gradient2(
+                    &gfx,
+                    [[color::BLUE, color::MAGENTA], [color::CYAN, color::WHITE]],
+                ));
 
-                let circle = gfx
-                    .circle(Vec2::ZERO, 0.8)
-                    .gradient([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
-
-                let ring = gfx
-                    .ring(Vec2::ZERO, 0.8, 0.4)
-                    .gradient([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
+                let grad = gradient2(
+                    &gfx,
+                    [[color::WHITE, color::BLUE], [color::GREEN, color::RED]],
+                );
+                let circle = lib.circle(Vec2::ZERO, 0.8).texture(grad.clone());
+                let ring0 = lib.ring(Vec2::ZERO, 0.8, 0.4).texture(grad.clone());
+                let ring1 = lib.ring(Vec2::ZERO, 0.8, 0.5).texture(grad.clone());
 
                 let scale = 1.0 / 3.0;
                 let start_time = Instant::now();
@@ -88,12 +90,17 @@ async fn main(rt: Runtime) {
                     frame.add(circle.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
                         10.0 * angle,
-                        Vec2::new(-1.5 * scale, -scale),
+                        Vec2::new(-2.0 * scale, -scale),
                     )));
-                    frame.add(ring.transform(Affine2::from_scale_angle_translation(
+                    frame.add(ring0.transform(Affine2::from_scale_angle_translation(
                         Vec2::splat(scale),
-                        -10.0 * angle,
-                        Vec2::new(1.5 * scale, -scale),
+                        10.0 * angle,
+                        Vec2::new(0.0 * scale, -scale),
+                    )));
+                    frame.add(ring1.transform(Affine2::from_scale_angle_translation(
+                        Vec2::splat(scale),
+                        10.0 * angle,
+                        Vec2::new(2.0 * scale, -scale),
                     )));
 
                     fps.count();
