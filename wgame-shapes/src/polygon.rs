@@ -109,9 +109,7 @@ impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
         }
     }
 
-    fn attributes(&self) -> Self::Attributes {
-        ()
-    }
+    fn attributes(&self) -> Self::Attributes {}
 
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.pipeline.clone()

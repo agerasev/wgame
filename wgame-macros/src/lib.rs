@@ -14,7 +14,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
-#[proc_macro_derive(StoreBytes)]
+#[proc_macro_derive(StoreBytes, attributes(bytes_mod))]
 pub fn store_bytes(input: TokenStream) -> TokenStream {
     match store_bytes::derive(input.into()) {
         Ok(expr) => expr.into_token_stream(),
@@ -23,7 +23,7 @@ pub fn store_bytes(input: TokenStream) -> TokenStream {
     .into()
 }
 
-#[proc_macro_derive(Attributes)]
+#[proc_macro_derive(Attributes, attributes(attributes_mod))]
 pub fn attributes(input: TokenStream) -> TokenStream {
     match attributes::derive(input.into()) {
         Ok(expr) => expr.into_token_stream(),

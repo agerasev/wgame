@@ -7,11 +7,13 @@ use wgame_macros::{Attributes, StoreBytes};
 use wgame_gfx::{State, Vertices};
 
 use crate::{
-    self as wgame_shapes, Library, Shape, ShapeExt, attributes::Attributes,
-    pipeline::create_pipeline, shader::ShaderConfig,
+    Library, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
+    shader::ShaderConfig,
 };
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
+#[bytes_mod(wgame_gfx::bytes)]
+#[attributes_mod(crate::attributes)]
 pub struct CircleAttrs {
     inner_radius: f32,
 }

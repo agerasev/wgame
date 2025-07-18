@@ -2,9 +2,11 @@ use glam::{Affine2, Mat4, Vec2, Vec4};
 
 use wgame_macros::{Attributes, StoreBytes};
 
-use crate::{self as wgame_shapes, attributes::Attributes};
+use crate::attributes::Attributes;
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
+#[bytes_mod(wgame_gfx::bytes)]
+#[attributes_mod(crate::attributes)]
 pub struct Vertex {
     pub pos: Vec4,
     pub local_coord: Vec2,
@@ -17,6 +19,8 @@ impl Vertex {
 }
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
+#[bytes_mod(wgame_gfx::bytes)]
+#[attributes_mod(crate::attributes)]
 pub struct Instance<T: Attributes = ()> {
     xform: Mat4,
     tex_xform: Affine2,

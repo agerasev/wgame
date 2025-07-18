@@ -5,7 +5,16 @@ use syn::{Data, DeriveInput, Error, Result, parse2};
 pub fn derive(input: TokenStream) -> Result<TokenStream> {
     let input: DeriveInput = parse2(input)?;
 
-    let mod_ = quote! { wgame_shapes::attributes };
+    let mod_ = if let Some(attr) = input
+        .attrs
+        .into_iter()
+        .find(|attr| attr.meta.path().is_ident("attributes_mod"))
+    {
+        attr.meta.require_list()?.tokens.clone()
+    } else {
+        quote! { wgame::shapes::attributes }
+    };
+
     let trait_ = quote! { #mod_::Attributes };
     let ident = input.ident;
 
