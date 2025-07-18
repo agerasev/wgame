@@ -88,7 +88,7 @@ impl PolygonRenderer {
 }
 
 pub struct Polygon<'a, const N: u32> {
-    state: State<'a>,
+    library: Library<'a>,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
@@ -97,8 +97,8 @@ pub struct Polygon<'a, const N: u32> {
 impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
     type Attributes = ();
 
-    fn state(&self) -> &State<'a> {
-        &self.state
+    fn library(&self) -> &Library<'a> {
+        &self.library
     }
 
     fn vertices(&self) -> Vertices {
@@ -118,33 +118,34 @@ impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
 
 impl<'a> Library<'a> {
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<'a, 3> {
-        let vertices = self
-            .state
-            .device()
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("triangle_vertices"),
-                contents: &[
-                    Vertex::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
-                    Vertex::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
-                    Vertex::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
-                ]
-                .to_bytes(),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
+        let vertices =
+            self.0
+                .state
+                .device()
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("triangle_vertices"),
+                    contents: &[
+                        Vertex::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
+                        Vertex::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
+                        Vertex::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
+                    ]
+                    .to_bytes(),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
         Polygon {
-            state: self.state.clone(),
+            library: self.clone(),
             vertices,
             indices: None,
-            pipeline: self.polygon.pipeline.clone(),
+            pipeline: self.0.polygon.pipeline.clone(),
         }
     }
 
     pub fn unit_quad(&self) -> Polygon<'a, 4> {
         Polygon {
-            state: self.state.clone(),
-            vertices: self.polygon.quad_vertices.clone(),
-            indices: Some(self.polygon.quad_indices.clone()),
-            pipeline: self.polygon.pipeline.clone(),
+            library: self.clone(),
+            vertices: self.0.polygon.quad_vertices.clone(),
+            indices: Some(self.0.polygon.quad_indices.clone()),
+            pipeline: self.0.polygon.pipeline.clone(),
         }
     }
 
@@ -160,10 +161,10 @@ impl<'a> Library<'a> {
 
     pub fn unit_hexagon(&self) -> Polygon<'a, 6> {
         Polygon {
-            state: self.state.clone(),
-            vertices: self.polygon.hexagon_vertices.clone(),
-            indices: Some(self.polygon.hexagon_indices.clone()),
-            pipeline: self.polygon.pipeline.clone(),
+            library: self.clone(),
+            vertices: self.0.polygon.hexagon_vertices.clone(),
+            indices: Some(self.0.polygon.hexagon_indices.clone()),
+            pipeline: self.0.polygon.pipeline.clone(),
         }
     }
 

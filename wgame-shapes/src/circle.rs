@@ -45,36 +45,18 @@ impl CircleRenderer {
 }
 
 pub struct Circle<'a> {
-    state: State<'a>,
+    library: Library<'a>,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
 }
 
-impl<'a> Circle<'a> {
-    fn new(
-        state: State<'a>,
-        vertices: wgpu::Buffer,
-        indices: Option<wgpu::Buffer>,
-        pipeline: wgpu::RenderPipeline,
-        inner_radius: f32,
-    ) -> Self {
-        Self {
-            state,
-            vertices,
-            indices,
-            pipeline,
-            inner_radius,
-        }
-    }
-}
-
 impl<'a> Shape<'a> for Circle<'a> {
     type Attributes = CircleAttrs;
 
-    fn state(&self) -> &State<'a> {
-        &self.state
+    fn library(&self) -> &Library<'a> {
+        &self.library
     }
 
     fn vertices(&self) -> Vertices {
@@ -98,13 +80,13 @@ impl<'a> Shape<'a> for Circle<'a> {
 
 impl<'a> Library<'a> {
     pub fn unit_ring(&self, inner_radius: f32) -> impl Shape<'a> {
-        Circle::new(
-            self.state.clone(),
-            self.polygon.quad_vertices.clone(),
-            Some(self.polygon.quad_indices.clone()),
-            self.circle.pipeline.clone(),
+        Circle {
+            library: self.clone(),
+            vertices: self.0.polygon.quad_vertices.clone(),
+            indices: Some(self.0.polygon.quad_indices.clone()),
+            pipeline: self.0.circle.pipeline.clone(),
             inner_radius,
-        )
+        }
     }
 
     pub fn ring(&self, pos: Vec2, radius: f32, inner_radius: f32) -> impl Shape<'a> {

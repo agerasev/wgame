@@ -52,10 +52,7 @@ async fn main(rt: Runtime) {
                     .quad(-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2))
                     .texture(tex.clone());
 
-                let hexagon = lib.hexagon(Vec2::ZERO, 1.0).texture(gradient2(
-                    &gfx,
-                    [[color::BLUE, color::MAGENTA], [color::CYAN, color::WHITE]],
-                ));
+                let hexagon = lib.hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
 
                 let grad = gradient2(
                     &gfx,

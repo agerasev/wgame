@@ -5,10 +5,12 @@ use alloc::{
     vec::Vec,
 };
 use core::{marker::PhantomData, mem::replace};
-use serde::Serialize;
-use wgame_gfx::bytes::StoreBytes;
 
 use anyhow::Result;
+use half::f16;
+use serde::Serialize;
+
+use wgame_gfx::bytes::StoreBytes;
 
 use crate::{binding::BindingInfo, binding_type};
 
@@ -108,7 +110,10 @@ impl_attributes_pod!(glam::Mat2, [binding_type!(F32, 4)]);
 impl_attributes_pod!(glam::Vec4, [binding_type!(F32, 4)]);
 impl_attributes_pod!(glam::Vec3, [binding_type!(F32, 3)]);
 impl_attributes_pod!(glam::Vec2, [binding_type!(F32, 2)]);
+impl_attributes_pod!(rgb::Rgba<f32>, [binding_type!(F32, 4)]);
+impl_attributes_pod!(rgb::Rgba<f16>, [binding_type!(F16, 4)]);
 impl_attributes_pod!(f32, [binding_type!(F32)]);
+impl_attributes_pod!(f16, [binding_type!(F16)]);
 
 impl Attributes for glam::Affine2 {
     fn attributes() -> AttributeList {

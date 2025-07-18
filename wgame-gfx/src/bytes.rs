@@ -1,6 +1,7 @@
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 
-use alloc::vec::Vec;
+use half::f16;
 
 pub trait BytesSink {
     fn push_bytes(&mut self, data: &[u8]);
@@ -62,7 +63,10 @@ impl_store_pod!(glam::Mat2);
 impl_store_pod!(glam::Vec4);
 impl_store_pod!(glam::Vec3);
 impl_store_pod!(glam::Vec2);
+impl_store_pod!(rgb::Rgba<f32>);
+impl_store_pod!(rgb::Rgba<f16>);
 impl_store_pod!(f32);
+impl_store_pod!(f16);
 
 impl StoreBytes for glam::Affine2 {
     const SIZE: usize = size_of::<glam::Mat2>() + size_of::<glam::Vec2>();

@@ -1,5 +1,6 @@
 use glam::{Affine2, Mat4, Vec2, Vec4};
 
+use rgb::Rgba;
 use wgame_macros::{Attributes, StoreBytes};
 
 use crate::attributes::Attributes;
@@ -22,17 +23,8 @@ impl Vertex {
 #[bytes_mod(wgame_gfx::bytes)]
 #[attributes_mod(crate::attributes)]
 pub struct Instance<T: Attributes = ()> {
-    xform: Mat4,
-    tex_xform: Affine2,
-    custom: T,
-}
-
-impl<T: Attributes> Instance<T> {
-    pub fn new(xform: Mat4, tex_xform: Affine2, custom: T) -> Self {
-        Self {
-            xform,
-            tex_xform,
-            custom,
-        }
-    }
+    pub xform: Mat4,
+    pub tex_xform: Affine2,
+    pub color: Rgba<f32>,
+    pub custom: T,
 }

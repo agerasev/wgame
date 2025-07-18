@@ -1,21 +1,37 @@
 use glam::{Affine2, Mat4, Vec2};
 
+use half::f16;
+use rgb::{ComponentMap, Rgba};
+
 use wgame_gfx::{
     Model, Object, State, Texture,
     bytes::{BytesSink, StoreBytes},
-    types::Color,
+    types::{Color, color},
 };
 
 use crate::{Shape, primitive::Instance};
 
+#[derive(Clone)]
 pub struct Textured<'a, T: Shape<'a>> {
     shape: T,
     texture: Texture<'a>,
+    color: Rgba<f16>,
 }
 
 impl<'a, T: Shape<'a>> Textured<'a, T> {
     pub fn new(shape: T, texture: Texture<'a>) -> Self {
-        Self { shape, texture }
+        Self {
+            shape,
+            texture,
+            color: color::WHITE.to_rgba(),
+        }
+    }
+
+    pub fn color(self, color: impl Color) -> Self {
+        Self {
+            color: color.to_rgba(),
+            ..self
+        }
     }
 }
 
@@ -33,11 +49,12 @@ impl<'a, T: Shape<'a>> Object for Textured<'a, T> {
     }
 
     fn store_instance<D: BytesSink>(&self, xform: Mat4, buffer: &mut D) {
-        Instance::new(
-            xform * self.shape.xform(),
-            self.texture.coord_xform(),
-            self.shape.attributes(),
-        )
+        Instance {
+            xform: xform * self.shape.xform(),
+            tex_xform: self.texture.coord_xform(),
+            color: self.color.map(|x| x.to_f32()),
+            custom: self.shape.attributes(),
+        }
         .store_bytes(buffer);
     }
 }
