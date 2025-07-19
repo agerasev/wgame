@@ -3,19 +3,23 @@
 
 extern crate alloc;
 
-pub mod bytes;
+mod context;
 mod frame;
-mod object;
-pub mod registry;
+mod modifiers;
+mod queue;
+mod registry;
 mod renderer;
 mod texture;
-pub mod types;
+mod types;
 
 pub use self::{
+    context::{Context, ContextExt},
     frame::Frame,
-    object::{Model, Object, ObjectExt, Transformed, Vertices},
+    modifiers::Transformed,
     registry::Registry,
+    renderer::{Instance, InstanceExt, Renderer},
     texture::Texture,
+    types::*,
 };
 
 pub use wgpu;
@@ -23,7 +27,7 @@ pub use wgpu;
 use alloc::rc::Rc;
 use core::cell::Cell;
 
-use anyhow::{Context, Result};
+use anyhow::{Context as _, Result};
 
 #[derive(Clone, Debug)]
 pub struct Config {

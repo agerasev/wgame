@@ -1,147 +1,108 @@
-use alloc::{collections::btree_map::BTreeMap, vec::Vec};
+use core::{
+    any::Any,
+    hash::{Hash, Hasher},
+};
 
-use glam::Mat4;
+use alloc::boxed::Box;
+use anyhow::Result;
 
-use crate::{Object, State, object::Model};
+use crate::{Context, ContextExt, Transformed, types::Transform};
 
-#[derive(Default)]
-struct Instances {
-    count: u32,
-    data: Vec<u8>,
+pub trait Renderer: Any + Eq + Hash {
+    type Storage: Any;
+    fn new_storage(&self) -> Self::Storage;
+    fn draw(&self, instances: &Self::Storage, pass: &mut wgpu::RenderPass) -> Result<()>;
 }
 
-pub struct RenderContext<'a, 'b> {
-    pub state: &'b State<'a>,
-    pub view: &'b wgpu::TextureView,
+pub trait Instance {
+    type Renderer: Renderer;
+    fn get_renderer(&self) -> Self::Renderer;
+    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage);
 }
 
-pub struct Renderer {
-    render_passes: BTreeMap<Model, Instances>,
-    xform: Mat4,
-}
+impl<T: Instance> Instance for &'_ T {
+    type Renderer = T::Renderer;
 
-impl Default for Renderer {
-    fn default() -> Self {
-        Self {
-            render_passes: BTreeMap::new(),
-            xform: Mat4::IDENTITY,
-        }
+    fn get_renderer(&self) -> Self::Renderer {
+        T::get_renderer(self)
+    }
+    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
+        T::store(self, ctx, storage);
     }
 }
 
-impl Renderer {
-    const BUFFER_ALIGN: u64 = 16;
+pub trait InstanceExt: Instance + Sized {
+    fn transform<T: Transform>(&self, xform: T) -> Transformed<&Self> {
+        Transformed::new(self, xform)
+    }
+}
 
-    pub fn set_xform(&mut self, xform: Mat4) {
-        self.xform = xform;
+impl<T: Instance> InstanceExt for T {}
+
+impl<T: Instance> Instance for Transformed<T> {
+    type Renderer = T::Renderer;
+
+    fn get_renderer(&self) -> Self::Renderer {
+        self.inner.get_renderer()
+    }
+    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
+        self.inner.store(ctx.transform(self.xform), storage);
+    }
+}
+
+pub trait AnyRenderer: Any {
+    fn hash_dyn(&self, state: &mut dyn Hasher);
+    fn eq_dyn(&self, other: &dyn AnyRenderer) -> bool;
+    fn new_dyn_storage(&self) -> Box<dyn Any>;
+    fn draw_dyn(&self, instances: &dyn Any, pass: &mut wgpu::RenderPass) -> Result<()>;
+}
+
+impl<R: Renderer> AnyRenderer for R {
+    fn hash_dyn(&self, mut state: &mut dyn Hasher) {
+        self.hash(&mut state);
     }
 
-    pub fn enqueue_object<T: Object>(&mut self, object: T) {
-        let model = object.model();
-        let instances = self.render_passes.entry(model).or_default();
-        object.store_instance(self.xform, &mut instances.data);
-        instances.count += 1;
+    fn eq_dyn(&self, other: &dyn AnyRenderer) -> bool {
+        if let Some(other) = (other as &dyn Any).downcast_ref::<R>() {
+            self.eq(other)
+        } else {
+            false
+        }
     }
 
-    pub fn clear(&mut self) {
-        self.render_passes.clear();
+    fn new_dyn_storage(&self) -> Box<dyn Any> {
+        Box::new(self.new_storage())
     }
 
-    pub fn render(self, ctx: RenderContext<'_, '_>) {
-        log::trace!(
-            "Render passes with number of instances: {:?}",
-            self.render_passes
-                .values()
-                .map(|inst| inst.count)
-                .collect::<Vec<_>>()
-        );
+    fn draw_dyn(&self, instances: &dyn Any, pass: &mut wgpu::RenderPass) -> Result<()> {
+        let instances = instances
+            .downcast_ref::<R::Storage>()
+            .expect("Error downcasting storage");
+        self.draw(instances, pass)
+    }
+}
 
-        let mut encoder = ctx
-            .state
-            .0
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+impl PartialEq for dyn AnyRenderer {
+    fn eq(&self, other: &dyn AnyRenderer) -> bool {
+        self.eq_dyn(other)
+    }
+}
 
-        let total_buffer_len = self
-            .render_passes
-            .values()
-            .map(|instances| (instances.data.len() as u64).next_multiple_of(Self::BUFFER_ALIGN))
-            .sum();
+impl Eq for dyn AnyRenderer {}
 
-        let instance_buffer = &mut *ctx.state.registry().instance_buffer.borrow_mut();
+impl Hash for dyn AnyRenderer {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash_dyn(state);
+    }
+}
 
-        if let Some(buffer) = instance_buffer
-            && buffer.size() < total_buffer_len
-        {
-            *instance_buffer = None;
-        }
+impl Renderer for dyn AnyRenderer {
+    type Storage = Box<dyn Any>;
 
-        if instance_buffer.is_none() && total_buffer_len > 0 {
-            *instance_buffer = Some(ctx.state.device().create_buffer(&wgpu::BufferDescriptor {
-                label: Some("instances"),
-                size: total_buffer_len.next_power_of_two(),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            }));
-        }
-
-        let mut offset = 0;
-        for instances in self.render_passes.values() {
-            if !instances.data.is_empty() {
-                let buffer = instance_buffer.as_ref().unwrap();
-                ctx.state
-                    .queue()
-                    .write_buffer(buffer, offset, &instances.data);
-                offset += (instances.data.len() as u64).next_multiple_of(Self::BUFFER_ALIGN);
-            }
-        }
-
-        let attachments = wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: ctx.view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        };
-
-        let mut offset = 0;
-        for (model, instances) in self.render_passes {
-            let mut renderpass = encoder.begin_render_pass(&attachments);
-            {
-                renderpass.push_debug_group("prepare");
-                renderpass.set_pipeline(&model.pipeline);
-                for (i, bind_group) in model.uniforms.iter().enumerate() {
-                    renderpass.set_bind_group(i as u32, bind_group, &[]);
-                }
-                renderpass.set_vertex_buffer(0, model.vertices.vertex_buffer.slice(..));
-                if let Some(index_buffer) = &model.vertices.index_buffer {
-                    renderpass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                }
-                if !instances.data.is_empty() {
-                    let buffer_len =
-                        (instances.data.len() as u64).next_multiple_of(Self::BUFFER_ALIGN);
-                    let buffer = instance_buffer.as_ref().unwrap();
-                    renderpass.set_vertex_buffer(1, buffer.slice(offset..(offset + buffer_len)));
-                    offset += buffer_len;
-                }
-                renderpass.pop_debug_group();
-            }
-
-            renderpass.insert_debug_marker("draw");
-            if model.vertices.index_buffer.is_some() {
-                renderpass.draw_indexed(0..model.vertices.count, 0, 0..instances.count);
-            } else {
-                renderpass.draw(0..model.vertices.count, 0..instances.count);
-            }
-        }
-
-        ctx.state.0.queue.submit(Some(encoder.finish()));
+    fn new_storage(&self) -> Self::Storage {
+        self.new_dyn_storage()
+    }
+    fn draw(&self, instances: &Self::Storage, pass: &mut wgpu::RenderPass) -> Result<()> {
+        self.draw_dyn(instances, pass)
     }
 }
