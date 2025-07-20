@@ -21,7 +21,7 @@ pub use self::{
     texture::Texture,
     types::*,
 };
-pub use wgpu;
+pub use wgpu::PresentMode;
 
 use alloc::rc::Rc;
 

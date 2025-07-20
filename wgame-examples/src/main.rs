@@ -24,7 +24,7 @@ async fn main(rt: Runtime) {
         .create_window(
             WindowConfig {
                 gfx: gfx::Config {
-                    present_mode: gfx::wgpu::PresentMode::AutoNoVsync,
+                    present_mode: gfx::PresentMode::AutoNoVsync,
                 },
                 ..Default::default()
             },
