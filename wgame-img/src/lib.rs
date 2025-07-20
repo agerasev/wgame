@@ -6,9 +6,9 @@ use anyhow::Result;
 use half::f16;
 use image::ImageReader;
 
-use wgame_gfx::{State, Texture};
+use wgame_gfx::{Graphics, Texture};
 
-pub fn image_to_texture<'a>(state: &State<'a>, bytes: &[u8]) -> Result<Texture<'a>> {
+pub fn image_to_texture(state: &Graphics, bytes: &[u8]) -> Result<Texture> {
     let reader = Cursor::new(bytes);
     let image = ImageReader::new(reader).with_guessed_format()?.decode()?;
 

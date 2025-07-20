@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use anyhow::Result;
 
-use wgame_gfx::State;
+use wgame_gfx::Graphics;
 
 use crate::{
     attributes::Attributes,
@@ -10,7 +10,7 @@ use crate::{
     shader::{ShaderConfig, ShaderSource},
 };
 
-pub fn create_pipeline(state: &State<'_>, config: &ShaderConfig) -> Result<wgpu::RenderPipeline> {
+pub fn create_pipeline(state: &Graphics, config: &ShaderConfig) -> Result<wgpu::RenderPipeline> {
     let device = &state.device();
     let swapchain_format = state.format();
 

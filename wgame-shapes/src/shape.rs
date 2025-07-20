@@ -1,13 +1,13 @@
 use glam::Mat4;
 
-use wgame_gfx::{Color, State, Texture, Transform, Transformed};
+use wgame_gfx::{Color, Graphics, Texture, Transform, Transformed};
 
 use crate::{Library, Textured, attributes::Attributes, renderer::VertexBuffers};
 
-pub trait Shape<'a> {
+pub trait Shape {
     type Attributes: Attributes;
 
-    fn library(&self) -> &Library<'a>;
+    fn library(&self) -> &Library;
 
     fn vertices(&self) -> VertexBuffers;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
@@ -20,10 +20,10 @@ pub trait Shape<'a> {
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
-impl<'a, T: Shape<'a>> Shape<'a> for &T {
+impl<T: Shape> Shape for &T {
     type Attributes = T::Attributes;
 
-    fn library(&self) -> &Library<'a> {
+    fn library(&self) -> &Library {
         T::library(self)
     }
     fn vertices(&self) -> VertexBuffers {
@@ -43,8 +43,8 @@ impl<'a, T: Shape<'a>> Shape<'a> for &T {
     }
 }
 
-pub trait ShapeExt<'a>: Shape<'a> + Sized {
-    fn state(&self) -> &State<'a> {
+pub trait ShapeExt: Shape + Sized {
+    fn state(&self) -> &Graphics {
         &self.library().0.state
     }
 
@@ -55,21 +55,21 @@ pub trait ShapeExt<'a>: Shape<'a> + Sized {
         }
     }
 
-    fn texture(self, texture: Texture<'a>) -> Textured<'a, Self> {
+    fn texture(self, texture: Texture) -> Textured<Self> {
         Textured::new(self, texture)
     }
-    fn color(self, color: impl Color) -> Textured<'a, Self> {
+    fn color(self, color: impl Color) -> Textured<Self> {
         let texture = self.library().0.white_texture.clone();
         Textured::new(self, texture).color(color)
     }
 }
 
-impl<'a, T: Shape<'a>> ShapeExt<'a> for T {}
+impl<T: Shape> ShapeExt for T {}
 
-impl<'a, T: Shape<'a>> Shape<'a> for Transformed<T> {
+impl<T: Shape> Shape for Transformed<T> {
     type Attributes = T::Attributes;
 
-    fn library(&self) -> &Library<'a> {
+    fn library(&self) -> &Library {
         self.inner.library()
     }
     fn vertices(&self) -> VertexBuffers {

@@ -3,22 +3,21 @@ use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
-    Context, ContextExt, Instance, Renderer, State, context::DefaultContext, queue::RenderQueue,
+    Context, ContextExt, Instance, Renderer, Surface, context::DefaultContext, queue::RenderQueue,
     types::Color,
 };
 
-pub struct Frame<'a> {
-    state: State<'a>,
+pub struct Frame<'a, 'b> {
+    owner: &'b mut Surface<'a>,
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
     render_passes: RenderQueue,
     clear_color: wgpu::Color,
 }
 
-impl<'a> Frame<'a> {
-    pub(crate) fn new(state: State<'a>) -> Result<Self> {
-        let surface = state
-            .0
+impl<'a, 'b> Frame<'a, 'b> {
+    pub(crate) fn new(owner: &'b mut Surface<'a>) -> Result<Self> {
+        let surface = owner
             .surface
             .get_current_texture()
             .context("Failed to acquire next swap chain texture")?;
@@ -27,7 +26,7 @@ impl<'a> Frame<'a> {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         Ok(Frame {
-            state,
+            owner,
             surface,
             view,
             render_passes: RenderQueue::default(),
@@ -37,7 +36,7 @@ impl<'a> Frame<'a> {
 
     pub fn context(&self) -> impl Context + 'static {
         let aspect_ratio = {
-            let (width, height) = self.state.size();
+            let (width, height) = self.owner.size();
             width as f32 / height as f32
         };
         let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
@@ -58,6 +57,7 @@ impl<'a> Frame<'a> {
 
     fn render(&self) -> Result<()> {
         let mut encoder = self
+            .owner
             .state
             .device()
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -89,7 +89,7 @@ impl<'a> Frame<'a> {
             renderer.draw(instances, &mut pass)?;
         }
 
-        self.state.queue().submit(Some(encoder.finish()));
+        self.owner.state.queue().submit(Some(encoder.finish()));
 
         Ok(())
     }
