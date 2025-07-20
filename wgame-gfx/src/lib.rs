@@ -21,11 +21,9 @@ pub use self::{
     texture::Texture,
     types::*,
 };
-
 pub use wgpu;
 
 use alloc::rc::Rc;
-use core::cell::Cell;
 
 use anyhow::{Context as _, Result};
 
@@ -43,21 +41,25 @@ impl Default for Config {
 }
 
 #[derive(Clone)]
-pub struct State<'a>(Rc<InnerState<'a>>);
+pub struct Graphics(Rc<State>);
 
-struct InnerState<'a> {
-    config: Config,
-    surface: wgpu::Surface<'a>,
+struct State {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
-    size: Cell<(u32, u32)>,
     registry: Registry,
 }
 
-impl<'a> InnerState<'a> {
-    async fn new(
+pub struct Surface<'a> {
+    config: Config,
+    surface: wgpu::Surface<'a>,
+    state: Graphics,
+    size: (u32, u32),
+}
+
+impl<'a> Surface<'a> {
+    pub async fn new(
         config: Config,
         window_handle: impl Into<wgpu::SurfaceTarget<'a>>,
     ) -> Result<Self> {
@@ -95,55 +97,56 @@ impl<'a> InnerState<'a> {
         let this = Self {
             config,
             surface,
-            adapter,
-            device,
-            queue,
-            format: caps.formats[0],
+            state: Graphics(Rc::new(State {
+                adapter,
+                device,
+                queue,
+                format: caps.formats[0],
+                registry,
+            })),
             size: Default::default(),
-            registry,
         };
 
         Ok(this)
     }
 
     fn configure(&self) {
-        let size = self.size.get();
+        let size = self.size;
         if let (0, _) | (_, 0) = size {
             log::debug!("Invalid surface size: {size:?}, skipping configuration");
             return;
         }
         let surface_config = self
             .surface
-            .get_default_config(&self.adapter, size.0, size.1)
+            .get_default_config(&self.state.0.adapter, size.0, size.1)
             .unwrap();
         self.surface.configure(
-            &self.device,
+            self.state.device(),
             &wgpu::SurfaceConfiguration {
                 present_mode: self.config.present_mode,
                 ..surface_config
             },
         );
     }
-}
-
-impl<'a> State<'a> {
-    pub async fn new(
-        config: Config,
-        window_handle: impl Into<wgpu::SurfaceTarget<'a>>,
-    ) -> Result<Self> {
-        Ok(State(Rc::new(
-            InnerState::new(config, window_handle).await?,
-        )))
-    }
 
     pub fn size(&self) -> (u32, u32) {
-        self.0.size.get()
+        self.size
     }
-    pub fn resize(&self, new_size: (u32, u32)) {
-        self.0.size.set(new_size);
-        self.0.configure();
+    pub fn resize(&mut self, new_size: (u32, u32)) {
+        self.size = new_size;
+        self.configure();
     }
 
+    pub fn frame(&mut self) -> Result<Frame<'a, '_>> {
+        Frame::new(self)
+    }
+
+    pub fn state(&self) -> &Graphics {
+        &self.state
+    }
+}
+
+impl Graphics {
     pub fn device(&self) -> &wgpu::Device {
         &self.0.device
     }
@@ -152,10 +155,6 @@ impl<'a> State<'a> {
     }
     pub fn format(&self) -> wgpu::TextureFormat {
         self.0.format
-    }
-
-    pub fn frame(&mut self) -> Result<Frame<'a>> {
-        Frame::new(self.clone())
     }
 
     pub fn registry(&self) -> &Registry {

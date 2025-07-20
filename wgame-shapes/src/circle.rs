@@ -4,7 +4,7 @@ use anyhow::Result;
 use glam::{Affine2, Mat2, Vec2};
 use wgame_macros::{Attributes, StoreBytes};
 
-use wgame_gfx::State;
+use wgame_gfx::Graphics;
 
 use crate::{
     Library, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
@@ -23,7 +23,7 @@ pub struct CircleRenderer {
 }
 
 impl CircleRenderer {
-    pub fn new(state: &State<'_>) -> Result<Self> {
+    pub fn new(state: &Graphics) -> Result<Self> {
         let pipeline = create_pipeline(
             state,
             &ShaderConfig {
@@ -44,18 +44,18 @@ impl CircleRenderer {
     }
 }
 
-pub struct Circle<'a> {
-    library: Library<'a>,
+pub struct Circle {
+    library: Library,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
 }
 
-impl<'a> Shape<'a> for Circle<'a> {
+impl Shape for Circle {
     type Attributes = CircleAttrs;
 
-    fn library(&self) -> &Library<'a> {
+    fn library(&self) -> &Library {
         &self.library
     }
 
@@ -78,8 +78,8 @@ impl<'a> Shape<'a> for Circle<'a> {
     }
 }
 
-impl<'a> Library<'a> {
-    pub fn unit_ring(&self, inner_radius: f32) -> impl Shape<'a> {
+impl Library {
+    pub fn unit_ring(&self, inner_radius: f32) -> impl Shape {
         Circle {
             library: self.clone(),
             vertices: self.0.polygon.quad_vertices.clone(),
@@ -89,7 +89,7 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn ring(&self, pos: Vec2, radius: f32, inner_radius: f32) -> impl Shape<'a> {
+    pub fn ring(&self, pos: Vec2, radius: f32, inner_radius: f32) -> impl Shape {
         self.unit_ring(inner_radius / radius)
             .transform(Affine2::from_mat2_translation(
                 Mat2::from_diagonal(Vec2::new(radius, radius)),
@@ -97,11 +97,11 @@ impl<'a> Library<'a> {
             ))
     }
 
-    pub fn unit_circle(&self) -> impl Shape<'a> {
+    pub fn unit_circle(&self) -> impl Shape {
         self.unit_ring(0.0)
     }
 
-    pub fn circle(&self, pos: Vec2, radius: f32) -> impl Shape<'a> {
+    pub fn circle(&self, pos: Vec2, radius: f32) -> impl Shape {
         self.ring(pos, radius, 0.0)
     }
 }

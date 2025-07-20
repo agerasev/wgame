@@ -2,7 +2,7 @@ use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{Position, State};
+use wgame_gfx::{Graphics, Position};
 
 use crate::{
     Library, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline, primitive::VertexData,
@@ -18,7 +18,7 @@ pub struct PolygonRenderer {
 }
 
 impl PolygonRenderer {
-    pub fn new(state: &State<'_>) -> Result<Self> {
+    pub fn new(state: &Graphics) -> Result<Self> {
         let quad_vertices = state
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -90,17 +90,17 @@ impl PolygonRenderer {
     }
 }
 
-pub struct Polygon<'a, const N: u32> {
-    library: Library<'a>,
+pub struct Polygon<const N: u32> {
+    library: Library,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
+impl<const N: u32> Shape for Polygon<N> {
     type Attributes = ();
 
-    fn library(&self) -> &Library<'a> {
+    fn library(&self) -> &Library {
         &self.library
     }
 
@@ -119,8 +119,8 @@ impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
     }
 }
 
-impl<'a> Library<'a> {
-    pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<'a, 3> {
+impl Library {
+    pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<3> {
         let vertices =
             self.0
                 .state
@@ -143,7 +143,7 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn unit_quad(&self) -> Polygon<'a, 4> {
+    pub fn unit_quad(&self) -> Polygon<4> {
         Polygon {
             library: self.clone(),
             vertices: self.0.polygon.quad_vertices.clone(),
@@ -152,7 +152,7 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn quad(&self, a: Vec2, b: Vec2) -> impl Shape<'a> {
+    pub fn quad(&self, a: Vec2, b: Vec2) -> impl Shape {
         let center = 0.5 * (a + b);
         let half_size = 0.5 * (b - a);
         let affine = Affine3A::from_mat3_translation(
@@ -162,7 +162,7 @@ impl<'a> Library<'a> {
         self.unit_quad().transform(affine)
     }
 
-    pub fn unit_hexagon(&self) -> Polygon<'a, 6> {
+    pub fn unit_hexagon(&self) -> Polygon<6> {
         Polygon {
             library: self.clone(),
             vertices: self.0.polygon.hexagon_vertices.clone(),
@@ -171,7 +171,7 @@ impl<'a> Library<'a> {
         }
     }
 
-    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> impl Shape<'a> {
+    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> impl Shape {
         self.unit_hexagon()
             .transform(Affine2::from_mat2_translation(
                 Mat2::from_diagonal(Vec2::new(edge_size, edge_size)),

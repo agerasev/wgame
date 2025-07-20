@@ -2,18 +2,18 @@ use glam::Affine2;
 use half::f16;
 use rgb::Rgba;
 
-use crate::State;
+use crate::Graphics;
 
 #[derive(Clone)]
-pub struct Texture<'a> {
-    state: State<'a>,
+pub struct Texture {
+    state: Graphics,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
     xform: Affine2,
 }
 
-impl<'a> Texture<'a> {
+impl Texture {
     pub(crate) fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("texture_bind_group"),
@@ -48,7 +48,7 @@ impl<'a> Texture<'a> {
         })
     }
 
-    pub fn new(state: &State<'a>, size: (u32, u32)) -> Self {
+    pub fn new(state: &Graphics, size: (u32, u32)) -> Self {
         let extent = wgpu::Extent3d {
             width: size.0,
             height: size.1,
@@ -123,7 +123,7 @@ impl<'a> Texture<'a> {
         );
     }
 
-    pub fn with_data(state: &State<'a>, size: (u32, u32), data: &[Rgba<f16>]) -> Self {
+    pub fn with_data(state: &Graphics, size: (u32, u32), data: &[Rgba<f16>]) -> Self {
         let this = Self::new(state, size);
         this.write(data);
         this

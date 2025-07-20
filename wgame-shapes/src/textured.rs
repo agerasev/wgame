@@ -3,19 +3,19 @@ use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::{ComponentMap, Rgba};
 
-use wgame_gfx::{Color, Context, Instance, Renderer, State, Texture, color};
+use wgame_gfx::{Color, Context, Graphics, Instance, Renderer, Texture, color};
 
 use crate::{Shape, ShapeExt, bytes::StoreBytes, primitive::InstanceData, renderer::ShapeRenderer};
 
 #[derive(Clone)]
-pub struct Textured<'a, T: Shape<'a>> {
+pub struct Textured<T: Shape> {
     shape: T,
-    texture: Texture<'a>,
+    texture: Texture,
     color: Rgba<f16>,
 }
 
-impl<'a, T: Shape<'a>> Textured<'a, T> {
-    pub fn new(shape: T, texture: Texture<'a>) -> Self {
+impl<T: Shape> Textured<T> {
+    pub fn new(shape: T, texture: Texture) -> Self {
         Self {
             shape,
             texture,
@@ -31,7 +31,7 @@ impl<'a, T: Shape<'a>> Textured<'a, T> {
     }
 }
 
-impl<'a, T: Shape<'a>> Instance for Textured<'a, T> {
+impl<T: Shape> Instance for Textured<T> {
     type Renderer = ShapeRenderer;
 
     fn get_renderer(&self) -> Self::Renderer {
@@ -59,14 +59,14 @@ impl<'a, T: Shape<'a>> Instance for Textured<'a, T> {
     }
 }
 
-pub fn gradient<'a, T: Color, const N: usize>(state: &State<'a>, colors: [T; N]) -> Texture<'a> {
+pub fn gradient<T: Color, const N: usize>(state: &Graphics, colors: [T; N]) -> Texture {
     gradient2(state, [colors])
 }
 
-pub fn gradient2<'a, T: Color, const M: usize, const N: usize>(
-    state: &State<'a>,
+pub fn gradient2<T: Color, const M: usize, const N: usize>(
+    state: &Graphics,
     colors: [[T; M]; N],
-) -> Texture<'a> {
+) -> Texture {
     let colors = colors.map(|row| row.map(|color| color.to_rgba()));
     let pix_size = Vec2::new(M as f32, N as f32).recip();
     Texture::with_data(state, (M as u32, N as u32), colors.as_flattened()).transform_coord(

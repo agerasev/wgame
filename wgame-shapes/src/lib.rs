@@ -19,7 +19,7 @@ use alloc::rc::Rc;
 
 use anyhow::Result;
 
-use wgame_gfx::{Color, State, Texture, color};
+use wgame_gfx::{Color, Graphics, Texture, color};
 
 use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 
@@ -29,19 +29,19 @@ pub use self::{
     textured::{Textured, gradient, gradient2},
 };
 
-struct InnerLibrary<'a> {
-    state: State<'a>,
+struct InnerLibrary {
+    state: Graphics,
     polygon: PolygonRenderer,
     circle: CircleRenderer,
-    white_texture: Texture<'a>,
+    white_texture: Texture,
 }
 
 /// 2D graphics library
 #[derive(Clone)]
-pub struct Library<'a>(Rc<InnerLibrary<'a>>);
+pub struct Library(Rc<InnerLibrary>);
 
-impl<'a> Library<'a> {
-    pub fn new(state: &State<'a>) -> Result<Self> {
+impl Library {
+    pub fn new(state: &Graphics) -> Result<Self> {
         Ok(Self(Rc::new(InnerLibrary {
             state: state.clone(),
             polygon: PolygonRenderer::new(state)?,

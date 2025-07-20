@@ -60,13 +60,13 @@ impl Runtime {
 }
 
 pub struct Window<'a> {
-    gfx: gfx::State<'a>,
+    gfx: gfx::Surface<'a>,
     app: app::Window<'a>,
 }
 
 impl<'a> Window<'a> {
     async fn new(app: app::Window<'a>, gfx_cfg: gfx::Config) -> Result<Self> {
-        let gfx = gfx::State::new(gfx_cfg, app.handle()).await?;
+        let mut gfx = gfx::Surface::new(gfx_cfg, app.handle()).await?;
         gfx.resize(app.size());
         Ok(Self { app, gfx })
     }
@@ -86,24 +86,24 @@ impl<'a> Window<'a> {
         }
     }
 
-    pub fn graphics(&self) -> &gfx::State<'a> {
-        &self.gfx
+    pub fn graphics(&self) -> &gfx::Graphics {
+        self.gfx.state()
     }
 }
 
 pub struct Frame<'a, 'b> {
-    gfx: Option<gfx::Frame<'a>>,
+    gfx: Option<gfx::Frame<'a, 'b>>,
     app: app::window::Redraw<'b>,
 }
 
-impl<'a> Deref for Frame<'a, '_> {
-    type Target = gfx::Frame<'a>;
+impl<'a, 'b> Deref for Frame<'a, 'b> {
+    type Target = gfx::Frame<'a, 'b>;
     fn deref(&self) -> &Self::Target {
         self.gfx.as_ref().unwrap()
     }
 }
 
-impl<'a> DerefMut for Frame<'a, '_> {
+impl DerefMut for Frame<'_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.gfx.as_mut().unwrap()
     }
