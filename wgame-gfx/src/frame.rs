@@ -1,13 +1,9 @@
-use core::{cell::RefCell, mem};
-
-use anyhow::{Context, Result};
+use anyhow::{Context as _, Result};
 use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
-    State,
-    object::Object,
-    renderer::{RenderContext, Renderer},
+    Context, ContextExt, Instance, Renderer, State, context::DefaultContext, queue::RenderQueue,
     types::Color,
 };
 
@@ -15,7 +11,8 @@ pub struct Frame<'a> {
     state: State<'a>,
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
-    renderer: RefCell<Renderer>,
+    render_passes: RenderQueue,
+    clear_color: wgpu::Color,
 }
 
 impl<'a> Frame<'a> {
@@ -29,63 +26,76 @@ impl<'a> Frame<'a> {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut renderer = Renderer::default();
-        let aspect_ratio = {
-            let (width, height) = state.size();
-            width as f32 / height as f32
-        };
-        let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
-        renderer.set_xform(xform);
-
         Ok(Frame {
             state,
             surface,
             view,
-            renderer: RefCell::new(renderer),
+            render_passes: RenderQueue::default(),
+            clear_color: wgpu::Color::BLACK,
         })
     }
 
-    pub fn clear(&self, color: impl Color) {
-        self.renderer.borrow_mut().clear();
+    pub fn context(&self) -> impl Context + 'static {
+        let aspect_ratio = {
+            let (width, height) = self.state.size();
+            width as f32 / height as f32
+        };
+        let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        DefaultContext.transform(xform)
+    }
 
-        let color = {
+    /// Set clear color
+    pub fn clear(&mut self, color: impl Color) {
+        self.clear_color = {
             let Rgba { r, g, b, a } = color.to_rgba().map(|c| c.to_f64());
             wgpu::Color { r, g, b, a }
         };
+    }
 
+    pub fn push<T: Instance>(&mut self, ctx: impl Context, instance: T) {
+        self.render_passes.push(ctx, instance);
+    }
+
+    fn render(&self) -> Result<()> {
         let mut encoder = self
             .state
-            .0
-            .device
+            .device()
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &self.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(color),
+                    load: wgpu::LoadOp::Clear(self.clear_color),
                     store: wgpu::StoreOp::Store,
                 },
             })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
+            ..Default::default()
         });
 
-        self.state.0.queue.submit(Some(encoder.finish()));
-    }
+        for (renderer, instances) in self.render_passes.iter() {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+            renderer.draw(instances, &mut pass)?;
+        }
 
-    pub fn add<T: Object>(&self, object: T) {
-        self.renderer.borrow_mut().enqueue_object(object);
+        self.state.queue().submit(Some(encoder.finish()));
+
+        Ok(())
     }
 
     pub fn present(self) {
-        mem::take(&mut *self.renderer.borrow_mut()).render(RenderContext {
-            state: &self.state,
-            view: &self.view,
-        });
-        self.surface.present()
+        self.render().expect("Error during rendering");
+        self.surface.present();
     }
 }

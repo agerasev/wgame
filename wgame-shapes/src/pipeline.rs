@@ -6,7 +6,7 @@ use wgame_gfx::State;
 
 use crate::{
     attributes::Attributes,
-    primitive::{Instance, Vertex},
+    primitive::{InstanceData, VertexData},
     shader::{ShaderConfig, ShaderSource},
 };
 
@@ -34,8 +34,8 @@ pub fn create_pipeline(state: &State<'_>, config: &ShaderConfig) -> Result<wgpu:
         push_constant_ranges: &[],
     });
 
-    let vertex_attributes = Vertex::attributes();
-    let instance_attributes = Instance::<()>::attributes().chain(config.instances.clone());
+    let vertex_attributes = VertexData::attributes();
+    let instance_attributes = InstanceData::<()>::attributes().chain(config.instances.clone());
     let vertex_buffers = [
         wgpu::VertexBufferLayout {
             array_stride: vertex_attributes.size(),

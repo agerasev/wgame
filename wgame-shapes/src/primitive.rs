@@ -6,23 +6,23 @@ use wgame_macros::{Attributes, StoreBytes};
 use crate::attributes::Attributes;
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
-#[bytes_mod(wgame_gfx::bytes)]
+#[bytes_mod(crate::bytes)]
 #[attributes_mod(crate::attributes)]
-pub struct Vertex {
+pub struct VertexData {
     pub pos: Vec4,
     pub local_coord: Vec2,
 }
 
-impl Vertex {
+impl VertexData {
     pub fn new(pos: Vec4, local_coord: Vec2) -> Self {
         Self { pos, local_coord }
     }
 }
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
-#[bytes_mod(wgame_gfx::bytes)]
+#[bytes_mod(crate::bytes)]
 #[attributes_mod(crate::attributes)]
-pub struct Instance<T: Attributes = ()> {
+pub struct InstanceData<T: Attributes = ()> {
     pub xform: Mat4,
     pub tex_xform: Affine2,
     pub color: Rgba<f32>,

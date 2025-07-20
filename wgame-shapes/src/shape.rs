@@ -1,18 +1,15 @@
 use glam::Mat4;
 
-use wgame_gfx::{
-    State, Texture, Transformed, Vertices,
-    types::{Color, Transform},
-};
+use wgame_gfx::{Color, State, Texture, Transform, Transformed};
 
-use crate::{Library, Textured, attributes::Attributes};
+use crate::{Library, Textured, attributes::Attributes, renderer::VertexBuffers};
 
 pub trait Shape<'a> {
     type Attributes: Attributes;
 
     fn library(&self) -> &Library<'a>;
 
-    fn vertices(&self) -> Vertices;
+    fn vertices(&self) -> VertexBuffers;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
         None
     }
@@ -29,7 +26,7 @@ impl<'a, T: Shape<'a>> Shape<'a> for &T {
     fn library(&self) -> &Library<'a> {
         T::library(self)
     }
-    fn vertices(&self) -> Vertices {
+    fn vertices(&self) -> VertexBuffers {
         T::vertices(self)
     }
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
@@ -75,7 +72,7 @@ impl<'a, T: Shape<'a>> Shape<'a> for Transformed<T> {
     fn library(&self) -> &Library<'a> {
         self.inner.library()
     }
-    fn vertices(&self) -> Vertices {
+    fn vertices(&self) -> VertexBuffers {
         self.inner.vertices()
     }
     fn uniforms(&self) -> Option<wgpu::BindGroup> {

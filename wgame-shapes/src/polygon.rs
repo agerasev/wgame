@@ -2,9 +2,12 @@ use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{State, Vertices, bytes::StoreBytes, types::Position};
+use wgame_gfx::{Position, State};
 
-use crate::{Library, Shape, ShapeExt, pipeline::create_pipeline, primitive::Vertex};
+use crate::{
+    Library, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline, primitive::VertexData,
+    renderer::VertexBuffers,
+};
 
 pub struct PolygonRenderer {
     pub quad_vertices: wgpu::Buffer,
@@ -21,10 +24,10 @@ impl PolygonRenderer {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_vertices"),
                 contents: &[
-                    Vertex::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
-                    Vertex::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
-                    Vertex::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
-                    Vertex::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
+                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
+                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
+                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
+                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
                 ]
                 .to_bytes(),
                 usage: wgpu::BufferUsages::VERTEX,
@@ -44,21 +47,21 @@ impl PolygonRenderer {
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("quad_vertices"),
                     contents: &[
-                        Vertex::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
-                        Vertex::new(
+                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
+                        VertexData::new(
                             Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
                             Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.25),
                         ),
-                        Vertex::new(
+                        VertexData::new(
                             Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
                             Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.75),
                         ),
-                        Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
-                        Vertex::new(
+                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
+                        VertexData::new(
                             Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
                             Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.75),
                         ),
-                        Vertex::new(
+                        VertexData::new(
                             Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
                             Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
                         ),
@@ -101,8 +104,8 @@ impl<'a, const N: u32> Shape<'a> for Polygon<'a, N> {
         &self.library
     }
 
-    fn vertices(&self) -> Vertices {
-        Vertices {
+    fn vertices(&self) -> VertexBuffers {
+        VertexBuffers {
             count: 3 * (N - 2),
             vertex_buffer: self.vertices.clone(),
             index_buffer: self.indices.clone(),
@@ -125,9 +128,9 @@ impl<'a> Library<'a> {
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("triangle_vertices"),
                     contents: &[
-                        Vertex::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
-                        Vertex::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
-                        Vertex::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
+                        VertexData::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
+                        VertexData::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
+                        VertexData::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
                     ]
                     .to_bytes(),
                     usage: wgpu::BufferUsages::VERTEX,

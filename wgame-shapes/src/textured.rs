@@ -1,15 +1,11 @@
-use glam::{Affine2, Mat4, Vec2};
+use glam::{Affine2, Vec2};
 
 use half::f16;
 use rgb::{ComponentMap, Rgba};
 
-use wgame_gfx::{
-    Model, Object, State, Texture,
-    bytes::{BytesSink, StoreBytes},
-    types::{Color, color},
-};
+use wgame_gfx::{Color, Context, Instance, Renderer, State, Texture, color};
 
-use crate::{Shape, primitive::Instance};
+use crate::{Shape, ShapeExt, bytes::StoreBytes, primitive::InstanceData, renderer::ShapeRenderer};
 
 #[derive(Clone)]
 pub struct Textured<'a, T: Shape<'a>> {
@@ -35,27 +31,31 @@ impl<'a, T: Shape<'a>> Textured<'a, T> {
     }
 }
 
-impl<'a, T: Shape<'a>> Object for Textured<'a, T> {
-    fn model(&self) -> Model {
-        Model {
-            index: 0,
+impl<'a, T: Shape<'a>> Instance for Textured<'a, T> {
+    type Renderer = ShapeRenderer;
+
+    fn get_renderer(&self) -> Self::Renderer {
+        ShapeRenderer {
+            order: 0,
             vertices: self.shape.vertices(),
             uniforms: [self.texture.bind_group().clone()]
                 .into_iter()
                 .chain(self.shape.uniforms())
                 .collect(),
             pipeline: self.shape.pipeline(),
+            device: self.shape.state().device().clone(),
         }
     }
 
-    fn store_instance<D: BytesSink>(&self, xform: Mat4, buffer: &mut D) {
-        Instance {
-            xform: xform * self.shape.xform(),
+    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
+        InstanceData {
+            xform: ctx.view_matrix() * self.shape.xform(),
             tex_xform: self.texture.coord_xform(),
             color: self.color.map(|x| x.to_f32()),
             custom: self.shape.attributes(),
         }
-        .store_bytes(buffer);
+        .store_bytes(&mut storage.data);
+        storage.count += 1;
     }
 }
 

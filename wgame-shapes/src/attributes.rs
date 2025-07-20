@@ -10,9 +10,7 @@ use anyhow::Result;
 use half::f16;
 use serde::Serialize;
 
-use wgame_gfx::bytes::StoreBytes;
-
-use crate::{binding::BindingInfo, binding_type};
+use crate::{binding::BindingInfo, binding_type, bytes::StoreBytes};
 
 #[derive(Clone, Default, Debug, Serialize)]
 pub struct AttributeList(pub Vec<BindingInfo>);
