@@ -4,15 +4,15 @@ use anyhow::Result;
 use glam::{Affine2, Mat2, Vec2};
 use wgame_macros::{Attributes, StoreBytes};
 
-use wgame_gfx::{State, Vertices};
+use wgame_gfx::State;
 
 use crate::{
     Library, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
-    shader::ShaderConfig,
+    renderer::VertexBuffers, shader::ShaderConfig,
 };
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
-#[bytes_mod(wgame_gfx::bytes)]
+#[bytes_mod(crate::bytes)]
 #[attributes_mod(crate::attributes)]
 pub struct CircleAttrs {
     inner_radius: f32,
@@ -59,8 +59,8 @@ impl<'a> Shape<'a> for Circle<'a> {
         &self.library
     }
 
-    fn vertices(&self) -> Vertices {
-        Vertices {
+    fn vertices(&self) -> VertexBuffers {
+        VertexBuffers {
             count: 6,
             vertex_buffer: self.vertices.clone(),
             index_buffer: self.indices.clone(),

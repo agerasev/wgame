@@ -19,7 +19,7 @@ pub use wgame_utils as utils;
 pub use anyhow::{Error, Result};
 pub use app::{runtime::JoinHandle, timer::Timer};
 
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 
 #[macro_export]
 macro_rules! run {
@@ -100,6 +100,12 @@ impl<'a> Deref for Frame<'a, '_> {
     type Target = gfx::Frame<'a>;
     fn deref(&self) -> &Self::Target {
         self.gfx.as_ref().unwrap()
+    }
+}
+
+impl<'a> DerefMut for Frame<'a, '_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.gfx.as_mut().unwrap()
     }
 }
 

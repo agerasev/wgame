@@ -77,7 +77,7 @@ impl<R: Renderer> AnyRenderer for R {
     fn draw_dyn(&self, instances: &dyn Any, pass: &mut wgpu::RenderPass) -> Result<()> {
         let instances = instances
             .downcast_ref::<R::Storage>()
-            .expect("Error downcasting storage");
+            .expect("Error downcasting storage during draw");
         self.draw(instances, pass)
     }
 }
@@ -103,6 +103,6 @@ impl Renderer for dyn AnyRenderer {
         self.new_dyn_storage()
     }
     fn draw(&self, instances: &Self::Storage, pass: &mut wgpu::RenderPass) -> Result<()> {
-        self.draw_dyn(instances, pass)
+        self.draw_dyn(&**instances, pass)
     }
 }

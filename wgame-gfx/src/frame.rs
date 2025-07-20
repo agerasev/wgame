@@ -35,7 +35,7 @@ impl<'a> Frame<'a> {
         })
     }
 
-    pub fn context(&self) -> impl Context {
+    pub fn context(&self) -> impl Context + 'static {
         let aspect_ratio = {
             let (width, height) = self.state.size();
             width as f32 / height as f32

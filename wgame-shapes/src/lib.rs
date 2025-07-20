@@ -5,10 +5,12 @@ extern crate alloc;
 
 pub mod attributes;
 pub mod binding;
+pub mod bytes;
 mod circle;
 mod pipeline;
 mod polygon;
 pub mod primitive;
+mod renderer;
 mod shader;
 mod shape;
 mod textured;
@@ -17,10 +19,7 @@ use alloc::rc::Rc;
 
 use anyhow::Result;
 
-use wgame_gfx::{
-    State, Texture,
-    types::{Color, color},
-};
+use wgame_gfx::{Color, State, Texture, color};
 
 use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 

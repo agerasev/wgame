@@ -12,7 +12,7 @@ pub fn derive(input: TokenStream) -> Result<TokenStream> {
     {
         attr.meta.require_list()?.tokens.clone()
     } else {
-        quote! { wgame::gfx::bytes }
+        quote! { wgame::shapes::bytes }
     };
 
     let trait_ = quote! { #mod_::StoreBytes };

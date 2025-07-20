@@ -28,7 +28,9 @@ impl RenderQueue {
         };
         instance.store(
             ctx,
-            instances.downcast_mut().expect("Error downcasting storage"),
+            instances
+                .downcast_mut()
+                .expect("Error downcasting storage during push"),
         );
     }
 }

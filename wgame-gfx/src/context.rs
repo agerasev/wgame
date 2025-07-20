@@ -31,6 +31,6 @@ impl<C: Context> ContextExt for C {}
 
 impl<C: Context> Context for Transformed<C> {
     fn view_matrix(&self) -> Mat4 {
-        self.xform * self.inner.view_matrix()
+        self.inner.view_matrix() * self.xform
     }
 }
