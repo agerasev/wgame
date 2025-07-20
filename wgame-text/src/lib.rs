@@ -1,88 +1,119 @@
 #![forbid(unsafe_code)]
+#![no_std]
 
-use wgpu::{MultisampleState, RenderPass};
+extern crate alloc;
 
-use wgame_gfx::{Instance, State};
+use alloc::{rc::Rc, vec::Vec};
 
-pub struct Text<'a> {
-    state: State<'a>,
-    font_system: glyphon::FontSystem,
-    swash_cache: glyphon::SwashCache,
-    cache: glyphon::Cache,
-    viewport: glyphon::Viewport,
-    atlas: glyphon::TextAtlas,
-    renderer: glyphon::TextRenderer,
-    text_buffer: glyphon::Buffer,
+use anyhow::{Result, anyhow};
+use guillotiere::{Allocation, AtlasAllocator};
+use hashbrown::HashMap;
+use swash::{
+    Attributes, CacheKey, Charmap, FontRef, GlyphId,
+    scale::{Render, ScaleContext, Scaler, Source, StrikeWith, image::Image},
+};
+
+use wgame_gfx::{Instance, State, Texture};
+
+struct FontData {
+    contents: Rc<[u8]>,
+    offset: u32,
+    key: CacheKey,
 }
 
-impl<'a> Text<'a> {
-    fn new(state: &State<'a>, text: &str) -> Self {
-        // Set up text renderer
-        //
-        let mut font_system = glyphon::FontSystem::new();
-        let swash_cache = glyphon::SwashCache::new();
-        let cache = glyphon::Cache::new(state.device());
-        let viewport = glyphon::Viewport::new(state.device(), &cache);
-        let mut atlas =
-            glyphon::TextAtlas::new(state.device(), state.queue(), &cache, state.format());
-        let renderer = glyphon::TextRenderer::new(
-            &mut atlas,
-            state.device(),
-            MultisampleState::default(),
-            None,
-        );
-        let mut text_buffer =
-            glyphon::Buffer::new(&mut font_system, glyphon::Metrics::new(30.0, 42.0));
+impl FontData {
+    pub fn new(contents: impl Into<Vec<u8>>, index: usize) -> Result<Self> {
+        let contents = Rc::from(contents.into());
+        let font = FontRef::from_index(&contents, index)
+            .ok_or_else(|| anyhow!("Font data validation error"))?;
+        let (offset, key) = (font.offset, font.key);
+        Ok(Self {
+            contents,
+            offset,
+            key,
+        })
+    }
 
-        text_buffer.set_size(&mut font_system, None, None);
-        text_buffer.set_text(
-            &mut font_system,
-            text,
-            &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
-            glyphon::Shaping::Advanced,
-        );
-        text_buffer.shape_until_scroll(&mut font_system, false);
+    pub fn attributes(&self) -> Attributes {
+        self.as_ref().attributes()
+    }
 
+    pub fn charmap(&self) -> Charmap {
+        self.as_ref().charmap()
+    }
+
+    pub fn as_ref(&self) -> FontRef {
+        FontRef {
+            data: &self.contents,
+            offset: self.offset,
+            key: self.key,
+        }
+    }
+}
+
+pub struct Font {
+    data: FontData,
+    context: ScaleContext,
+}
+
+pub struct FontAtlas<'b> {
+    font: &'b FontData,
+    scaler: Scaler<'b>,
+    render: Render<'b>,
+    atlas: AtlasAllocator,
+    map: HashMap<GlyphId, Allocation>,
+    image: Image,
+}
+
+impl<'b> FontAtlas<'b> {
+    pub fn new(font: &'b mut Font, size: f32) -> Self {
+        let scaler = font
+            .context
+            .builder(font.data.as_ref())
+            .size(size)
+            .hint(false)
+            .build();
+        let render = Render::new(&[
+            Source::ColorOutline(0),
+            Source::ColorBitmap(StrikeWith::BestFit),
+            Source::Outline,
+        ]);
+        let atlas = AtlasAllocator::new((64, 64).into());
         Self {
-            state: state.clone(),
-            font_system,
-            swash_cache,
-            cache,
-            viewport,
+            font: &font.data,
+            scaler,
+            render,
             atlas,
-            renderer,
-            text_buffer,
+            map: HashMap::default(),
+            image: Image::new(),
         }
     }
 
-    fn render(&mut self, pass: &mut RenderPass) {
-        self.renderer
-            .prepare(
-                self.state.device(),
-                self.state.queue(),
-                &mut self.font_system,
-                &mut self.atlas,
-                &self.viewport,
-                [glyphon::TextArea {
-                    buffer: &self.text_buffer,
-                    left: 10.0,
-                    top: 10.0,
-                    scale: 1.0,
-                    bounds: glyphon::TextBounds {
-                        left: 0,
-                        top: 0,
-                        right: 600,
-                        bottom: 160,
-                    },
-                    default_color: glyphon::Color::rgb(255, 255, 255),
-                    custom_glyphs: &[],
-                }],
-                &mut self.swash_cache,
-            )
-            .unwrap();
+    fn grow(&mut self) {
+        self.atlas.grow(self.atlas.size() * 2);
+        todo!("Resize image");
+    }
 
-        self.renderer
-            .render(&self.atlas, &self.viewport, pass)
-            .unwrap();
+    fn allocate(&mut self, glyph_id: GlyphId, size: (i32, i32)) -> Allocation {
+        if let Some(alloc) = self.map.get(&glyph_id) {
+            return *alloc;
+        }
+        loop {
+            match self.atlas.allocate(size.into()) {
+                Some(alloc) => {
+                    self.map.insert(glyph_id, alloc);
+                    return alloc;
+                }
+                None => self.grow(),
+            }
+        }
+    }
+
+    fn add_char(&mut self, codepoint: impl Into<u32>) {
+        let glyph_id = self.font.charmap().map(codepoint);
+        let size = todo!("Get glyph size");
+        let alloc = self.allocate(glyph_id, size);
+        self.render
+            .render_into(&mut self.scaler, glyph_id, &mut self.image);
     }
 }
