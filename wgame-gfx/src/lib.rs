@@ -5,23 +5,22 @@ extern crate alloc;
 
 mod context;
 mod frame;
-mod modifiers;
+pub mod modifiers;
 mod queue;
-mod registry;
+pub mod registry;
 mod renderer;
-mod texture;
-mod types;
+pub mod texture;
+pub mod types;
+pub mod utils;
 
 pub use self::{
     context::{Context, ContextExt},
     frame::Frame,
-    modifiers::Transformed,
     registry::Registry,
     renderer::{Instance, InstanceExt, Renderer},
     texture::Texture,
-    types::*,
 };
-pub use wgpu;
+pub use wgpu::PresentMode;
 
 use alloc::rc::Rc;
 
@@ -91,6 +90,7 @@ impl<'a> Surface<'a> {
             .context("Failed to create device")?;
 
         let caps = surface.get_capabilities(&adapter);
+        let format = caps.formats[0];
 
         let registry = Registry::new(&device);
 
@@ -101,7 +101,7 @@ impl<'a> Surface<'a> {
                 adapter,
                 device,
                 queue,
-                format: caps.formats[0],
+                format,
                 registry,
             })),
             size: Default::default(),

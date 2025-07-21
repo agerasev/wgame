@@ -1,6 +1,10 @@
 use glam::Mat4;
 
-use wgame_gfx::{Color, Graphics, Texture, Transform, Transformed};
+use wgame_gfx::{
+    Graphics, Texture,
+    modifiers::Transformed,
+    types::{Color, Transform},
+};
 
 use crate::{Library, Textured, attributes::Attributes, renderer::VertexBuffers};
 

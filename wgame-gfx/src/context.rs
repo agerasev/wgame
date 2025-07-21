@@ -1,6 +1,6 @@
 use glam::Mat4;
 
-use crate::{Transformed, types::Transform};
+use crate::{modifiers::Transformed, types::Transform};
 
 pub trait Context {
     fn view_matrix(&self) -> Mat4;

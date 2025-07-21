@@ -6,7 +6,7 @@ use core::{
 use alloc::boxed::Box;
 use anyhow::Result;
 
-use crate::{Context, ContextExt, Transformed, types::Transform};
+use crate::{Context, ContextExt, modifiers::Transformed, types::Transform, utils::AnyKey};
 
 pub trait Renderer: Any + Eq + Hash {
     type Storage: Any;
@@ -50,26 +50,12 @@ impl<T: Instance> Instance for Transformed<T> {
     }
 }
 
-pub trait AnyRenderer: Any {
-    fn hash_dyn(&self, state: &mut dyn Hasher);
-    fn eq_dyn(&self, other: &dyn AnyRenderer) -> bool;
+pub trait AnyRenderer: AnyKey {
     fn new_dyn_storage(&self) -> Box<dyn Any>;
     fn draw_dyn(&self, instances: &dyn Any, pass: &mut wgpu::RenderPass) -> Result<()>;
 }
 
 impl<R: Renderer> AnyRenderer for R {
-    fn hash_dyn(&self, mut state: &mut dyn Hasher) {
-        self.hash(&mut state);
-    }
-
-    fn eq_dyn(&self, other: &dyn AnyRenderer) -> bool {
-        if let Some(other) = (other as &dyn Any).downcast_ref::<R>() {
-            self.eq(other)
-        } else {
-            false
-        }
-    }
-
     fn new_dyn_storage(&self) -> Box<dyn Any> {
         Box::new(self.new_storage())
     }
