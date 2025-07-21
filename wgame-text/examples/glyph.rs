@@ -22,7 +22,7 @@ fn main() {
         Source::ColorBitmap(StrikeWith::BestFit),
         Source::Outline,
     ]);
-    let glyph_id = font.charmap().map('A');
+    let glyph_id = font.charmap().map('g');
     let image = render.render(&mut scaler, glyph_id).unwrap();
     dbg!(image.content);
     dbg!(image.source);

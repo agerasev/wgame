@@ -16,6 +16,7 @@ swash = { version = "0.2.5", default-features = false, features = [
     "scale",
 ] }
 etagere = "0.2.15"
+image.workspace = true
 
 [dev-dependencies]
 image = { workspace = true, features = ["png"] }
