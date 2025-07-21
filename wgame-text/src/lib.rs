@@ -6,14 +6,14 @@ extern crate alloc;
 use alloc::{rc::Rc, vec::Vec};
 
 use anyhow::{Result, anyhow};
-use guillotiere::{Allocation, AtlasAllocator};
+use etagere::{Allocation, AtlasAllocator};
 use hashbrown::HashMap;
 use swash::{
     Attributes, CacheKey, Charmap, FontRef, GlyphId,
     scale::{Render, ScaleContext, Scaler, Source, StrikeWith, image::Image},
 };
 
-use wgame_gfx::{Instance, State, Texture};
+use wgame_gfx::{Graphics, Instance, Texture};
 
 struct FontData {
     contents: Rc<[u8]>,
@@ -90,8 +90,9 @@ impl<'b> FontAtlas<'b> {
     }
 
     fn grow(&mut self) {
-        self.atlas.grow(self.atlas.size() * 2);
-        todo!("Resize image");
+        // self.atlas.grow(self.atlas.size() * 2);
+        todo!("Re-create and fill atlas");
+        todo!("Resize image and copy glyphs");
     }
 
     fn allocate(&mut self, glyph_id: GlyphId, size: (i32, i32)) -> Allocation {
