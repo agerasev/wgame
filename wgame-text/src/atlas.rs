@@ -10,8 +10,9 @@ use swash::{
     scale::{Render, Scaler, Source, StrikeWith},
     zeno::Placement,
 };
+use wgame_gfx::Graphics;
 
-use crate::Font;
+use crate::{ContextKey, Font};
 
 struct GlyphImageInfo {
     alloc_id: AllocId,
@@ -28,16 +29,18 @@ struct Atlas {
 
 #[derive(Clone)]
 pub struct FontAtlas {
+    pub(crate) state: Graphics,
     font: Font,
     size: f32,
     atlas: Rc<RefCell<Atlas>>,
 }
 
 impl FontAtlas {
-    pub fn new(font: &Font, size: f32) -> Self {
+    pub fn new(state: &Graphics, font: &Font, size: f32) -> Self {
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();
         Self {
+            state: state.clone(),
             font: font.clone(),
             size,
             atlas: Rc::new(RefCell::new(Atlas::new(init_dim))),
@@ -45,13 +48,15 @@ impl FontAtlas {
     }
 
     pub fn add_chars(&self, codepoints: impl IntoIterator<Item = impl Into<u32>>) {
-        let font_ref = self.font.data.as_ref();
+        let font_ref = self.font.as_ref();
         self.add_glyphs(codepoints.into_iter().map(|c| font_ref.charmap().map(c)));
     }
     pub(crate) fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
-        let mut context = self.font.scale.borrow_mut();
+        let reg = self.state.registry().get_or_init(ContextKey);
+
+        let mut context = reg.scale.borrow_mut();
         let mut scaler = context
-            .builder(self.font.data.as_ref())
+            .builder(self.font.as_ref())
             .size(self.size)
             .hint(false)
             .build();

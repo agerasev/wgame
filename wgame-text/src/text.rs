@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use swash::GlyphId;
 use wgame_gfx::Instance;
 
-use crate::{FontAtlas, TextRenderer};
+use crate::{ContextKey, FontAtlas, TextRenderer};
 
 pub struct GlyphInfo {
     id: GlyphId,
@@ -18,11 +18,9 @@ pub struct Text {
 impl Text {
     pub fn new(atlas: &FontAtlas, text: &str) -> Self {
         let font = atlas.font().clone();
-        let mut context = font.shape.borrow_mut();
-        let mut shaper = context
-            .builder(font.data().as_ref())
-            .size(atlas.size())
-            .build();
+        let reg = atlas.state.registry().get_or_init(ContextKey);
+        let mut context = reg.shape.borrow_mut();
+        let mut shaper = context.builder(font.as_ref()).size(atlas.size()).build();
         shaper.add_str(text);
         let mut glyphs = Vec::new();
         shaper.shape_with(|cluster| {
