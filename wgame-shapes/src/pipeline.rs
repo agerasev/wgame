@@ -26,7 +26,7 @@ pub fn create_pipeline(state: &Graphics, config: &ShaderConfig) -> Result<wgpu::
         source: shader_source,
     });
 
-    let bind_group_layout = &state.registry().get_or_init(texture::BindGroupLayoutKey);
+    let bind_group_layout = &state.register(texture::BindGroupLayoutKey);
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,

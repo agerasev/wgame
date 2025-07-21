@@ -15,41 +15,27 @@ mod shader;
 mod shape;
 mod textured;
 
-use alloc::rc::Rc;
-
-use anyhow::Result;
-
-use wgame_gfx::{
-    Graphics, Texture,
-    types::{Color, color},
-};
-
-use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
-
 pub use self::{
     polygon::Polygon,
     shape::{Shape, ShapeExt},
     textured::{Textured, gradient, gradient2},
 };
 
-struct InnerLibrary {
-    state: Graphics,
-    polygon: PolygonRenderer,
-    circle: CircleRenderer,
-    white_texture: Texture,
+use wgame_gfx::{
+    Graphics, Texture,
+    registry::{RegistryInit, RegistryKey},
+    types::{Color, color},
+};
+
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+struct WhiteTextureKey;
+impl RegistryKey for WhiteTextureKey {
+    type Value = Texture;
 }
-
-/// 2D graphics library
-#[derive(Clone)]
-pub struct Library(Rc<InnerLibrary>);
-
-impl Library {
-    pub fn new(state: &Graphics) -> Result<Self> {
-        Ok(Self(Rc::new(InnerLibrary {
-            state: state.clone(),
-            polygon: PolygonRenderer::new(state)?,
-            circle: CircleRenderer::new(state)?,
-            white_texture: { Texture::with_data(state, (1, 1), &[color::WHITE.to_rgba()]) },
-        })))
+impl RegistryInit for WhiteTextureKey {
+    fn create_value(&self, state: &Graphics) -> Self::Value {
+        Texture::with_data(state, (1, 1), &[color::WHITE.to_rgba()])
     }
 }
+
+pub trait GraphicsShapes {}

@@ -22,28 +22,30 @@ impl RegistryKey for BindGroupLayoutKey {
     type Value = wgpu::BindGroupLayout;
 }
 impl RegistryInit for BindGroupLayoutKey {
-    fn create_value(&self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("texture_bind_group"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+    fn create_value(&self, state: &Graphics) -> wgpu::BindGroupLayout {
+        state
+            .device()
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("texture_bind_group"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        })
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            })
     }
 }
 
@@ -55,8 +57,8 @@ impl RegistryKey for SamplerKey {
     type Value = wgpu::Sampler;
 }
 impl RegistryInit for SamplerKey {
-    fn create_value(&self, device: &wgpu::Device) -> wgpu::Sampler {
-        device.create_sampler(&wgpu::SamplerDescriptor {
+    fn create_value(&self, state: &Graphics) -> wgpu::Sampler {
+        state.device().create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
@@ -88,7 +90,7 @@ impl Texture {
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &state.registry().get_or_init(BindGroupLayoutKey),
+            layout: &state.register(BindGroupLayoutKey),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -96,9 +98,7 @@ impl Texture {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(
-                        &state.registry().get_or_init(SamplerKey::Linear),
-                    ),
+                    resource: wgpu::BindingResource::Sampler(&state.register(SamplerKey::Linear)),
                 },
             ],
             label: None,

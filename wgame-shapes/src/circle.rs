@@ -7,8 +7,8 @@ use wgame_macros::{Attributes, StoreBytes};
 use wgame_gfx::Graphics;
 
 use crate::{
-    Library, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
-    renderer::VertexBuffers, shader::ShaderConfig,
+    Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline, renderer::VertexBuffers,
+    shader::ShaderConfig,
 };
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
@@ -45,7 +45,7 @@ impl CircleRenderer {
 }
 
 pub struct Circle {
-    library: Library,
+    state: Graphics,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,

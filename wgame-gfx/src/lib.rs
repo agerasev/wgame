@@ -23,8 +23,10 @@ pub use self::{
 pub use wgpu::PresentMode;
 
 use alloc::rc::Rc;
-
 use anyhow::{Context as _, Result};
+use half::f16;
+use registry::RegistryInit;
+use rgb::Rgba;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -92,7 +94,7 @@ impl<'a> Surface<'a> {
         let caps = surface.get_capabilities(&adapter);
         let format = caps.formats[0];
 
-        let registry = Registry::new(&device);
+        let registry = Registry::default();
 
         let this = Self {
             config,
@@ -159,5 +161,19 @@ impl Graphics {
 
     pub fn registry(&self) -> &Registry {
         &self.0.registry
+    }
+    pub fn register<K: RegistryInit>(&self, key: K) -> K::Value {
+        self.0.registry.get_or_init(key, self)
+    }
+
+    pub fn texture(&self, size: impl Into<(u32, u32)>) -> Texture {
+        Texture::new(self, size.into())
+    }
+    pub fn texture_with_data(
+        &self,
+        size: impl Into<(u32, u32)>,
+        data: impl AsRef<[Rgba<f16>]>,
+    ) -> Texture {
+        Texture::with_data(self, size.into(), data.as_ref())
     }
 }

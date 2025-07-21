@@ -11,7 +11,7 @@ use crate::{Library, Textured, attributes::Attributes, renderer::VertexBuffers};
 pub trait Shape {
     type Attributes: Attributes;
 
-    fn library(&self) -> &Library;
+    fn state(&self) -> &Graphics;
 
     fn vertices(&self) -> VertexBuffers;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
@@ -27,9 +27,10 @@ pub trait Shape {
 impl<T: Shape> Shape for &T {
     type Attributes = T::Attributes;
 
-    fn library(&self) -> &Library {
-        T::library(self)
+    fn state(&self) -> &Graphics {
+        T::state(self)
     }
+
     fn vertices(&self) -> VertexBuffers {
         T::vertices(self)
     }
@@ -48,10 +49,6 @@ impl<T: Shape> Shape for &T {
 }
 
 pub trait ShapeExt: Shape + Sized {
-    fn state(&self) -> &Graphics {
-        &self.library().0.state
-    }
-
     fn transform<T: Transform>(self, xform: T) -> Transformed<Self> {
         Transformed {
             inner: self,
@@ -73,9 +70,10 @@ impl<T: Shape> ShapeExt for T {}
 impl<T: Shape> Shape for Transformed<T> {
     type Attributes = T::Attributes;
 
-    fn library(&self) -> &Library {
-        self.inner.library()
+    fn state(&self) -> &Graphics {
+        self.inner.state()
     }
+
     fn vertices(&self) -> VertexBuffers {
         self.inner.vertices()
     }
