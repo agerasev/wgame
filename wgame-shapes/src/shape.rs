@@ -1,7 +1,8 @@
 use glam::Mat4;
 
 use wgame_gfx::{
-    Graphics, Texture, Transformed,
+    Graphics, Texture,
+    modifiers::Transformed,
     types::{Color, Transform},
 };
 

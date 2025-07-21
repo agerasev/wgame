@@ -5,9 +5,9 @@ extern crate alloc;
 
 mod context;
 mod frame;
-mod modifiers;
+pub mod modifiers;
 mod queue;
-mod registry;
+pub mod registry;
 mod renderer;
 pub mod texture;
 pub mod types;
@@ -16,7 +16,6 @@ pub mod utils;
 pub use self::{
     context::{Context, ContextExt},
     frame::Frame,
-    modifiers::Transformed,
     registry::Registry,
     renderer::{Instance, InstanceExt, Renderer},
     texture::Texture,
