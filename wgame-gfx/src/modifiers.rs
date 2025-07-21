@@ -1,6 +1,6 @@
 use glam::Mat4;
 
-use crate::Transform;
+use crate::types::Transform;
 
 #[derive(Clone, Debug)]
 pub struct Transformed<T> {

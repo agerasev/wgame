@@ -3,7 +3,10 @@ use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::{ComponentMap, Rgba};
 
-use wgame_gfx::{Color, Context, Graphics, Instance, Renderer, Texture, color};
+use wgame_gfx::{
+    Context, Graphics, Instance, Renderer, Texture,
+    types::{Color, color},
+};
 
 use crate::{Shape, ShapeExt, bytes::StoreBytes, primitive::InstanceData, renderer::ShapeRenderer};
 

@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use anyhow::Result;
 
-use wgame_gfx::Graphics;
+use wgame_gfx::{Graphics, texture};
 
 use crate::{
     attributes::Attributes,
@@ -26,7 +26,7 @@ pub fn create_pipeline(state: &Graphics, config: &ShaderConfig) -> Result<wgpu::
         source: shader_source,
     });
 
-    let bind_group_layout = &state.registry().texture_bind_group_layout;
+    let bind_group_layout = &state.registry().get_or_init(texture::BindGroupLayoutKey);
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,

@@ -2,7 +2,7 @@ use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{Graphics, Position};
+use wgame_gfx::{Graphics, types::Position};
 
 use crate::{
     Library, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline, primitive::VertexData,

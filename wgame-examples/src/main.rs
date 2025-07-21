@@ -11,7 +11,7 @@ use wgame::{
     Runtime, Window, WindowConfig,
     app::{deps::log, timer::Instant},
     fs::read_bytes,
-    gfx::{self, InstanceExt, color},
+    gfx::{self, InstanceExt, types::color},
     img::image_to_texture,
     shapes::{Library, ShapeExt, gradient2},
     utils::FrameCounter,

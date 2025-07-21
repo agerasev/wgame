@@ -19,7 +19,10 @@ use alloc::rc::Rc;
 
 use anyhow::Result;
 
-use wgame_gfx::{Color, Graphics, Texture, color};
+use wgame_gfx::{
+    Graphics, Texture,
+    types::{Color, color},
+};
 
 use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
 
