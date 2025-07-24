@@ -4,10 +4,8 @@ use anyhow::Result;
 use glam::{Affine2, Mat2, Vec2};
 use wgame_macros::{Attributes, StoreBytes};
 
-use wgame_gfx::Graphics;
-
 use crate::{
-    Library, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
+    Library, LibraryState, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
     renderer::VertexBuffers, shader::ShaderConfig,
 };
 
@@ -18,12 +16,13 @@ pub struct CircleAttrs {
     inner_radius: f32,
 }
 
-pub struct CircleRenderer {
+#[derive(Clone)]
+pub struct CircleLibrary {
     pipeline: wgpu::RenderPipeline,
 }
 
-impl CircleRenderer {
-    pub fn new(state: &Graphics) -> Result<Self> {
+impl CircleLibrary {
+    pub fn new(state: &LibraryState) -> Result<Self> {
         let pipeline = create_pipeline(
             state,
             &ShaderConfig {
@@ -45,7 +44,7 @@ impl CircleRenderer {
 }
 
 pub struct Circle {
-    library: Library,
+    state: Library,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
@@ -55,8 +54,8 @@ pub struct Circle {
 impl Shape for Circle {
     type Attributes = CircleAttrs;
 
-    fn library(&self) -> &Library {
-        &self.library
+    fn state(&self) -> &Library {
+        &self.state
     }
 
     fn vertices(&self) -> VertexBuffers {
@@ -81,10 +80,10 @@ impl Shape for Circle {
 impl Library {
     pub fn unit_ring(&self, inner_radius: f32) -> impl Shape {
         Circle {
-            library: self.clone(),
-            vertices: self.0.polygon.quad_vertices.clone(),
-            indices: Some(self.0.polygon.quad_indices.clone()),
-            pipeline: self.0.circle.pipeline.clone(),
+            state: self.clone(),
+            vertices: self.polygon.quad_vertices.clone(),
+            indices: Some(self.polygon.quad_indices.clone()),
+            pipeline: self.circle.pipeline.clone(),
             inner_radius,
         }
     }

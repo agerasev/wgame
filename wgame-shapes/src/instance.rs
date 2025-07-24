@@ -1,14 +1,12 @@
-use glam::{Affine2, Vec2};
-
 use half::f16;
 use rgb::{ComponentMap, Rgba};
 
 use wgame_gfx::{
-    Context, Graphics, Instance, Renderer, Texture,
+    Context, Instance, Renderer,
     types::{Color, color},
 };
 
-use crate::{Shape, ShapeExt, bytes::StoreBytes, primitive::InstanceData, renderer::ShapeRenderer};
+use crate::{Shape, Texture, bytes::StoreBytes, primitive::InstanceData, renderer::ShapeRenderer};
 
 #[derive(Clone)]
 pub struct Textured<T: Shape> {
@@ -60,19 +58,4 @@ impl<T: Shape> Instance for Textured<T> {
         .store_bytes(&mut storage.data);
         storage.count += 1;
     }
-}
-
-pub fn gradient<T: Color, const N: usize>(state: &Graphics, colors: [T; N]) -> Texture {
-    gradient2(state, [colors])
-}
-
-pub fn gradient2<T: Color, const M: usize, const N: usize>(
-    state: &Graphics,
-    colors: [[T; M]; N],
-) -> Texture {
-    let colors = colors.map(|row| row.map(|color| color.to_rgba()));
-    let pix_size = Vec2::new(M as f32, N as f32).recip();
-    Texture::with_data(state, (M as u32, N as u32), colors.as_flattened()).transform_coord(
-        Affine2::from_scale_angle_translation(1.0 - pix_size, 0.0, 0.5 * pix_size),
-    )
 }

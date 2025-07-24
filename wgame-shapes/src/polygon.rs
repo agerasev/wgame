@@ -2,14 +2,15 @@ use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{Graphics, types::Position};
+use wgame_gfx::types::Position;
 
 use crate::{
-    Library, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline, primitive::VertexData,
-    renderer::VertexBuffers,
+    Library, LibraryState, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline,
+    primitive::VertexData, renderer::VertexBuffers,
 };
 
-pub struct PolygonRenderer {
+#[derive(Clone)]
+pub struct PolygonLibrary {
     pub quad_vertices: wgpu::Buffer,
     pub quad_indices: wgpu::Buffer,
     pub hexagon_vertices: wgpu::Buffer,
@@ -17,8 +18,8 @@ pub struct PolygonRenderer {
     pub pipeline: wgpu::RenderPipeline,
 }
 
-impl PolygonRenderer {
-    pub fn new(state: &Graphics) -> Result<Self> {
+impl PolygonLibrary {
+    pub fn new(state: &LibraryState) -> Result<Self> {
         let quad_vertices = state
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -91,7 +92,7 @@ impl PolygonRenderer {
 }
 
 pub struct Polygon<const N: u32> {
-    library: Library,
+    state: Library,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
@@ -100,8 +101,8 @@ pub struct Polygon<const N: u32> {
 impl<const N: u32> Shape for Polygon<N> {
     type Attributes = ();
 
-    fn library(&self) -> &Library {
-        &self.library
+    fn state(&self) -> &Library {
+        &self.state
     }
 
     fn vertices(&self) -> VertexBuffers {
@@ -121,34 +122,33 @@ impl<const N: u32> Shape for Polygon<N> {
 
 impl Library {
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<3> {
-        let vertices =
-            self.0
-                .state
-                .device()
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("triangle_vertices"),
-                    contents: &[
-                        VertexData::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
-                        VertexData::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
-                        VertexData::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
-                    ]
-                    .to_bytes(),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
+        let vertices = self
+            .state
+            .device()
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("triangle_vertices"),
+                contents: &[
+                    VertexData::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
+                    VertexData::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
+                    VertexData::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
+                ]
+                .to_bytes(),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
         Polygon {
-            library: self.clone(),
+            state: self.clone(),
             vertices,
             indices: None,
-            pipeline: self.0.polygon.pipeline.clone(),
+            pipeline: self.polygon.pipeline.clone(),
         }
     }
 
     pub fn unit_quad(&self) -> Polygon<4> {
         Polygon {
-            library: self.clone(),
-            vertices: self.0.polygon.quad_vertices.clone(),
-            indices: Some(self.0.polygon.quad_indices.clone()),
-            pipeline: self.0.polygon.pipeline.clone(),
+            state: self.clone(),
+            vertices: self.polygon.quad_vertices.clone(),
+            indices: Some(self.polygon.quad_indices.clone()),
+            pipeline: self.polygon.pipeline.clone(),
         }
     }
 
@@ -164,10 +164,10 @@ impl Library {
 
     pub fn unit_hexagon(&self) -> Polygon<6> {
         Polygon {
-            library: self.clone(),
-            vertices: self.0.polygon.hexagon_vertices.clone(),
-            indices: Some(self.0.polygon.hexagon_indices.clone()),
-            pipeline: self.0.polygon.pipeline.clone(),
+            state: self.clone(),
+            vertices: self.polygon.hexagon_vertices.clone(),
+            indices: Some(self.polygon.hexagon_indices.clone()),
+            pipeline: self.polygon.pipeline.clone(),
         }
     }
 

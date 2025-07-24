@@ -7,49 +7,88 @@ pub mod attributes;
 pub mod binding;
 pub mod bytes;
 mod circle;
+mod instance;
 mod pipeline;
 mod polygon;
 pub mod primitive;
 mod renderer;
 mod shader;
 mod shape;
-mod textured;
+mod texture;
 
 use alloc::rc::Rc;
+use core::ops::Deref;
 
 use anyhow::Result;
 
 use wgame_gfx::{
-    Graphics, Texture,
+    Graphics,
     types::{Color, color},
 };
 
-use crate::{circle::CircleRenderer, polygon::PolygonRenderer};
+use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
 
 pub use self::{
+    instance::Textured,
     polygon::Polygon,
     shape::{Shape, ShapeExt},
-    textured::{Textured, gradient, gradient2},
+    texture::Texture,
 };
 
-struct InnerLibrary {
-    state: Graphics,
-    polygon: PolygonRenderer,
-    circle: CircleRenderer,
-    white_texture: Texture,
+/// Library shared state
+pub struct InnerState {
+    inner: Graphics,
+    texture_bind_group_layout: wgpu::BindGroupLayout,
+    texture_sampler: wgpu::Sampler,
+}
+
+pub type LibraryState = Rc<InnerState>;
+
+impl Deref for InnerState {
+    type Target = Graphics;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl InnerState {
+    fn new(state: &Graphics) -> Self {
+        Self {
+            inner: state.clone(),
+            texture_bind_group_layout: Texture::create_bind_group_layout(state),
+            texture_sampler: Texture::create_sampler(state),
+        }
+    }
 }
 
 /// 2D graphics library
 #[derive(Clone)]
-pub struct Library(Rc<InnerLibrary>);
+pub struct Library {
+    state: LibraryState,
+    polygon: PolygonLibrary,
+    circle: CircleLibrary,
+    white_texture: Texture,
+}
+
+impl Deref for Library {
+    type Target = LibraryState;
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
+}
 
 impl Library {
     pub fn new(state: &Graphics) -> Result<Self> {
-        Ok(Self(Rc::new(InnerLibrary {
-            state: state.clone(),
-            polygon: PolygonRenderer::new(state)?,
-            circle: CircleRenderer::new(state)?,
-            white_texture: { Texture::with_data(state, (1, 1), &[color::WHITE.to_rgba()]) },
-        })))
+        let state = Rc::new(InnerState::new(state));
+        Ok(Self {
+            polygon: PolygonLibrary::new(&state)?,
+            circle: CircleLibrary::new(&state)?,
+            white_texture: {
+                let tex = Texture::new(&state, (1, 1));
+                tex.write(&[color::WHITE.to_rgba()]);
+                tex
+            },
+            state,
+        })
     }
 }

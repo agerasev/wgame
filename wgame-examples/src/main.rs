@@ -13,7 +13,7 @@ use wgame::{
     fs::read_bytes,
     gfx::{self, InstanceExt, types::color},
     img::image_to_texture,
-    shapes::{Library, ShapeExt, gradient2},
+    shapes::{Library, ShapeExt},
     utils::FrameCounter,
 };
 
@@ -24,43 +24,36 @@ async fn main(rt: Runtime) {
         .create_window(
             WindowConfig {
                 gfx: gfx::Config {
-                    present_mode: gfx::PresentMode::AutoNoVsync,
+                    present_mode: gfx::PresentMode::AutoVsync,
                 },
                 ..Default::default()
             },
             async move |mut window: Window| {
-                let gfx = window.graphics().clone();
-                let lib = Library::new(&gfx)?;
+                let gfx = Library::new(window.graphics()).unwrap();
                 let tex =
                     image_to_texture(&gfx, &read_bytes("assets/lenna.png").await.unwrap()).unwrap();
 
-                let triangle = lib
+                let triangle = gfx
                     .triangle(
                         Vec2::new(0.0, 1.0),
                         Vec2::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos()),
                         Vec2::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos()),
                     )
-                    .texture(gradient2(
-                        &gfx,
-                        [
-                            [color::BLUE, color::RED],
-                            [color::GREEN, color::RED + color::GREEN - color::BLUE],
-                        ],
-                    ));
+                    .gradient2([
+                        [color::BLUE, color::RED],
+                        [color::GREEN, color::RED + color::GREEN - color::BLUE],
+                    ]);
 
-                let quad = lib
+                let quad = gfx
                     .quad(-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2))
                     .texture(tex.clone());
 
-                let hexagon = lib.hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
+                let hexagon = gfx.hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
 
-                let grad = gradient2(
-                    &gfx,
-                    [[color::WHITE, color::BLUE], [color::GREEN, color::RED]],
-                );
-                let circle = lib.circle(Vec2::ZERO, 0.8).texture(grad.clone());
-                let ring0 = lib.ring(Vec2::ZERO, 0.8, 0.4).texture(grad.clone());
-                let ring1 = lib.ring(Vec2::ZERO, 0.8, 0.5).texture(grad.clone());
+                let grad = gfx.gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
+                let circle = gfx.circle(Vec2::ZERO, 0.8).texture(grad.clone());
+                let ring0 = gfx.ring(Vec2::ZERO, 0.8, 0.4).texture(grad.clone());
+                let ring1 = gfx.ring(Vec2::ZERO, 0.8, 0.5).texture(grad.clone());
 
                 let scale = 1.0 / 3.0;
                 let start_time = Instant::now();
