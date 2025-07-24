@@ -7,18 +7,14 @@ mod context;
 mod frame;
 pub mod modifiers;
 mod queue;
-pub mod registry;
 mod renderer;
-pub mod texture;
 pub mod types;
 pub mod utils;
 
 pub use self::{
     context::{Context, ContextExt},
     frame::Frame,
-    registry::Registry,
     renderer::{Instance, InstanceExt, Renderer},
-    texture::Texture,
 };
 pub use wgpu::PresentMode;
 
@@ -40,14 +36,13 @@ impl Default for Config {
 }
 
 #[derive(Clone)]
-pub struct Graphics(Rc<State>);
+pub struct Graphics(Rc<InnerState>);
 
-struct State {
+struct InnerState {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
-    registry: Registry,
 }
 
 pub struct Surface<'a> {
@@ -92,17 +87,14 @@ impl<'a> Surface<'a> {
         let caps = surface.get_capabilities(&adapter);
         let format = caps.formats[0];
 
-        let registry = Registry::new(&device);
-
         let this = Self {
             config,
             surface,
-            state: Graphics(Rc::new(State {
+            state: Graphics(Rc::new(InnerState {
                 adapter,
                 device,
                 queue,
                 format,
-                registry,
             })),
             size: Default::default(),
         };
@@ -155,9 +147,5 @@ impl Graphics {
     }
     pub fn format(&self) -> wgpu::TextureFormat {
         self.0.format
-    }
-
-    pub fn registry(&self) -> &Registry {
-        &self.0.registry
     }
 }

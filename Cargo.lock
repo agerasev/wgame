@@ -2517,6 +2517,7 @@ dependencies = [
  "half",
  "image",
  "wgame-gfx",
+ "wgame-shapes",
  "wgpu",
 ]
 

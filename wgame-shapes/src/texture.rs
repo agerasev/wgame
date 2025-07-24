@@ -1,62 +1,48 @@
-use glam::Affine2;
+use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::Rgba;
 
-use crate::{
-    Graphics,
-    registry::{RegistryInit, RegistryKey},
-};
+use wgame_gfx::types::Color;
+
+use crate::{Graphics, Library, LibraryState};
 
 #[derive(Clone)]
 pub struct Texture {
-    state: Graphics,
+    state: LibraryState,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
     xform: Affine2,
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct BindGroupLayoutKey;
-impl RegistryKey for BindGroupLayoutKey {
-    type Value = wgpu::BindGroupLayout;
-}
-impl RegistryInit for BindGroupLayoutKey {
-    fn create_value(&self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("texture_bind_group"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+impl Texture {
+    pub(crate) fn create_bind_group_layout(state: &Graphics) -> wgpu::BindGroupLayout {
+        state
+            .device()
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("texture_bind_group"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        })
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            })
     }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-enum SamplerKey {
-    Linear,
-}
-impl RegistryKey for SamplerKey {
-    type Value = wgpu::Sampler;
-}
-impl RegistryInit for SamplerKey {
-    fn create_value(&self, device: &wgpu::Device) -> wgpu::Sampler {
-        device.create_sampler(&wgpu::SamplerDescriptor {
+    pub(crate) fn create_sampler(state: &Graphics) -> wgpu::Sampler {
+        state.device().create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
@@ -64,10 +50,8 @@ impl RegistryInit for SamplerKey {
             ..Default::default()
         })
     }
-}
 
-impl Texture {
-    pub fn new(state: &Graphics, size: (u32, u32)) -> Self {
+    pub(crate) fn new(state: &LibraryState, size: (u32, u32)) -> Self {
         let device = state.device();
 
         let extent = wgpu::Extent3d {
@@ -88,7 +72,7 @@ impl Texture {
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &state.registry().get_or_init(BindGroupLayoutKey),
+            layout: &state.texture_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -96,9 +80,7 @@ impl Texture {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(
-                        &state.registry().get_or_init(SamplerKey::Linear),
-                    ),
+                    resource: wgpu::BindingResource::Sampler(&state.texture_sampler),
                 },
             ],
             label: None,
@@ -128,7 +110,7 @@ impl Texture {
             size_of_val(data),
             "Texture data size mismatch"
         );
-        self.state.queue().write_texture(
+        self.state.inner.queue().write_texture(
             self.texture.as_image_copy(),
             bytemuck::cast_slice(data),
             wgpu::TexelCopyBufferLayout {
@@ -142,14 +124,8 @@ impl Texture {
         );
     }
 
-    pub fn with_data(state: &Graphics, size: (u32, u32), data: &[Rgba<f16>]) -> Self {
-        let this = Self::new(state, size);
-        this.write(data);
-        this
-    }
-
     pub fn bind_group_layout(&self) -> wgpu::BindGroupLayout {
-        self.state.registry().get(&BindGroupLayoutKey).unwrap()
+        self.state.texture_bind_group_layout.clone()
     }
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
@@ -157,5 +133,38 @@ impl Texture {
 
     pub fn coord_xform(&self) -> Affine2 {
         self.xform
+    }
+}
+
+impl Library {
+    pub fn texture(&self, size: impl Into<(u32, u32)>) -> Texture {
+        Texture::new(self, size.into())
+    }
+    pub fn texture_with_data(
+        &self,
+        size: impl Into<(u32, u32)>,
+        data: impl AsRef<[Rgba<f16>]>,
+    ) -> Texture {
+        let tex = self.texture(size);
+        tex.write(data.as_ref());
+        tex
+    }
+
+    pub fn gradient<T: Color, const N: usize>(&self, colors: [T; N]) -> Texture {
+        self.gradient2([colors])
+    }
+
+    pub fn gradient2<T: Color, const M: usize, const N: usize>(
+        &self,
+        colors: [[T; M]; N],
+    ) -> Texture {
+        let colors = colors.map(|row| row.map(|color| color.to_rgba()));
+        let pix_size = Vec2::new(M as f32, N as f32).recip();
+        self.texture_with_data((M as u32, N as u32), colors.as_flattened())
+            .transform_coord(Affine2::from_scale_angle_translation(
+                1.0 - pix_size,
+                0.0,
+                0.5 * pix_size,
+            ))
     }
 }
