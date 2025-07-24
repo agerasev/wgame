@@ -74,8 +74,16 @@ impl<'a, 'b> Frame<'a, 'b> {
             ..Default::default()
         });
 
+        self.owner.state.queue().submit(Some(encoder.finish()));
+
         for (renderer, instances) in self.render_passes.iter() {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut encoder = self
+                .owner
+                .state
+                .device()
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &self.view,
                     resolve_target: None,
@@ -86,16 +94,21 @@ impl<'a, 'b> Frame<'a, 'b> {
                 })],
                 ..Default::default()
             });
-            renderer.draw(instances, &mut pass)?;
-        }
+            renderer.draw(instances, &mut render_pass)?;
+            drop(render_pass);
 
-        self.owner.state.queue().submit(Some(encoder.finish()));
+            self.owner.state.queue().submit(Some(encoder.finish()));
+        }
 
         Ok(())
     }
 
     pub fn present(self) {
         self.render().expect("Error during rendering");
+        self.owner
+            .state()
+            .queue()
+            .on_submitted_work_done(|| log::trace!("Submitted work done"));
         self.surface.present();
     }
 }

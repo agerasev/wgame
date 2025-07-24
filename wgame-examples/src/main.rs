@@ -6,7 +6,7 @@ use core::{
 };
 
 use glam::{Affine2, Vec2};
-use rgb::Rgb;
+
 use wgame::{
     Runtime, Window, WindowConfig,
     app::{deps::log, timer::Instant},
@@ -61,7 +61,7 @@ async fn main(rt: Runtime) {
                 while let Some(mut frame) = window.next_frame().await? {
                     let ctx = frame.context();
 
-                    frame.clear(Rgb::new(0.0, 0.0, 0.0));
+                    frame.clear(color::BLACK);
                     let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
 
                     frame.push(
@@ -112,7 +112,6 @@ async fn main(rt: Runtime) {
                             Vec2::new(2.0 * scale, -scale),
                         )),
                     );
-
                     fps.count();
                 }
                 Ok(())
