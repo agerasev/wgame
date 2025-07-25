@@ -1,9 +1,12 @@
-use alloc::{borrow::Cow, vec::Vec};
+use std::borrow::Cow;
 
 use anyhow::Result;
+use glam::Vec4;
 use wgpu::util::DeviceExt;
 
 use wgame_gfx::{Graphics, Renderer};
+
+use crate::FontAtlas;
 
 #[derive(Default)]
 pub struct TextStorage {
@@ -11,16 +14,16 @@ pub struct TextStorage {
     pub data: Vec<u8>,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TextRenderer {
+#[derive(Clone)]
+pub struct TextLibrary {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
-    device: wgpu::Device,
 }
 
-impl TextRenderer {
+impl TextLibrary {
+    const INSTANCE_COMPONENTS: u32 = 6;
+
     pub fn new(state: &Graphics) -> Result<Self> {
         let device = state.device().clone();
         let swapchain_format = state.format();
@@ -31,6 +34,49 @@ impl TextRenderer {
             label: Some("text_shader"),
             source: shader_source,
         });
+
+        let vertex_buffers_layout = [
+            wgpu::VertexBufferLayout {
+                array_stride: 4 * 4,
+                step_mode: wgpu::VertexStepMode::Vertex,
+                attributes: &[wgpu::VertexAttribute {
+                    shader_location: 0,
+                    offset: 0,
+                    format: wgpu::VertexFormat::Uint32x4,
+                }],
+            },
+            wgpu::VertexBufferLayout {
+                array_stride: 4 * 4 * Self::INSTANCE_COMPONENTS as u64,
+                step_mode: wgpu::VertexStepMode::Instance,
+                attributes: &(0..Self::INSTANCE_COMPONENTS)
+                    .map(|i| wgpu::VertexAttribute {
+                        shader_location: i + 1,
+                        offset: 4 * 4 * i as u64,
+                        format: wgpu::VertexFormat::Uint32x4,
+                    })
+                    .collect::<Vec<_>>(),
+            },
+        ];
+
+        let vertex_buffer = state
+            .device()
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("glyph_vertices"),
+                contents: bytemuck::cast_slice(&[
+                    Vec4::new(-1.0, -1.0, 0.0, 1.0),
+                    Vec4::new(1.0, -1.0, 0.0, 1.0),
+                    Vec4::new(-1.0, 1.0, 0.0, 1.0),
+                    Vec4::new(1.0, 1.0, 0.0, 1.0),
+                ]),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        let index_buffer = state
+            .device()
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("glyph_indices"),
+                contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 1, 3]),
+                usage: wgpu::BufferUsages::INDEX,
+            });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("text_bind_group"),
@@ -52,36 +98,13 @@ impl TextRenderer {
             push_constant_ranges: &[],
         });
 
-        let vertex_buffers = [
-            wgpu::VertexBufferLayout {
-                array_stride: 4 * 4,
-                step_mode: wgpu::VertexStepMode::Vertex,
-                attributes: &[wgpu::VertexAttribute {
-                    shader_location: 0,
-                    offset: 0,
-                    format: wgpu::VertexFormat::Uint32x4,
-                }],
-            },
-            wgpu::VertexBufferLayout {
-                array_stride: 5 * 4 * 4,
-                step_mode: wgpu::VertexStepMode::Instance,
-                attributes: &(0..5)
-                    .map(|i| wgpu::VertexAttribute {
-                        shader_location: i + 1,
-                        offset: i as u64 * 4 * 4,
-                        format: wgpu::VertexFormat::Uint32x4,
-                    })
-                    .collect::<Vec<_>>(),
-            },
-        ];
-
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vertex_main"),
-                buffers: &vertex_buffers,
+                buffers: &vertex_buffers_layout,
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -97,7 +120,25 @@ impl TextRenderer {
             cache: None,
         });
 
-        Ok(Self { pipeline, device })
+        Ok(Self {
+            vertex_buffer,
+            index_buffer,
+            pipeline,
+        })
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TextRenderer {
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+    bind_group: wgpu::BindGroup,
+    pipeline: wgpu::RenderPipeline,
+}
+
+impl TextRenderer {
+    pub fn new(library: &TextLibrary, font: &FontAtlas) -> Self {
+        Self {}
     }
 }
 

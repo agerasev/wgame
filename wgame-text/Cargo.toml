@@ -7,8 +7,10 @@ license.workspace = true
 [dependencies]
 wgame-gfx.workspace = true
 wgpu.workspace = true
+glam.workspace = true
 rgb.workspace = true
 hashbrown.workspace = true
+bytemuck.workspace = true
 anyhow.workspace = true
 swash = { version = "0.2.5", default-features = false, features = [
     "libm",

@@ -1,40 +1,15 @@
 #![forbid(unsafe_code)]
-#![no_std]
-
-extern crate alloc;
 
 mod atlas;
 mod renderer;
 mod text;
 
-pub use self::{atlas::FontAtlas, renderer::TextRenderer, text::Text};
+pub use self::{atlas::FontAtlas, renderer::TextLibrary, text::Text};
 
-use alloc::{rc::Rc, vec::Vec};
-use core::cell::RefCell;
-use wgame_gfx::registry::{RegistryInit, RegistryKey};
+use std::rc::Rc;
 
 use anyhow::{Result, anyhow};
-use swash::{CacheKey, FontRef, scale::ScaleContext, shape::ShapeContext};
-
-#[derive(Clone, Default)]
-struct Context {
-    scale: Rc<RefCell<ScaleContext>>,
-    shape: Rc<RefCell<ShapeContext>>,
-}
-
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-struct ContextKey;
-impl RegistryKey for ContextKey {
-    type Value = Context;
-}
-impl RegistryInit for ContextKey {
-    fn create_value(&self, _device: &wgpu::Device) -> Self::Value {
-        Context {
-            scale: Rc::new(RefCell::new(ScaleContext::new())),
-            shape: Rc::new(RefCell::new(ShapeContext::new())),
-        }
-    }
-}
+use swash::{CacheKey, FontRef};
 
 #[derive(Clone)]
 pub struct Font {

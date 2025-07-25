@@ -1,9 +1,14 @@
-use alloc::vec::Vec;
+use core::cell::RefCell;
 
-use swash::GlyphId;
+use swash::{GlyphId, shape::ShapeContext};
+
 use wgame_gfx::Instance;
 
-use crate::{ContextKey, FontAtlas, TextRenderer};
+use crate::{FontAtlas, TextLibrary};
+
+thread_local! {
+    static CONTEXT: RefCell<ShapeContext> = Default::default();
+}
 
 pub struct GlyphInfo {
     id: GlyphId,
@@ -18,20 +23,21 @@ pub struct Text {
 impl Text {
     pub fn new(atlas: &FontAtlas, text: &str) -> Self {
         let font = atlas.font().clone();
-        let reg = atlas.state.registry().get_or_init(ContextKey);
-        let mut context = reg.shape.borrow_mut();
-        let mut shaper = context.builder(font.as_ref()).size(atlas.size()).build();
-        shaper.add_str(text);
-        let mut glyphs = Vec::new();
-        shaper.shape_with(|cluster| {
-            let mut offset = 0.0;
-            for glyph in cluster.glyphs {
-                glyphs.push(GlyphInfo {
-                    id: glyph.id,
-                    offset,
-                });
-                offset += glyph.advance;
-            }
+        let glyphs = CONTEXT.with_borrow_mut(|context| {
+            let mut shaper = context.builder(font.as_ref()).size(atlas.size()).build();
+            shaper.add_str(text);
+            let mut glyphs = Vec::new();
+            shaper.shape_with(|cluster| {
+                let mut offset = 0.0;
+                for glyph in cluster.glyphs {
+                    glyphs.push(GlyphInfo {
+                        id: glyph.id,
+                        offset,
+                    });
+                    offset += glyph.advance;
+                }
+            });
+            glyphs
         });
         Self {
             atlas: atlas.clone(),
@@ -41,7 +47,7 @@ impl Text {
 }
 
 impl Instance for Text {
-    type Renderer = TextRenderer;
+    type Renderer = TextLibrary;
 
     fn get_renderer(&self) -> Self::Renderer {
         unimplemented!()

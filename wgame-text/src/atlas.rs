@@ -1,18 +1,22 @@
 use core::cell::RefCell;
-
-use alloc::{rc::Rc, vec::Vec};
+use std::rc::Rc;
 
 use etagere::{AllocId, Allocation, AtlasAllocator};
 use hashbrown::HashMap;
 use image::{GenericImage, GenericImageView, GrayImage, math::Rect};
 use swash::{
     GlyphId,
-    scale::{Render, Scaler, Source, StrikeWith},
+    scale::{Render, ScaleContext, Scaler, Source, StrikeWith},
     zeno::Placement,
 };
+
 use wgame_gfx::Graphics;
 
-use crate::{ContextKey, Font};
+use crate::Font;
+
+thread_local! {
+    static CONTEXT: RefCell<ScaleContext> = Default::default();
+}
 
 struct GlyphImageInfo {
     alloc_id: AllocId,
@@ -52,18 +56,17 @@ impl FontAtlas {
         self.add_glyphs(codepoints.into_iter().map(|c| font_ref.charmap().map(c)));
     }
     pub(crate) fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
-        let reg = self.state.registry().get_or_init(ContextKey);
+        CONTEXT.with_borrow_mut(|context| {
+            let mut scaler = context
+                .builder(self.font.as_ref())
+                .size(self.size)
+                .hint(false)
+                .build();
 
-        let mut context = reg.scale.borrow_mut();
-        let mut scaler = context
-            .builder(self.font.as_ref())
-            .size(self.size)
-            .hint(false)
-            .build();
-
-        for glyph_id in glyphs {
-            self.atlas.borrow_mut().add_glyph(&mut scaler, glyph_id);
-        }
+            for glyph_id in glyphs {
+                self.atlas.borrow_mut().add_glyph(&mut scaler, glyph_id);
+            }
+        })
     }
 
     pub fn font(&self) -> &Font {
