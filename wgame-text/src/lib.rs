@@ -1,10 +1,14 @@
 #![forbid(unsafe_code)]
 
 mod atlas;
-mod renderer;
-mod text;
+// mod renderer;
+// mod text;
 
-pub use self::{atlas::FontAtlas, renderer::TextLibrary, text::Text};
+pub use self::{
+    atlas::FontAtlas,
+    // renderer::TextLibrary,
+    // text::Text,
+};
 
 use std::rc::Rc;
 
@@ -19,7 +23,7 @@ pub struct Font {
 }
 
 impl Font {
-    fn new(contents: impl Into<Vec<u8>>, index: usize) -> Result<Self> {
+    pub fn new(contents: impl Into<Vec<u8>>, index: usize) -> Result<Self> {
         let contents = Rc::from(contents.into());
         let font = FontRef::from_index(&contents, index)
             .ok_or_else(|| anyhow!("Font data validation error"))?;

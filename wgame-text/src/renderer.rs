@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::Deref};
 
 use anyhow::Result;
 use glam::Vec4;
@@ -16,9 +16,17 @@ pub struct TextStorage {
 
 #[derive(Clone)]
 pub struct TextLibrary {
+    state: Graphics,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
+}
+
+impl Deref for TextLibrary {
+    type Target = Graphics;
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
 }
 
 impl TextLibrary {
@@ -121,6 +129,7 @@ impl TextLibrary {
         });
 
         Ok(Self {
+            state: state.clone(),
             vertex_buffer,
             index_buffer,
             pipeline,
@@ -138,7 +147,23 @@ pub struct TextRenderer {
 
 impl TextRenderer {
     pub fn new(library: &TextLibrary, font: &FontAtlas) -> Self {
-        Self {}
+        let pipeline = library.pipeline.clone();
+        let bind_group = library
+            .device()
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &pipeline.get_bind_group_layout(0),
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                }],
+                label: None,
+            });
+        Self {
+            vertex_buffer: library.vertex_buffer.clone(),
+            index_buffer: library.index_buffer.clone(),
+            pipeline,
+            bind_group,
+        }
     }
 }
 

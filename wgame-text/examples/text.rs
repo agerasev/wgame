@@ -13,7 +13,7 @@ fn main() {
         .unwrap()
         .read_to_end(&mut contents)
         .unwrap();
-    let font = Font::new(contents).unwrap();
+    let font = Font::new(contents, 0).unwrap();
     let atlas = FontAtlas::new(&font, 64.0);
     let text = Text::new(&atlas, "Hello, World!");
 }

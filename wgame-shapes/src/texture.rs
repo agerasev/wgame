@@ -110,7 +110,7 @@ impl Texture {
             size_of_val(data),
             "Texture data size mismatch"
         );
-        self.state.inner.queue().write_texture(
+        self.state.queue().write_texture(
             self.texture.as_image_copy(),
             bytemuck::cast_slice(data),
             wgpu::TexelCopyBufferLayout {
