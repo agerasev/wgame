@@ -2,12 +2,12 @@
 
 mod atlas;
 // mod renderer;
-// mod text;
+mod text;
 
 pub use self::{
     atlas::FontAtlas,
     // renderer::TextLibrary,
-    // text::Text,
+    text::Text,
 };
 
 use std::rc::Rc;

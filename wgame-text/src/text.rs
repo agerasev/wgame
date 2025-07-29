@@ -4,7 +4,7 @@ use swash::{GlyphId, shape::ShapeContext};
 
 use wgame_gfx::Instance;
 
-use crate::{FontAtlas, TextLibrary};
+use crate::FontAtlas;
 
 thread_local! {
     static CONTEXT: RefCell<ShapeContext> = Default::default();
@@ -45,7 +45,7 @@ impl Text {
         }
     }
 }
-
+/*
 impl Instance for Text {
     type Renderer = TextLibrary;
 
@@ -60,3 +60,4 @@ impl Instance for Text {
         unimplemented!()
     }
 }
+*/
