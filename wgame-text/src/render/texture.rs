@@ -1,18 +1,26 @@
+use std::{
+    cell::RefCell,
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+    ops::Deref,
+    rc::Rc,
+};
+
 use etagere::euclid::default::Box2D;
 use image::GrayImage;
 use wgpu::Extent3d;
 
 use wgame_gfx::Graphics;
 
-use super::mapping::Atlas;
+use crate::{RasterizedFont, TextLibrary, raster::FontAtlas};
 
-struct Texture {
+pub struct FontTexture {
     size: Extent3d,
     inner: wgpu::Texture,
     view: wgpu::TextureView,
 }
 
-impl Texture {
+impl FontTexture {
     pub fn new(state: &Graphics, size: (u32, u32)) -> Self {
         let device = state.device();
 
@@ -71,7 +79,7 @@ impl Texture {
         );
     }
 
-    pub fn sync(this: &mut Option<Self>, state: &Graphics, atlas: &mut Atlas) {
+    pub fn sync(this: &mut Option<Self>, state: &Graphics, atlas: &mut FontAtlas) {
         let texture_size = match this {
             Some(texture) => texture.size(),
             None => (0, 0),
@@ -113,5 +121,63 @@ impl Texture {
         if let Some(bbox) = total_bbox {
             texture.write(state, atlas.image(), bbox);
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct TexturedFont {
+    pub(crate) library: TextLibrary,
+    raster: RasterizedFont,
+    texture: Rc<RefCell<Option<FontTexture>>>,
+}
+
+impl Deref for TexturedFont {
+    type Target = RasterizedFont;
+    fn deref(&self) -> &Self::Target {
+        &self.raster
+    }
+}
+
+impl PartialOrd for TexturedFont {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for TexturedFont {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.texture.as_ptr().cmp(&other.texture.as_ptr())
+    }
+}
+
+impl PartialEq for TexturedFont {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.texture, &other.texture)
+    }
+}
+impl Eq for TexturedFont {}
+
+impl Hash for TexturedFont {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.texture.as_ptr().hash(state);
+    }
+}
+
+impl TexturedFont {
+    pub fn new(library: &TextLibrary, raster: RasterizedFont) -> Self {
+        Self {
+            raster,
+            library: library.clone(),
+            texture: Rc::new(RefCell::new(None)),
+        }
+    }
+
+    pub fn sync(&self) -> Option<wgpu::TextureView> {
+        let mut texture = self.texture.borrow_mut();
+        FontTexture::sync(
+            &mut texture,
+            &self.library,
+            &mut self.raster.atlas.borrow_mut(),
+        );
+        texture.as_ref().map(|t| t.view.clone())
     }
 }

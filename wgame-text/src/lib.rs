@@ -1,12 +1,13 @@
 #![forbid(unsafe_code)]
 
-mod atlas;
-// mod renderer;
+mod raster;
+mod render;
 mod text;
 
+pub(crate) use self::render::GlyphInstance;
 pub use self::{
-    atlas::FontAtlas,
-    // renderer::TextLibrary,
+    raster::RasterizedFont,
+    render::{TextLibrary, TextRenderer, TexturedFont},
     text::Text,
 };
 
@@ -41,5 +42,9 @@ impl Font {
             offset: self.offset,
             key: self.key,
         }
+    }
+
+    pub fn rasterize(&self, size: f32) -> RasterizedFont {
+        RasterizedFont::new(self, size)
     }
 }

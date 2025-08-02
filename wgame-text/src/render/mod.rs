@@ -1,18 +1,14 @@
+mod texture;
+
 use std::{borrow::Cow, ops::Deref};
 
 use anyhow::Result;
-use glam::Vec4;
+use glam::{Mat4, Vec4};
 use wgpu::util::DeviceExt;
 
 use wgame_gfx::{Graphics, Renderer};
 
-use crate::FontAtlas;
-
-#[derive(Default)]
-pub struct TextStorage {
-    pub count: u32,
-    pub data: Vec<u8>,
-}
+pub use texture::TexturedFont;
 
 #[derive(Clone)]
 pub struct TextLibrary {
@@ -37,7 +33,7 @@ impl TextLibrary {
         let swapchain_format = state.format();
 
         let shader_source =
-            wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/text.wgsl")));
+            wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../../shaders/text.wgsl")));
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("text_shader"),
             source: shader_source,
@@ -141,30 +137,35 @@ impl TextLibrary {
 pub struct TextRenderer {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
+    texture: TexturedFont,
     pipeline: wgpu::RenderPipeline,
+    device: wgpu::Device,
 }
 
 impl TextRenderer {
-    pub fn new(library: &TextLibrary, font: &FontAtlas) -> Self {
+    pub fn new(font: &TexturedFont) -> Self {
+        let library = &font.library;
         let pipeline = library.pipeline.clone();
-        let bind_group = library
-            .device()
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &pipeline.get_bind_group_layout(0),
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&view),
-                }],
-                label: None,
-            });
+
         Self {
             vertex_buffer: library.vertex_buffer.clone(),
             index_buffer: library.index_buffer.clone(),
             pipeline,
-            bind_group,
+            texture: font.clone(),
+            device: library.device().clone(),
         }
     }
+}
+
+pub struct GlyphInstance {
+    pub xform: Mat4,
+    pub tex_coord: Vec4,
+    pub color: Vec4,
+}
+
+#[derive(Default)]
+pub struct TextStorage {
+    pub(crate) instances: Vec<GlyphInstance>,
 }
 
 impl Renderer for TextRenderer {
@@ -173,35 +174,43 @@ impl Renderer for TextRenderer {
     fn new_storage(&self) -> Self::Storage {
         TextStorage::default()
     }
-    fn draw(&self, instances: &Self::Storage, pass: &mut wgpu::RenderPass) -> Result<()> {
+    fn draw(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass) -> Result<()> {
+        let mut bytes = Vec::new();
+        for instance in &storage.instances {
+            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.xform]));
+            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.tex_coord]));
+            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.color]));
+        }
         let instance_buffer = self
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("instances"),
-                contents: &instances.data,
+                contents: &bytes,
                 usage: wgpu::BufferUsages::VERTEX,
             });
+
+        let view = self.texture.sync().unwrap();
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.pipeline.get_bind_group_layout(0),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&view),
+            }],
+            label: None,
+        });
 
         {
             pass.push_debug_group("prepare");
             pass.set_pipeline(&self.pipeline);
-            for (i, bind_group) in self.uniforms.iter().enumerate() {
-                pass.set_bind_group(i as u32, bind_group, &[]);
-            }
-            pass.set_vertex_buffer(0, self.vertices.vertex_buffer.slice(..));
-            if let Some(index_buffer) = &self.vertices.index_buffer {
-                pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-            }
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             pass.set_vertex_buffer(1, instance_buffer.slice(..));
             pass.pop_debug_group();
         }
 
         pass.insert_debug_marker("draw");
-        if self.vertices.index_buffer.is_some() {
-            pass.draw_indexed(0..self.vertices.count, 0, 0..instances.count);
-        } else {
-            pass.draw(0..self.vertices.count, 0..instances.count);
-        }
+        pass.draw_indexed(0..4, 0, 0..(storage.instances.len() as u32));
 
         Ok(())
     }

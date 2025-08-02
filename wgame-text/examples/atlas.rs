@@ -5,7 +5,7 @@ use std::{
     io::{Read, Write},
 };
 
-use wgame_text::{Font, FontAtlas};
+use wgame_text::{Font, RasterizedFont};
 
 fn main() {
     let mut contents = Vec::new();
@@ -14,7 +14,7 @@ fn main() {
         .read_to_end(&mut contents)
         .unwrap();
     let font = Font::new(contents, 0).unwrap();
-    let atlas = FontAtlas::new(&font, 64.0);
+    let atlas = RasterizedFont::new(&font, 64.0);
     atlas.add_chars("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890".chars());
 
     atlas.image().save("output/atlas.png").unwrap();

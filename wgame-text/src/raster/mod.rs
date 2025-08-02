@@ -1,5 +1,4 @@
 mod mapping;
-mod texture;
 
 use core::cell::RefCell;
 use std::rc::Rc;
@@ -7,28 +6,29 @@ use std::rc::Rc;
 use image::GrayImage;
 use swash::{GlyphId, scale::ScaleContext};
 
-use self::mapping::Atlas;
 use crate::Font;
+
+pub use self::mapping::FontAtlas;
 
 thread_local! {
     static CONTEXT: RefCell<ScaleContext> = Default::default();
 }
 
 #[derive(Clone)]
-pub struct FontAtlas {
+pub struct RasterizedFont {
     font: Font,
     size: f32,
-    atlas: Rc<RefCell<Atlas>>,
+    pub(crate) atlas: Rc<RefCell<FontAtlas>>,
 }
 
-impl FontAtlas {
+impl RasterizedFont {
     pub fn new(font: &Font, size: f32) -> Self {
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();
         Self {
             font: font.clone(),
             size,
-            atlas: Rc::new(RefCell::new(Atlas::new(init_dim))),
+            atlas: Rc::new(RefCell::new(FontAtlas::new(init_dim))),
         }
     }
 
@@ -36,7 +36,7 @@ impl FontAtlas {
         let font_ref = self.font.as_ref();
         self.add_glyphs(codepoints.into_iter().map(|c| font_ref.charmap().map(c)));
     }
-    fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
+    pub(crate) fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
         let mut atlas = self.atlas.borrow_mut();
 
         CONTEXT.with_borrow_mut(|context| {

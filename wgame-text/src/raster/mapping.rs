@@ -7,6 +7,7 @@ use swash::{
     zeno::Placement,
 };
 
+#[derive(Clone, Copy, Debug)]
 pub struct GlyphImageInfo {
     pub alloc_id: AllocId,
     pub location: Rect,
@@ -14,14 +15,14 @@ pub struct GlyphImageInfo {
     pub texture_synced: bool,
 }
 
-pub struct Atlas {
+pub struct FontAtlas {
     allocator: AtlasAllocator,
     mapping: HashMap<GlyphId, Option<GlyphImageInfo>>,
     image: GrayImage,
     render: Render<'static>,
 }
 
-impl Atlas {
+impl FontAtlas {
     pub fn new(init_dim: u32) -> Self {
         Self {
             allocator: AtlasAllocator::new((init_dim as i32, init_dim as i32).into()),
@@ -124,6 +125,10 @@ impl Atlas {
                 )
                 .is_none()
         );
+    }
+
+    pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
+        self.mapping.get(&glyph_id).and_then(|x| *x)
     }
 
     pub fn sync_glyphs(&mut self) -> impl Iterator<Item = (&GlyphId, &GlyphImageInfo)> {
