@@ -13,6 +13,8 @@ pub use wgame_fs as fs;
 pub use wgame_img as img;
 #[cfg(feature = "shapes")]
 pub use wgame_shapes as shapes;
+#[cfg(feature = "text")]
+pub use wgame_text as text;
 #[cfg(feature = "utils")]
 pub use wgame_utils as utils;
 

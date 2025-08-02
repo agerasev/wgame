@@ -14,6 +14,7 @@ use wgame::{
     gfx::{self, InstanceExt, types::color},
     img::image_to_texture,
     shapes::{Library, ShapeExt},
+    text::{Font, RasterizedFont, Text, TextLibrary, TexturedFont},
     utils::FrameCounter,
 };
 
@@ -32,6 +33,12 @@ async fn main(rt: Runtime) {
                 let gfx = Library::new(window.graphics()).unwrap();
                 let tex =
                     image_to_texture(&gfx, &read_bytes("assets/lenna.png").await.unwrap()).unwrap();
+
+                let text_lib = TextLibrary::new(&gfx).unwrap();
+                let font =
+                    Font::new(read_bytes("assets/free-sans-bold.ttf").await.unwrap(), 0).unwrap();
+                let raster = TexturedFont::new(&text_lib, RasterizedFont::new(&font, 64.0));
+                let text = Text::new(&raster, "Hello, World!");
 
                 let triangle = gfx
                     .triangle(
@@ -110,6 +117,14 @@ async fn main(rt: Runtime) {
                             Vec2::splat(scale),
                             10.0 * angle,
                             Vec2::new(2.0 * scale, -scale),
+                        )),
+                    );
+                    frame.push(
+                        &ctx,
+                        text.transform(Affine2::from_scale_angle_translation(
+                            Vec2::splat(1.0 / 600.0),
+                            0.0,
+                            Vec2::new(-1.0, 0.8),
                         )),
                     );
 

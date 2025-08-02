@@ -37,7 +37,7 @@ impl FontAtlas {
     }
 
     fn grow(&mut self) {
-        let mut new_atlas = AtlasAllocator::new(self.allocator.size() * 2);
+        let mut new_allocator = AtlasAllocator::new(self.allocator.size() * 2);
         let mut new_image = GrayImage::new(2 * self.image.width(), 2 * self.image.height());
 
         for maybe_info in self.mapping.values_mut() {
@@ -46,7 +46,7 @@ impl FontAtlas {
                 None => continue,
             };
             let rect = info.location;
-            let alloc = new_atlas
+            let alloc = new_allocator
                 .allocate((rect.width as i32, rect.height as i32).into())
                 .expect("Cannot reallocate glyphs during atlas grow");
             assert!(
@@ -70,17 +70,20 @@ impl FontAtlas {
             info.texture_synced = false;
         }
 
-        self.allocator = new_atlas;
+        self.allocator = new_allocator;
         self.image = new_image;
     }
 
-    fn alloc_space(&mut self, width: u32, height: u32) -> Allocation {
+    fn alloc_space(&mut self, width: u32, height: u32) -> Option<Allocation> {
+        if width == 0 || height == 0 {
+            return None;
+        }
         loop {
             match self
                 .allocator
                 .allocate((width as i32, height as i32).into())
             {
-                Some(alloc) => break alloc,
+                Some(alloc) => break Some(alloc),
                 None => self.grow(),
             }
         }
@@ -102,29 +105,27 @@ impl FontAtlas {
                 return;
             }
         };
-        let alloc = self.alloc_space(placement.width, placement.height);
-        let rect = Rect {
-            x: alloc.rectangle.min.x as u32,
-            y: alloc.rectangle.min.y as u32,
-            width: placement.width,
-            height: placement.height,
+        let info = match self.alloc_space(placement.width, placement.height) {
+            Some(alloc) => {
+                let rect = Rect {
+                    x: alloc.rectangle.min.x as u32,
+                    y: alloc.rectangle.min.y as u32,
+                    width: placement.width,
+                    height: placement.height,
+                };
+                self.image
+                    .copy_from(&image, rect.x, rect.y)
+                    .expect("Error copying glyph image");
+                Some(GlyphImageInfo {
+                    alloc_id: alloc.id,
+                    location: rect,
+                    placement,
+                    texture_synced: false,
+                })
+            }
+            None => None,
         };
-        self.image
-            .copy_from(&image, rect.x, rect.y)
-            .expect("Error copying glyph image");
-        assert!(
-            self.mapping
-                .insert(
-                    glyph_id,
-                    Some(GlyphImageInfo {
-                        alloc_id: alloc.id,
-                        location: rect,
-                        placement,
-                        texture_synced: false
-                    })
-                )
-                .is_none()
-        );
+        assert!(self.mapping.insert(glyph_id, info).is_none());
     }
 
     pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
@@ -137,6 +138,7 @@ impl FontAtlas {
             .filter_map(|(k, v)| v.as_ref().map(|v| (k, v)))
             .filter(|(_k, v)| !v.texture_synced)
     }
+
     pub fn image(&self) -> &GrayImage {
         &self.image
     }

@@ -46,7 +46,7 @@ impl TextLibrary {
                 attributes: &[wgpu::VertexAttribute {
                     shader_location: 0,
                     offset: 0,
-                    format: wgpu::VertexFormat::Uint32x4,
+                    format: wgpu::VertexFormat::Float32x4,
                 }],
             },
             wgpu::VertexBufferLayout {
@@ -56,7 +56,7 @@ impl TextLibrary {
                     .map(|i| wgpu::VertexAttribute {
                         shader_location: i + 1,
                         offset: 4 * 4 * i as u64,
-                        format: wgpu::VertexFormat::Uint32x4,
+                        format: wgpu::VertexFormat::Float32x4,
                     })
                     .collect::<Vec<_>>(),
             },
@@ -67,10 +67,10 @@ impl TextLibrary {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("glyph_vertices"),
                 contents: bytemuck::cast_slice(&[
-                    Vec4::new(-1.0, -1.0, 0.0, 1.0),
+                    Vec4::new(0.0, 0.0, 0.0, 1.0),
+                    Vec4::new(0.0, -1.0, 0.0, 1.0),
+                    Vec4::new(1.0, 0.0, 0.0, 1.0),
                     Vec4::new(1.0, -1.0, 0.0, 1.0),
-                    Vec4::new(-1.0, 1.0, 0.0, 1.0),
-                    Vec4::new(1.0, 1.0, 0.0, 1.0),
                 ]),
                 usage: wgpu::BufferUsages::VERTEX,
             });
@@ -210,7 +210,7 @@ impl Renderer for TextRenderer {
         }
 
         pass.insert_debug_marker("draw");
-        pass.draw_indexed(0..4, 0, 0..(storage.instances.len() as u32));
+        pass.draw_indexed(0..6, 0, 0..(storage.instances.len() as u32));
 
         Ok(())
     }
