@@ -117,3 +117,9 @@ impl Drop for Frame<'_, '_> {
         self.gfx.take().unwrap().present();
     }
 }
+
+impl Frame<'_, '_> {
+    pub fn resized(&self) -> Option<(u32, u32)> {
+        self.app.resized()
+    }
+}

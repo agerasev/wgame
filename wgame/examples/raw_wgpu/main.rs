@@ -317,7 +317,9 @@ async fn main_(rt: Runtime) {
                 let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
                 let frame = state.create_frame(frame);
                 scene.render(&frame, angle);
-                fps.count();
+                if let Some(fps) = fps.count() {
+                    log::info!("FPS: {fps}");
+                }
             }
         })
         .await

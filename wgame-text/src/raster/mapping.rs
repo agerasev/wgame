@@ -1,6 +1,6 @@
 use etagere::{AllocId, Allocation, AtlasAllocator};
-use hashbrown::HashMap;
 use image::{GenericImage, GenericImageView, GrayImage, math::Rect};
+use std::collections::BTreeMap;
 use swash::{
     GlyphId,
     scale::{Render, Scaler, Source, StrikeWith},
@@ -9,7 +9,7 @@ use swash::{
 
 #[derive(Clone, Copy, Debug)]
 pub struct GlyphImageInfo {
-    pub alloc_id: AllocId,
+    pub _alloc_id: AllocId,
     pub location: Rect,
     pub placement: Placement,
     pub texture_synced: bool,
@@ -17,7 +17,7 @@ pub struct GlyphImageInfo {
 
 pub struct FontAtlas {
     allocator: AtlasAllocator,
-    mapping: HashMap<GlyphId, Option<GlyphImageInfo>>,
+    mapping: BTreeMap<GlyphId, Option<GlyphImageInfo>>,
     image: GrayImage,
     render: Render<'static>,
 }
@@ -26,7 +26,7 @@ impl FontAtlas {
     pub fn new(init_dim: u32) -> Self {
         Self {
             allocator: AtlasAllocator::new((init_dim as i32, init_dim as i32).into()),
-            mapping: HashMap::default(),
+            mapping: BTreeMap::default(),
             image: GrayImage::new(init_dim, init_dim),
             render: Render::new(&[
                 Source::ColorOutline(0),
@@ -36,19 +36,32 @@ impl FontAtlas {
         }
     }
 
-    fn grow(&mut self) {
-        let mut new_allocator = AtlasAllocator::new(self.allocator.size() * 2);
-        let mut new_image = GrayImage::new(2 * self.image.width(), 2 * self.image.height());
+    fn grow(&mut self, prev_size: Option<(i32, i32)>) -> Result<(), (i32, i32)> {
+        let new_size = {
+            let (width, height) = prev_size.unwrap_or_else(|| self.allocator.size().into());
+            if width < height {
+                (width * 2, height)
+            } else {
+                (width, height * 2)
+            }
+        };
 
-        for maybe_info in self.mapping.values_mut() {
+        let mut new_allocator = AtlasAllocator::new(new_size.into());
+        let mut new_image = GrayImage::new(new_size.0 as u32, new_size.1 as u32);
+
+        let mut new_mapping = BTreeMap::new();
+        for (glyph_id, maybe_info) in self.mapping.iter().map(|(k, v)| (*k, *v)) {
             let info = match maybe_info {
                 Some(info) => info,
-                None => continue,
+                None => {
+                    new_mapping.insert(glyph_id, None);
+                    continue;
+                }
             };
             let rect = info.location;
             let alloc = new_allocator
                 .allocate((rect.width as i32, rect.height as i32).into())
-                .expect("Cannot reallocate glyphs during atlas grow");
+                .ok_or(new_size)?;
             assert!(
                 (rect.width <= alloc.rectangle.width() as u32)
                     && (rect.height <= alloc.rectangle.height() as u32),
@@ -65,13 +78,21 @@ impl FontAtlas {
                     new_rect.y,
                 )
                 .expect("Error copying glyphs from one image to another");
-            info.alloc_id = alloc.id;
-            info.location = new_rect;
-            info.texture_synced = false;
-        }
 
+            new_mapping.insert(
+                glyph_id,
+                Some(GlyphImageInfo {
+                    _alloc_id: alloc.id,
+                    location: new_rect,
+                    texture_synced: false,
+                    ..info
+                }),
+            );
+        }
+        self.mapping = new_mapping;
         self.allocator = new_allocator;
         self.image = new_image;
+        Ok(())
     }
 
     fn alloc_space(&mut self, width: u32, height: u32) -> Option<Allocation> {
@@ -84,7 +105,12 @@ impl FontAtlas {
                 .allocate((width as i32, height as i32).into())
             {
                 Some(alloc) => break Some(alloc),
-                None => self.grow(),
+                None => {
+                    let mut prev_size = None;
+                    while let Err(size) = self.grow(prev_size) {
+                        prev_size = Some(size);
+                    }
+                }
             }
         }
     }
@@ -117,7 +143,7 @@ impl FontAtlas {
                     .copy_from(&image, rect.x, rect.y)
                     .expect("Error copying glyph image");
                 Some(GlyphImageInfo {
-                    alloc_id: alloc.id,
+                    _alloc_id: alloc.id,
                     location: rect,
                     placement,
                     texture_synced: false,

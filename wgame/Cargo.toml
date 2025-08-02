@@ -45,3 +45,4 @@ wgpu = { workspace = true, default-features = true }
 bytemuck.workspace = true
 glam.workspace = true
 rgb.workspace = true
+log.workspace = true
