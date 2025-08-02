@@ -31,15 +31,17 @@ impl FrameCounter {
         }
     }
 
-    pub fn count(&mut self) {
+    #[must_use]
+    pub fn count(&mut self) -> Option<f32> {
         self.count += 1;
-
+        let mut value = None;
         let now = Instant::now();
         let elapsed = now - self.start;
         if elapsed > self.period {
-            log::info!("FPS: {}", self.count as f32 / elapsed.as_secs_f32());
+            value = Some(self.count as f32 / elapsed.as_secs_f32());
             self.start = now;
             self.count = 0;
         }
+        value
     }
 }

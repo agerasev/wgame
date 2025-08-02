@@ -13,6 +13,8 @@ pub use wgame_fs as fs;
 pub use wgame_img as img;
 #[cfg(feature = "shapes")]
 pub use wgame_shapes as shapes;
+#[cfg(feature = "text")]
+pub use wgame_text as text;
 #[cfg(feature = "utils")]
 pub use wgame_utils as utils;
 
@@ -113,5 +115,11 @@ impl Drop for Frame<'_, '_> {
     fn drop(&mut self) {
         self.app.pre_present();
         self.gfx.take().unwrap().present();
+    }
+}
+
+impl Frame<'_, '_> {
+    pub fn resized(&self) -> Option<(u32, u32)> {
+        self.app.resized()
     }
 }
