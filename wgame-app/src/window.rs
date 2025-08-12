@@ -46,10 +46,8 @@ impl WindowState {
             }
             _ => (),
         }
-        if wake {
-            if let Some(waker) = self.waker.take() {
-                waker.wake()
-            }
+        if wake && let Some(waker) = self.waker.take() {
+            waker.wake()
         }
     }
 }

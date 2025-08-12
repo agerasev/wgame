@@ -73,7 +73,7 @@ async fn main(rt: Runtime) {
                             &text_lib,
                             RasterizedFont::new(&font, height as f32 / 10.0),
                         ));
-                        text = Some(Text::new(&raster, "Hello, World!"));
+                        text = Some(Text::new(raster, "Hello, World!"));
                     }
 
                     let ctx = frame.context();

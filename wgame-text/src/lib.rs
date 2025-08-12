@@ -36,7 +36,7 @@ impl Font {
         })
     }
 
-    pub fn as_ref(&self) -> FontRef {
+    pub fn as_ref(&'_ self) -> FontRef<'_> {
         FontRef {
             data: &self.contents,
             offset: self.offset,
