@@ -48,9 +48,9 @@ impl<T: Shape> Instance for Textured<T> {
         }
     }
 
-    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
         InstanceData {
-            xform: ctx.view_matrix() * self.shape.xform(),
+            xform: ctx.view * self.shape.xform(),
             tex_xform: self.texture.coord_xform(),
             color: self.color.map(|x| x.to_f32()),
             custom: self.shape.attributes(),

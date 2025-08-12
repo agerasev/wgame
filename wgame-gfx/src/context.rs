@@ -1,36 +1,20 @@
 use glam::Mat4;
+use half::f16;
+use rgb::Rgba;
 
-use crate::{modifiers::Transformed, types::Transform};
+use crate::types::Transform;
 
-pub trait Context {
-    fn view_matrix(&self) -> Mat4;
+#[derive(Clone, Debug)]
+pub struct Context {
+    pub view: Mat4,
+    pub color: Rgba<f16>,
 }
 
-#[derive(Clone, Default, Debug)]
-pub struct DefaultContext;
-
-impl Context for DefaultContext {
-    fn view_matrix(&self) -> Mat4 {
-        Mat4::IDENTITY
-    }
-}
-
-impl<C: Context> Context for &C {
-    fn view_matrix(&self) -> Mat4 {
-        C::view_matrix(self)
-    }
-}
-
-pub trait ContextExt: Context {
-    fn transform<T: Transform>(&self, xform: T) -> Transformed<&Self> {
-        Transformed::new(self, xform)
-    }
-}
-
-impl<C: Context> ContextExt for C {}
-
-impl<C: Context> Context for Transformed<C> {
-    fn view_matrix(&self) -> Mat4 {
-        self.inner.view_matrix() * self.xform
+impl Context {
+    pub fn transform(&self, xform: impl Transform) -> Self {
+        Self {
+            view: self.view * xform.to_mat4(),
+            ..self.clone()
+        }
     }
 }

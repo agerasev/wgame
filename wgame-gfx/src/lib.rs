@@ -12,7 +12,7 @@ pub mod types;
 pub mod utils;
 
 pub use self::{
-    context::{Context, ContextExt},
+    context::Context,
     frame::Frame,
     renderer::{Instance, InstanceExt, Renderer},
 };

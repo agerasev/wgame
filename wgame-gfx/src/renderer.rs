@@ -6,7 +6,7 @@ use core::{
 use alloc::boxed::Box;
 use anyhow::Result;
 
-use crate::{Context, ContextExt, modifiers::Transformed, types::Transform, utils::AnyKey};
+use crate::{Context, modifiers::Transformed, types::Transform, utils::AnyKey};
 
 pub trait Renderer: Any + Eq + Hash {
     type Storage: Any;
@@ -17,7 +17,7 @@ pub trait Renderer: Any + Eq + Hash {
 pub trait Instance {
     type Renderer: Renderer;
     fn get_renderer(&self) -> Self::Renderer;
-    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage);
+    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage);
 }
 
 impl<T: Instance> Instance for &'_ T {
@@ -26,7 +26,7 @@ impl<T: Instance> Instance for &'_ T {
     fn get_renderer(&self) -> Self::Renderer {
         T::get_renderer(self)
     }
-    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
         T::store(self, ctx, storage);
     }
 }
@@ -45,8 +45,8 @@ impl<T: Instance> Instance for Transformed<T> {
     fn get_renderer(&self) -> Self::Renderer {
         self.inner.get_renderer()
     }
-    fn store(&self, ctx: impl Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
-        self.inner.store(ctx.transform(self.xform), storage);
+    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
+        self.inner.store(&ctx.transform(self.xform), storage);
     }
 }
 

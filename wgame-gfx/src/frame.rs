@@ -3,8 +3,9 @@ use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
-    Context, ContextExt, Instance, Renderer, Surface, context::DefaultContext, queue::RenderQueue,
-    types::Color,
+    Context, Instance, Renderer, Surface,
+    queue::RenderQueue,
+    types::{Color, color},
 };
 
 pub struct Frame<'a, 'b> {
@@ -13,6 +14,7 @@ pub struct Frame<'a, 'b> {
     view: wgpu::TextureView,
     render_passes: RenderQueue,
     clear_color: wgpu::Color,
+    ctx: Context,
 }
 
 impl<'a, 'b> Frame<'a, 'b> {
@@ -24,6 +26,17 @@ impl<'a, 'b> Frame<'a, 'b> {
         let view = surface
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+        let ctx = {
+            let aspect_ratio = {
+                let (width, height) = owner.size();
+                width as f32 / height as f32
+            };
+            let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+            Context {
+                view,
+                color: color::WHITE.to_rgba(),
+            }
+        };
 
         Ok(Frame {
             owner,
@@ -31,16 +44,8 @@ impl<'a, 'b> Frame<'a, 'b> {
             view,
             render_passes: RenderQueue::default(),
             clear_color: wgpu::Color::BLACK,
+            ctx,
         })
-    }
-
-    pub fn context(&self) -> impl Context + 'static {
-        let aspect_ratio = {
-            let (width, height) = self.owner.size();
-            width as f32 / height as f32
-        };
-        let xform = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
-        DefaultContext.transform(xform)
     }
 
     /// Set clear color
@@ -51,8 +56,8 @@ impl<'a, 'b> Frame<'a, 'b> {
         };
     }
 
-    pub fn push<T: Instance>(&mut self, ctx: impl Context, instance: T) {
-        self.render_passes.push(ctx, instance);
+    pub fn push<T: Instance>(&mut self, instance: T) {
+        self.render_passes.push(&self.ctx, instance);
     }
 
     fn render(&self) -> Result<()> {

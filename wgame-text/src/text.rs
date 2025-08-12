@@ -3,7 +3,7 @@ use core::cell::RefCell;
 use glam::{Mat4, Quat, Vec3, Vec4};
 use swash::{GlyphId, shape::ShapeContext};
 
-use wgame_gfx::Instance;
+use wgame_gfx::{Context, Instance, Renderer};
 
 use crate::{GlyphInstance, TextRenderer, TexturedFont};
 
@@ -56,11 +56,7 @@ impl Instance for Text {
     fn get_renderer(&self) -> Self::Renderer {
         TextRenderer::new(&self.font)
     }
-    fn store(
-        &self,
-        ctx: impl wgame_gfx::Context,
-        storage: &mut <Self::Renderer as wgame_gfx::Renderer>::Storage,
-    ) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
         let atlas = self.font.atlas.borrow();
         for glyph in &self.glyphs {
             let glyph_image = match atlas.get_glyph(glyph.id) {
@@ -68,7 +64,7 @@ impl Instance for Text {
                 None => continue,
             };
             storage.instances.push(GlyphInstance {
-                xform: ctx.view_matrix()
+                xform: ctx.view
                     * Mat4::from_scale_rotation_translation(
                         Vec3::new(
                             glyph_image.placement.width as f32,

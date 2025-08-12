@@ -17,7 +17,7 @@ impl<R: Renderer + ?Sized> Default for RenderQueue<R> {
 }
 
 impl RenderQueue {
-    pub fn push<T: Instance>(&mut self, ctx: impl Context, instance: T) {
+    pub fn push<T: Instance>(&mut self, ctx: &Context, instance: T) {
         let renderer: Box<dyn AnyRenderer> = Box::new(instance.get_renderer());
         let instances = match self.render_passes.entry(renderer) {
             Entry::Vacant(entry) => {
