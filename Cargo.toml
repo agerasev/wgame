@@ -4,6 +4,7 @@ members = [
     "wgame-app",
     "wgame-gfx",
     "wgame-shapes",
+    "wgame-texture",
     "wgame-fs",
     "wgame-img",
     "wgame-text",
@@ -23,6 +24,7 @@ wgame = { version = "0.1.0", path = "wgame", default-features = false }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-shapes = { version = "0.1.0", path = "wgame-shapes" }
+wgame-texture = { version = "0.1.0", path = "wgame-texture" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
 wgame-img = { version = "0.1.0", path = "wgame-img" }
 wgame-text = { version = "0.1.0", path = "wgame-text" }

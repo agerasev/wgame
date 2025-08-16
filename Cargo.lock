@@ -905,6 +905,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "guillotiere"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b62d5865c036cb1393e23c50693df631d3f5d7bcca4c04fe4cc0fd592e74a782"
+dependencies = [
+ "euclid",
+ "svg_fmt",
+]
+
+[[package]]
 name = "half"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2562,6 +2572,21 @@ dependencies = [
  "image",
  "rgb",
  "swash",
+ "wgame-gfx",
+ "wgpu",
+]
+
+[[package]]
+name = "wgame-texture"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "glam",
+ "guillotiere",
+ "half",
+ "log",
+ "rgb",
  "wgame-gfx",
  "wgpu",
 ]

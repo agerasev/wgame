@@ -1,0 +1,16 @@
+[package]
+name = "wgame-texture"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+wgame-gfx.workspace = true
+wgpu.workspace = true
+anyhow.workspace = true
+log.workspace = true
+bytemuck.workspace = true
+glam.workspace = true
+rgb.workspace = true
+half.workspace = true
+guillotiere = "0.6.2"
