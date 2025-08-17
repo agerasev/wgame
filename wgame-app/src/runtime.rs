@@ -1,20 +1,24 @@
 use alloc::rc::Rc;
 use core::{
     cell::RefCell,
+    fmt::Debug,
     pin::Pin,
     task::{Context, Poll},
     time::Duration,
 };
 
 use futures::FutureExt;
+use thiserror::Error;
 use winit::{error::OsError, window::WindowAttributes};
 
 use crate::{
     Window,
+    app::CURRENT_APP,
     executor::{ExecutorProxy, TaskId},
-    proxy::{AppProxy, CallbackTrigger, SharedCallState},
-    timer::{Instant, Timer},
-    window::create_window,
+    output::{CallOutput, Terminated},
+    proxy::{AppProxy, CallbackTrigger},
+    time::{Instant, Timer},
+    window::{Suspended, create_window},
 };
 
 /// Handle to underlying async runtime.
@@ -28,15 +32,22 @@ impl Runtime {
         Self { app }
     }
 
-    pub fn create_task<T: 'static, F: Future<Output = T> + 'static>(
-        &self,
-        future: F,
-    ) -> JoinHandle<T> {
-        let (task_id, proxy) = self.app.create_task(future);
-        JoinHandle {
+    /// Panics if called not from app task.
+    pub fn current() -> Runtime {
+        Runtime::new(
+            CURRENT_APP.with_borrow(|proxy| proxy.clone().expect("There's no current runtime")),
+        )
+    }
+
+    pub fn create_task<F>(&self, future: F) -> TaskHandle<Result<F::Output, Terminated>>
+    where
+        F: Future<Output: 'static> + 'static,
+    {
+        let (task_id, output) = self.app.create_task(future);
+        TaskHandle {
             task: task_id,
             executor: self.app.executor.clone(),
-            proxy,
+            output,
         }
     }
 
@@ -45,49 +56,54 @@ impl Runtime {
         self.app.timers.borrow_mut().add(timestamp)
     }
 
-    pub async fn create_windowed_task<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
+    pub async fn create_windowed_task<T, F>(
         &self,
         attributes: WindowAttributes,
-        window_main: F,
-    ) -> Result<JoinHandle<T>, OsError> {
+        window_fn: F,
+    ) -> Result<TaskHandle<Result<T, Suspended>>, OsError>
+    where
+        T: 'static,
+        F: AsyncFnOnce(Window<'_>) -> T + 'static,
+    {
         let app = self.app.clone();
-        let (task, proxy) = self
+        let (task, output) = self
             .app
             .run_within_event_loop(
-                move |event_loop| create_window(app, attributes, event_loop, window_main),
+                move |event_loop| create_window(app, attributes, event_loop, window_fn),
                 CallbackTrigger::PollResumed,
             )
             .await?;
-        Ok(JoinHandle {
+        Ok(TaskHandle {
             task,
             executor: self.app.executor.clone(),
-            proxy,
+            output,
         })
     }
 }
 
-pub struct JoinHandle<T> {
+/// Task is **not** terminated on handle drop.
+pub struct TaskHandle<T> {
     task: TaskId,
     executor: Rc<RefCell<ExecutorProxy>>,
-    proxy: SharedCallState<T>,
+    output: CallOutput<T>,
 }
 
-impl<T> JoinHandle<T> {
+impl<T> TaskHandle<T> {
     pub fn terminate(self) {
         self.executor.borrow_mut().terminate(self.task);
     }
 }
 
-impl<T> Future for JoinHandle<T> {
+impl<T> Future for TaskHandle<T> {
     type Output = T;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.proxy.poll_unpin(cx)
+        self.output.poll_unpin(cx)
     }
 }
 
 pub struct EventLoopCall<T> {
-    proxy: SharedCallState<T>,
+    proxy: CallOutput<T>,
 }
 
 impl<T> Future for EventLoopCall<T> {
@@ -96,4 +112,38 @@ impl<T> Future for EventLoopCall<T> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.proxy.poll_unpin(cx)
     }
+}
+
+pub async fn sleep(timeout: Duration) {
+    Runtime::current().create_timer(timeout).await;
+}
+
+pub fn spawn<F>(future: F) -> TaskHandle<Result<F::Output, Terminated>>
+where
+    F: Future<Output: 'static> + 'static,
+{
+    Runtime::current().create_task(future)
+}
+
+pub async fn within_window<T, F>(
+    attributes: WindowAttributes,
+    window_fn: F,
+) -> Result<T, WindowError<OsError>>
+where
+    T: 'static,
+    F: AsyncFnOnce(Window<'_>) -> T + 'static,
+{
+    Runtime::current()
+        .create_windowed_task(attributes, window_fn)
+        .await?
+        .await
+        .map_err(|_: Suspended| WindowError::Suspended)
+}
+
+#[derive(Debug, Error)]
+pub enum WindowError<E: Debug = OsError> {
+    #[error("Application suspended")]
+    Suspended,
+    #[error(transparent)]
+    Other(#[from] E),
 }

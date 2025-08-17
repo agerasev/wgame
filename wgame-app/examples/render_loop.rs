@@ -1,25 +1,23 @@
 use core::time::Duration;
 
-use wgame_app::{Runtime, WindowAttributes, main};
+use wgame_app::{WindowAttributes, main, sleep, within_window};
 
-async fn main_(rt: Runtime) {
+async fn main_() {
     log::info!("Started");
 
-    rt.create_windowed_task(WindowAttributes::default(), {
-        let rt = rt.clone();
-        async move |mut window| {
+    within_window(WindowAttributes::default(), {
+        async |mut window| {
             log::info!("Window created");
             let mut counter = 0;
             while window.request_redraw().await.is_some() {
                 log::info!("Frame #{counter}");
                 counter += 1;
-                rt.create_timer(Duration::from_millis(100)).await;
+                sleep(Duration::from_millis(100)).await;
             }
         }
     })
     .await
-    .unwrap()
-    .await;
+    .unwrap();
 
     log::info!("Closed");
 }

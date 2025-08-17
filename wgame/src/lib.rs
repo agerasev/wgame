@@ -19,15 +19,20 @@ pub use wgame_text as text;
 pub use wgame_utils as utils;
 
 pub use anyhow::{Error, Result};
-pub use app::{runtime::JoinHandle, timer::Timer};
+pub use app::runtime::{sleep, spawn};
 
 use core::ops::{Deref, DerefMut};
+
+use wgame_app::{
+    runtime::{TaskHandle, WindowError},
+    window::Suspended,
+};
 
 #[macro_export]
 macro_rules! run {
     ($main:ident, $async_main:path) => {
-        async fn __wgame_app_wrapper(app_rt: $crate::app::Runtime) {
-            $async_main($crate::Runtime(app_rt)).await
+        async fn __wgame_app_wrapper() {
+            $async_main().await
         }
         $crate::app::entry!($crate::app, $main, __wgame_app_wrapper);
     };
@@ -43,21 +48,43 @@ pub struct WindowConfig {
 pub struct Runtime(pub app::Runtime);
 
 impl Runtime {
-    pub async fn create_window<T, F>(
+    pub async fn create_windowed_task<T, F>(
         &self,
         config: WindowConfig,
         window_main: F,
-    ) -> Result<JoinHandle<Result<T>>>
+    ) -> Result<TaskHandle<Result<Result<T>, Suspended>>>
     where
         T: 'static,
         F: AsyncFnOnce(Window<'_>) -> Result<T> + 'static,
     {
-        self.0
+        Ok(self
+            .0
             .create_windowed_task(config.app, async move |app_window| {
-                window_main(Window::new(app_window, config.gfx).await?).await
+                let window = Window::new(app_window, config.gfx).await?;
+                window_main(window).await
             })
-            .await
-            .map_err(Error::from)
+            .await?)
+    }
+}
+
+pub async fn within_window<T, F>(
+    config: WindowConfig,
+    window_main: F,
+) -> Result<T, WindowError<Error>>
+where
+    T: 'static,
+    F: AsyncFnOnce(Window<'_>) -> Result<T> + 'static,
+{
+    let result = Runtime(app::Runtime::current())
+        .create_windowed_task(config, window_main)
+        .await?
+        .await;
+    match result {
+        Ok(r) => match r {
+            Ok(x) => Ok(x),
+            Err(e) => Err(WindowError::Other(e)),
+        },
+        Err(Suspended) => Err(WindowError::Suspended),
     }
 }
 

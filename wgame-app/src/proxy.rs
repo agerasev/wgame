@@ -1,17 +1,13 @@
 use alloc::{boxed::Box, rc::Rc};
-use core::{
-    cell::{Cell, RefCell},
-    pin::Pin,
-    task::{Context, Poll, Waker},
-};
+use core::cell::RefCell;
 
-use futures::future::FusedFuture;
 use winit::event_loop::ActiveEventLoop;
 
 use crate::{
     app::{AppState, CallbackContainer},
     executor::{ExecutorProxy, TaskId},
-    timer::TimerQueue,
+    output::CallOutput,
+    time::TimerQueue,
 };
 
 pub type CallbackObj = Box<dyn FnOnce(&ActiveEventLoop)>;
@@ -33,102 +29,43 @@ pub struct AppProxy {
     pub(crate) callbacks: Rc<RefCell<CallbackContainer>>,
 }
 
-pub enum CallState<T> {
-    Pending(Option<Waker>),
-    Ready(T),
-    Done,
-}
-
-impl<T> Default for CallState<T> {
-    fn default() -> Self {
-        Self::Pending(None)
-    }
-}
-
-pub struct SharedCallState<T>(Rc<Cell<CallState<T>>>);
-
-impl<T> Clone for SharedCallState<T> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-impl<T> Default for SharedCallState<T> {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
-
-impl<T> Future for SharedCallState<T> {
-    type Output = T;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.0.replace(CallState::Done) {
-            CallState::Pending(_) => {
-                self.0.set(CallState::Pending(Some(cx.waker().clone())));
-                Poll::Pending
-            }
-            CallState::Ready(value) => Poll::Ready(value),
-            CallState::Done => panic!("Call state is done already"),
-        }
-    }
-}
-
-impl<T> FusedFuture for SharedCallState<T> {
-    fn is_terminated(&self) -> bool {
-        match self.0.replace(CallState::Done) {
-            CallState::Done => true,
-            other => {
-                self.0.set(other);
-                false
-            }
-        }
-    }
-}
-
-impl<T> SharedCallState<T> {
-    pub fn set_ready(&self, value: T) {
-        if let CallState::Pending(Some(waker)) = self.0.take() {
-            waker.wake();
-        }
-        self.0.set(CallState::Ready(value));
-    }
-}
-
 impl AppProxy {
-    pub fn create_task<F: Future + 'static>(
+    pub fn create_task<F: Future + 'static, E: Default + 'static>(
         &self,
         future: F,
-    ) -> (TaskId, SharedCallState<F::Output>) {
-        let proxy = SharedCallState::default();
-        let task_id = self.executor.borrow_mut().spawn({
-            let proxy = proxy.clone();
-            async move {
-                let result = future.await;
-                proxy.set_ready(result);
-            }
-        });
-        (task_id, proxy)
+    ) -> (TaskId, CallOutput<Result<F::Output, E>>) {
+        let output = CallOutput::default();
+        let task_id = self.executor.borrow_mut().spawn(
+            {
+                let proxy = output.clone();
+                async move {
+                    let result = future.await;
+                    proxy.set_ready(Ok(result));
+                }
+            },
+            output.default_fallible(),
+        );
+        (task_id, output)
     }
 
     pub fn run_within_event_loop<T: 'static, F: FnOnce(&ActiveEventLoop) -> T + 'static>(
         &self,
         call: F,
         trigger: CallbackTrigger,
-    ) -> SharedCallState<T> {
-        let proxy = SharedCallState::default();
+    ) -> CallOutput<T> {
+        let output = CallOutput::default();
         let mut callbacks = self.callbacks.borrow_mut();
         let list = match trigger {
             CallbackTrigger::Poll => &mut callbacks.next_poll,
             CallbackTrigger::PollResumed => &mut callbacks.on_resume,
         };
         list.push(Box::new({
-            let proxy = proxy.clone();
+            let output = output.clone();
             move |event_loop| {
                 let result = call(event_loop);
-                proxy.set_ready(result);
+                output.set_ready(result);
             }
         }));
-        proxy
+        output
     }
 }

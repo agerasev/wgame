@@ -7,12 +7,17 @@ extern crate std;
 
 mod app;
 mod executor;
+mod output;
 mod proxy;
 pub mod runtime;
-pub mod timer;
+pub mod time;
 pub mod window;
 
-pub use crate::{app::App, runtime::Runtime, window::Window};
+pub use crate::{
+    app::App,
+    runtime::{Runtime, sleep, spawn, within_window},
+    window::Window,
+};
 
 pub use winit::window::WindowAttributes;
 
@@ -33,12 +38,11 @@ pub mod deps {
 #[macro_export]
 macro_rules! run {
     ($crate_:path, $async_main:path) => {{
-        use $crate_::{App, Runtime, deps::*};
+        use $crate_::{App, deps::*};
 
         log::info!("Running App");
         let app = App::new().unwrap();
-        let proxy = app.proxy();
-        proxy.create_task($async_main(Runtime::new(proxy.clone())));
+        app.proxy().create_task::<_, ()>($async_main());
         app.run().unwrap();
     }};
 }
