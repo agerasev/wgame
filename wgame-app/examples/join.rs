@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use wgame_app::{Runtime, main};
+use wgame_app::{Runtime, app_main};
 
 async fn main_(rt: Runtime) {
     log::info!("Spawning new task");
@@ -16,4 +16,4 @@ async fn main_(rt: Runtime) {
     log::info!("Joined task 0");
 }
 
-main!(main_);
+app_main!(main_);

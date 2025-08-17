@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use wgame_app::{Runtime, main};
+use wgame_app::{Runtime, app_main};
 
 async fn main_(rt: Runtime) {
     println!("Spawning new task");
@@ -17,4 +17,4 @@ async fn main_(rt: Runtime) {
     println!("Awakened task 0");
 }
 
-main!(main_);
+app_main!(main_);

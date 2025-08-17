@@ -15,6 +15,7 @@ use winit::{
 };
 
 use crate::{
+    Runtime,
     executor::TaskId,
     proxy::{AppProxy, SharedCallState},
 };
@@ -55,11 +56,16 @@ impl WindowState {
 pub struct Window<'a> {
     handle: &'a WindowHandle,
     state: Rc<RefCell<WindowState>>,
+    pub runtime: Runtime,
 }
 
 impl<'a> Window<'a> {
-    fn new(handle: &'a WindowHandle, state: Rc<RefCell<WindowState>>) -> Self {
-        Self { handle, state }
+    fn new(handle: &'a WindowHandle, state: Rc<RefCell<WindowState>>, runtime: Runtime) -> Self {
+        Self {
+            handle,
+            state,
+            runtime,
+        }
     }
 }
 
@@ -86,6 +92,7 @@ pub(crate) fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'stati
     attributes: WindowAttributes,
     event_loop: &ActiveEventLoop,
     window_main: F,
+    rt: Runtime,
 ) -> Result<(TaskId, SharedCallState<T>), OsError> {
     let handle = event_loop.create_window(update_attributes(attributes))?;
     let id = handle.id();
@@ -94,7 +101,7 @@ pub(crate) fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'stati
     let (task, proxy) = app.create_task({
         let app = app.clone();
         async move {
-            let window = Window::new(&handle, state.clone());
+            let window = Window::new(&handle, state.clone(), rt);
             let result = window_main(window).await;
             app.state.borrow_mut().remove_window(id);
             result
@@ -114,6 +121,7 @@ impl<'a> Window<'a> {
     }
 
     pub fn request_redraw(&mut self) -> WaitRedraw<'a, '_> {
+        self.handle.request_redraw();
         WaitRedraw { owner: self }
     }
 }
@@ -172,11 +180,5 @@ impl Redraw<'_> {
 
     pub fn pre_present(&mut self) {
         self.handle.pre_present_notify();
-    }
-}
-
-impl<'b> Drop for Redraw<'b> {
-    fn drop(&mut self) {
-        self.handle.request_redraw();
     }
 }

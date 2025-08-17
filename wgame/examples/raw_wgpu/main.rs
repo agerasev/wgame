@@ -328,4 +328,4 @@ async fn main_(rt: Runtime) {
     println!("Closed");
 }
 
-wgame_app::main!(main_);
+wgame_app::app_main!(main_);

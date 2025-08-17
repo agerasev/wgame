@@ -51,10 +51,11 @@ impl Runtime {
         window_main: F,
     ) -> Result<JoinHandle<T>, OsError> {
         let app = self.app.clone();
+        let this = self.clone();
         let (task, proxy) = self
             .app
             .run_within_event_loop(
-                move |event_loop| create_window(app, attributes, event_loop, window_main),
+                move |event_loop| create_window(app, attributes, event_loop, window_main, this),
                 CallbackTrigger::PollResumed,
             )
             .await?;

@@ -5,7 +5,7 @@ extern crate alloc;
 
 pub use wgame_app as app;
 pub use wgame_gfx as gfx;
-pub use wgame_macros::main;
+pub use wgame_macros::{app, window};
 
 #[cfg(feature = "fs")]
 pub use wgame_fs as fs;
@@ -24,12 +24,18 @@ pub use app::{runtime::JoinHandle, timer::Timer};
 use core::ops::{Deref, DerefMut};
 
 #[macro_export]
-macro_rules! run {
-    ($main:ident, $async_main:path) => {
-        async fn __wgame_app_wrapper(app_rt: $crate::app::Runtime) {
-            $async_main($crate::Runtime(app_rt)).await
-        }
-        $crate::app::entry!($crate::app, $main, __wgame_app_wrapper);
+macro_rules! run_app {
+    ($main:ident, $app_fn:expr) => {
+        $crate::app::entry!($crate::app, $main, async |rt: $crate::app::Runtime| {
+            $app_fn($crate::Runtime(rt)).await
+        });
+    };
+}
+
+#[macro_export]
+macro_rules! run_window {
+    ($main:ident, $window_fn:expr) => {
+        $crate::run_app!($main, $crate::app::open_window!($crate::app, $window_fn));
     };
 }
 
