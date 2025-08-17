@@ -19,7 +19,7 @@ pub use winit::window::WindowAttributes;
 pub mod deps {
     pub use log;
 
-    #[cfg(not(feature = "web"))]
+    #[cfg(feature = "std")]
     pub use env_logger;
 
     #[cfg(feature = "web")]
@@ -43,7 +43,7 @@ macro_rules! run {
     }};
 }
 
-#[cfg(not(feature = "web"))]
+#[cfg(feature = "std")]
 #[macro_export]
 macro_rules! entry {
     ($crate_:path, $main:ident, $async_main:path) => {
@@ -72,6 +72,14 @@ macro_rules! entry {
 
             run!($crate_, $async_main);
         }
+    };
+}
+
+#[cfg(all(not(feature = "std"), not(feature = "web")))]
+#[macro_export]
+macro_rules! entry {
+    ($crate_:path, $main:ident, $async_main:path) => {
+        #![error("Neither `std` nor `web` feature enabled")]
     };
 }
 
