@@ -24,6 +24,7 @@ pub use app::runtime::{sleep, spawn};
 use core::ops::{Deref, DerefMut};
 
 use wgame_app::{
+    TryUnwrap,
     runtime::{TaskHandle, WindowError},
     window::Suspended,
 };
@@ -31,32 +32,31 @@ use wgame_app::{
 #[macro_export]
 macro_rules! run_app {
     ($main:ident, $app_fn:expr) => {
-        $crate::app::entry!($crate::app, $main, $app_fn);
+        fn $main() {
+            $crate::app::entry($app_fn);
+        }
     };
 }
 
 #[macro_export]
 macro_rules! run_window {
     ($main:ident, $window_fn:expr) => {
-        $crate::run_app!($main, $crate::open_window!($window_fn));
+        $crate::run_app!($main, async || $crate::app_with_single_window($window_fn)
+            .await);
     };
 }
 
-#[macro_export]
-macro_rules! open_window {
-    ($window_fn:expr) => {{
-        use $crate::{WindowConfig, within_window};
-
-        async || {
-            within_window(WindowConfig::default(), async |window| {
-                log::info!("Window opened");
-                let result = $window_fn(window).await;
-                log::info!("Window closed");
-                result
-            })
-            .await
-        }
-    }};
+pub async fn app_with_single_window<R, F>(mut window_fn: F) -> Result<R>
+where
+    R: TryUnwrap + 'static,
+    F: AsyncFnMut(Window<'_>) -> Result<R> + 'static,
+{
+    app::app_with_single_window(async move |app_window| {
+        let config = WindowConfig::default();
+        let window = Window::new(app_window, config.gfx).await?;
+        window_fn(window).await
+    })
+    .await?
 }
 
 #[derive(Clone, Default, Debug)]
@@ -76,7 +76,7 @@ impl Runtime {
     pub async fn create_windowed_task<T, F>(
         &self,
         config: WindowConfig,
-        window_main: F,
+        window_fn: F,
     ) -> Result<TaskHandle<Result<Result<T>, Suspended>>>
     where
         T: 'static,
@@ -86,7 +86,7 @@ impl Runtime {
             .0
             .create_windowed_task(config.app, async move |app_window| {
                 let window = Window::new(app_window, config.gfx).await?;
-                window_main(window).await
+                window_fn(window).await
             })
             .await?)
     }

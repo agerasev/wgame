@@ -9,7 +9,7 @@ use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
     Result, Window,
-    app::{deps::log, time::Instant},
+    app::time::Instant,
     fs::read_bytes,
     gfx::{InstanceExt, types::color},
     img::image_to_texture,
