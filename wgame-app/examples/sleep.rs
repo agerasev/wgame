@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use wgame_app::{main, sleep};
+use wgame_app::{app_main, sleep};
 
 async fn main_() {
     log::info!("Going to sleep");
@@ -8,4 +8,4 @@ async fn main_() {
     log::info!("Awakened");
 }
 
-main!(main_);
+app_main!(main_);

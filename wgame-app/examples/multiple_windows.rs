@@ -1,5 +1,5 @@
 use futures::join;
-use wgame_app::{WindowAttributes, main, within_window};
+use wgame_app::{WindowAttributes, app_main, within_window};
 
 async fn main_() {
     log::info!("Started");
@@ -23,4 +23,4 @@ async fn main_() {
     log::info!("Closed");
 }
 
-main!(main_);
+app_main!(main_);

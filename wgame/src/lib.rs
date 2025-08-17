@@ -5,7 +5,7 @@ extern crate alloc;
 
 pub use wgame_app as app;
 pub use wgame_gfx as gfx;
-pub use wgame_macros::main;
+pub use wgame_macros::{app, window};
 
 #[cfg(feature = "fs")]
 pub use wgame_fs as fs;
@@ -29,13 +29,34 @@ use wgame_app::{
 };
 
 #[macro_export]
-macro_rules! run {
-    ($main:ident, $async_main:path) => {
-        async fn __wgame_app_wrapper() {
-            $async_main().await
-        }
-        $crate::app::entry!($crate::app, $main, __wgame_app_wrapper);
+macro_rules! run_app {
+    ($main:ident, $app_fn:expr) => {
+        $crate::app::entry!($crate::app, $main, $app_fn);
     };
+}
+
+#[macro_export]
+macro_rules! run_window {
+    ($main:ident, $window_fn:expr) => {
+        $crate::run_app!($main, $crate::open_window!($window_fn));
+    };
+}
+
+#[macro_export]
+macro_rules! open_window {
+    ($window_fn:expr) => {{
+        use $crate::{WindowConfig, within_window};
+
+        async || {
+            within_window(WindowConfig::default(), async |window| {
+                log::info!("Window opened");
+                let result = $window_fn(window).await;
+                log::info!("Window closed");
+                result
+            })
+            .await
+        }
+    }};
 }
 
 #[derive(Clone, Default, Debug)]
@@ -48,6 +69,10 @@ pub struct WindowConfig {
 pub struct Runtime(pub app::Runtime);
 
 impl Runtime {
+    pub fn current() -> Self {
+        Runtime(app::Runtime::current())
+    }
+
     pub async fn create_windowed_task<T, F>(
         &self,
         config: WindowConfig,
@@ -75,7 +100,7 @@ where
     T: 'static,
     F: AsyncFnOnce(Window<'_>) -> Result<T> + 'static,
 {
-    let result = Runtime(app::Runtime::current())
+    let result = Runtime::current()
         .create_windowed_task(config, window_main)
         .await?
         .await;

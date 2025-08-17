@@ -10,7 +10,7 @@ use futures::future::FusedFuture;
 enum State<T> {
     Pending(Option<Waker>),
     Ready(T),
-    Completed,
+    Taken,
 }
 
 impl<T> Default for State<T> {
@@ -33,25 +33,38 @@ impl<T> Default for CallOutput<T> {
     }
 }
 
+impl<T> CallOutput<T> {
+    pub fn try_take(&self) -> Option<T> {
+        match self.0.replace(State::Taken) {
+            State::Pending(waker) => {
+                self.0.set(State::Pending(waker));
+                None
+            }
+            State::Ready(value) => Some(value),
+            State::Taken => panic!("Call output is already taken"),
+        }
+    }
+}
+
 impl<T> Future for CallOutput<T> {
     type Output = T;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.0.replace(State::Completed) {
+        match self.0.replace(State::Taken) {
             State::Pending(_) => {
                 self.0.set(State::Pending(Some(cx.waker().clone())));
                 Poll::Pending
             }
             State::Ready(value) => Poll::Ready(value),
-            State::Completed => panic!("Call state is completed already"),
+            State::Taken => panic!("Call output is already taken"),
         }
     }
 }
 
 impl<T> FusedFuture for CallOutput<T> {
     fn is_terminated(&self) -> bool {
-        match self.0.replace(State::Completed) {
-            State::Completed => true,
+        match self.0.replace(State::Taken) {
+            State::Taken => true,
             other => {
                 self.0.set(other);
                 false

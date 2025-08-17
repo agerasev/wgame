@@ -5,7 +5,7 @@ use std::{
 };
 
 use bytemuck::{Pod, Zeroable};
-use wgame_app::{Runtime, WindowAttributes, window::Redraw};
+use wgame_app::{Window, window::Redraw};
 use wgame_utils::FrameCounter;
 use wgpu::util::DeviceExt;
 
@@ -299,33 +299,29 @@ impl TriangleScene {
     }
 }
 
-async fn main_(rt: Runtime) {
+async fn main_(mut window: Window<'_>) {
     println!("Started");
-    rt.clone()
-        .create_windowed_task(WindowAttributes::default(), async move |mut window| {
-            println!("Window created");
 
-            let mut state = WgpuState::new(window.handle()).await;
-            println!("Surface created");
+    println!("Window created");
 
-            let mut scene = TriangleScene::new(&state);
-            println!("Scene created");
+    let mut state = WgpuState::new(window.handle()).await;
+    println!("Surface created");
 
-            let start_time = Instant::now();
-            let mut fps = FrameCounter::default();
-            while let Some(frame) = window.request_redraw().await {
-                let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
-                let frame = state.create_frame(frame);
-                scene.render(&frame, angle);
-                if let Some(fps) = fps.count() {
-                    log::info!("FPS: {fps}");
-                }
-            }
-        })
-        .await
-        .unwrap()
-        .await;
+    let mut scene = TriangleScene::new(&state);
+    println!("Scene created");
+
+    let start_time = Instant::now();
+    let mut fps = FrameCounter::default();
+    while let Some(frame) = window.request_redraw().await {
+        let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
+        let frame = state.create_frame(frame);
+        scene.render(&frame, angle);
+        if let Some(fps) = fps.count() {
+            log::info!("FPS: {fps}");
+        }
+    }
+
     println!("Closed");
 }
 
-wgame_app::main!(main_);
+wgame_app::window_main!(main_);
