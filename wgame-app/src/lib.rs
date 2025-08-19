@@ -7,16 +7,17 @@ extern crate std;
 
 mod app;
 mod executor;
-mod output;
-mod proxy;
+pub mod output;
 pub mod runtime;
 pub mod time;
 pub mod window;
+mod windowed_task;
 
 pub use crate::{
     app::App,
-    runtime::{Runtime, WindowError, sleep, spawn, within_window},
+    runtime::{Runtime, Task, sleep, spawn},
     window::Window,
+    windowed_task::{WindowError, WindowedTask, create_windowed_task},
 };
 
 pub use winit::window::WindowAttributes;
@@ -24,61 +25,61 @@ pub use winit::window::WindowAttributes;
 use alloc::rc::Rc;
 use core::{cell::RefCell, fmt::Debug};
 
-use winit::error::OsError;
-
-pub trait TryUnwrap {
-    type Output;
-    fn try_unwrap(self) -> Self::Output;
+pub trait MainResult {
+    fn try_unwrap(self);
 }
 
-impl TryUnwrap for () {
-    type Output = ();
+impl MainResult for () {
     fn try_unwrap(self) {}
 }
 
-impl<T, E: Debug> TryUnwrap for Result<T, E> {
-    type Output = T;
-    fn try_unwrap(self) -> Self::Output {
+impl<E: Debug> MainResult for Result<(), E> {
+    fn try_unwrap(self) {
         self.unwrap()
     }
 }
 
 pub fn run_app<R, F>(app_fn: F)
 where
-    R: TryUnwrap + 'static,
+    R: MainResult + 'static,
     F: AsyncFnOnce() -> R + 'static,
 {
     log::info!("Running App");
     let app = App::new().unwrap();
-    let output = app.proxy().create_task::<_, ()>(app_fn()).1;
+    let task = app.runtime().create_task(app_fn());
     app.run().unwrap();
-    output
+    task.output()
         .try_take()
         .unwrap()
         .expect("Main task has been interrupted")
         .try_unwrap();
 }
 
-pub async fn app_with_single_window<R, F>(window_fn: F) -> Result<R, OsError>
+pub async fn app_with_single_window<R, F>(window_fn: F) -> R
 where
-    R: 'static,
+    R: MainResult + 'static,
     F: AsyncFnMut(Window) -> R + 'static,
 {
     let window_fn = Rc::new(RefCell::new(window_fn));
     loop {
         let window_fn = window_fn.clone();
-        let result = within_window(WindowAttributes::default(), async move |window| {
-            log::info!("Window created");
-            let result = (window_fn.borrow_mut())(window).await;
-            log::info!("Window closed");
-            result
-        })
+        let result = create_windowed_task(
+            &Runtime::current(),
+            WindowAttributes::default(),
+            async move |window| {
+                log::info!("Window created");
+                let result = (window_fn.borrow_mut())(window).await;
+                log::info!("Window closed");
+                result
+            },
+        )
         .await;
         match result {
-            Ok(x) => break Ok(x),
+            Ok(x) => break x,
             Err(e) => match e {
+                WindowError::Creation(e) => panic!("Cannot create main window: {e}"),
+                WindowError::Terminated => panic!("Main window terminated"),
                 WindowError::Suspended => log::info!("Suspended"),
-                WindowError::Other(e) => break Err(e),
             },
         }
     }
@@ -87,7 +88,7 @@ where
 #[cfg(feature = "std")]
 pub fn entry<R, F>(app_fn: F)
 where
-    R: TryUnwrap + 'static,
+    R: MainResult + 'static,
     F: AsyncFnOnce() -> R + 'static,
 {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -98,7 +99,7 @@ where
 #[cfg(feature = "web")]
 pub fn entry<R, F>(app_fn: F)
 where
-    R: TryUnwrap + 'static,
+    R: MainResult + 'static,
     F: AsyncFnOnce() -> R + 'static,
 {
     console_error_panic_hook::set_once();
@@ -110,7 +111,7 @@ where
 #[cfg(all(not(feature = "std"), not(feature = "web")))]
 pub fn entry<R, F>(app_fn: F)
 where
-    R: TryUnwrap + 'static,
+    R: MainResult + 'static,
     F: AsyncFnOnce() -> R + 'static,
 {
     #![error("Neither `std` nor `web` feature enabled")]

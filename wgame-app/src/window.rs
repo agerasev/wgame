@@ -14,7 +14,7 @@ use winit::{
     window::{Window as WindowHandle, WindowAttributes},
 };
 
-use crate::{executor::TaskId, output::CallOutput, proxy::AppProxy};
+use crate::runtime::{Runtime, Task};
 
 #[derive(Default)]
 pub(crate) struct WindowState {
@@ -78,17 +78,21 @@ fn update_attributes(attributes: WindowAttributes) -> WindowAttributes {
     }
 }
 
-pub(crate) fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'static>(
-    app: AppProxy,
+pub(crate) fn create_window<T, F>(
+    app: Runtime,
     attributes: WindowAttributes,
     event_loop: &ActiveEventLoop,
     window_main: F,
-) -> Result<(TaskId, CallOutput<Result<T, Suspended>>), OsError> {
+) -> Result<Task<T>, OsError>
+where
+    T: 'static,
+    F: AsyncFnOnce(Window<'_>) -> T + 'static,
+{
     let handle = event_loop.create_window(update_attributes(attributes))?;
     let id = handle.id();
     let state = Rc::new(RefCell::new(WindowState::default()));
     let weak = Rc::downgrade(&state);
-    let (task, output) = app.create_task({
+    let task = app.create_task({
         let app = app.clone();
         async move {
             let window = Window::new(&handle, state.clone());
@@ -97,8 +101,8 @@ pub(crate) fn create_window<T: 'static, F: AsyncFnOnce(Window<'_>) -> T + 'stati
             result
         }
     });
-    app.state.borrow_mut().insert_window(id, task, weak);
-    Ok((task, output))
+    app.state.borrow_mut().insert_window(id, task.id(), weak);
+    Ok(task)
 }
 
 impl<'a> Window<'a> {
@@ -106,7 +110,7 @@ impl<'a> Window<'a> {
         self.handle.inner_size().into()
     }
 
-    pub fn handle(&self) -> &'a WindowHandle {
+    pub fn raw(&self) -> &'a WindowHandle {
         self.handle
     }
 
@@ -172,6 +176,3 @@ impl Redraw<'_> {
         self.handle.pre_present_notify();
     }
 }
-
-#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
-pub struct Suspended;

@@ -3,6 +3,11 @@
 
 extern crate alloc;
 
+mod window;
+
+use core::cell::RefCell;
+
+use alloc::rc::Rc;
 pub use wgame_app as app;
 pub use wgame_gfx as gfx;
 pub use wgame_macros::{app, window};
@@ -19,15 +24,9 @@ pub use wgame_text as text;
 pub use wgame_utils as utils;
 
 pub use anyhow::{Error, Result};
-pub use app::runtime::{sleep, spawn};
+pub use app::{Runtime, sleep, spawn};
 
-use core::ops::{Deref, DerefMut};
-
-use wgame_app::{
-    TryUnwrap,
-    runtime::{TaskHandle, WindowError},
-    window::Suspended,
-};
+pub use crate::window::*;
 
 #[macro_export]
 macro_rules! run_app {
@@ -46,132 +45,35 @@ macro_rules! run_window {
     };
 }
 
-pub async fn app_with_single_window<R, F>(mut window_fn: F) -> Result<R>
+pub async fn app_with_single_window<R, F>(window_fn: F) -> R
 where
-    R: TryUnwrap + 'static,
-    F: AsyncFnMut(Window<'_>) -> Result<R> + 'static,
+    R: app::MainResult + 'static,
+    F: AsyncFnMut(Window) -> R + 'static,
 {
-    app::app_with_single_window(async move |app_window| {
-        let config = WindowConfig::default();
-        let window = Window::new(app_window, config.gfx).await?;
-        window_fn(window).await
-    })
-    .await?
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct WindowConfig {
-    pub app: app::WindowAttributes,
-    pub gfx: gfx::Config,
-}
-
-#[derive(Clone)]
-pub struct Runtime(pub app::Runtime);
-
-impl Runtime {
-    pub fn current() -> Self {
-        Runtime(app::Runtime::current())
-    }
-
-    pub async fn create_windowed_task<T, F>(
-        &self,
-        config: WindowConfig,
-        window_fn: F,
-    ) -> Result<TaskHandle<Result<Result<T>, Suspended>>>
-    where
-        T: 'static,
-        F: AsyncFnOnce(Window<'_>) -> Result<T> + 'static,
-    {
-        Ok(self
-            .0
-            .create_windowed_task(config.app, async move |app_window| {
-                let window = Window::new(app_window, config.gfx).await?;
-                window_fn(window).await
-            })
-            .await?)
-    }
-}
-
-pub async fn within_window<T, F>(
-    config: WindowConfig,
-    window_main: F,
-) -> Result<T, WindowError<Error>>
-where
-    T: 'static,
-    F: AsyncFnOnce(Window<'_>) -> Result<T> + 'static,
-{
-    let result = Runtime::current()
-        .create_windowed_task(config, window_main)
-        .await?
+    let window_fn = Rc::new(RefCell::new(window_fn));
+    loop {
+        let window_fn = window_fn.clone();
+        let result = create_windowed_task(
+            &Runtime::current(),
+            WindowConfig::default(),
+            async move |window| {
+                log::info!("Window created");
+                let result = (window_fn.borrow_mut())(window).await;
+                log::info!("Window closed");
+                result
+            },
+        )
         .await;
-    match result {
-        Ok(r) => match r {
-            Ok(x) => Ok(x),
-            Err(e) => Err(WindowError::Other(e)),
-        },
-        Err(Suspended) => Err(WindowError::Suspended),
-    }
-}
-
-pub struct Window<'a> {
-    gfx: gfx::Surface<'a>,
-    app: app::Window<'a>,
-}
-
-impl<'a> Window<'a> {
-    async fn new(app: app::Window<'a>, gfx_cfg: gfx::Config) -> Result<Self> {
-        let mut gfx = gfx::Surface::new(gfx_cfg, app.handle()).await?;
-        gfx.resize(app.size());
-        Ok(Self { app, gfx })
-    }
-
-    pub async fn next_frame(&mut self) -> Result<Option<Frame<'a, '_>>> {
-        match self.app.request_redraw().await {
-            None => Ok(None),
-            Some(redraw) => {
-                if let Some(size) = redraw.resized() {
-                    self.gfx.resize(size);
-                }
-                Ok(Some(Frame {
-                    app: redraw,
-                    gfx: Some(self.gfx.frame()?),
-                }))
-            }
+        match result {
+            Ok(r) => match r {
+                Ok(x) => break x,
+                Err(e) => panic!("Cannot initialize graphics: {e}"),
+            },
+            Err(e) => match e {
+                WindowError::Creation(e) => panic!("Cannot create main window: {e}"),
+                WindowError::Terminated => panic!("Main window terminated"),
+                WindowError::Suspended => log::info!("Suspended"),
+            },
         }
-    }
-
-    pub fn graphics(&self) -> &gfx::Graphics {
-        self.gfx.state()
-    }
-}
-
-pub struct Frame<'a, 'b> {
-    gfx: Option<gfx::Frame<'a, 'b>>,
-    app: app::window::Redraw<'b>,
-}
-
-impl<'a, 'b> Deref for Frame<'a, 'b> {
-    type Target = gfx::Frame<'a, 'b>;
-    fn deref(&self) -> &Self::Target {
-        self.gfx.as_ref().unwrap()
-    }
-}
-
-impl DerefMut for Frame<'_, '_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.gfx.as_mut().unwrap()
-    }
-}
-
-impl Drop for Frame<'_, '_> {
-    fn drop(&mut self) {
-        self.app.pre_present();
-        self.gfx.take().unwrap().present();
-    }
-}
-
-impl Frame<'_, '_> {
-    pub fn resized(&self) -> Option<(u32, u32)> {
-        self.app.resized()
     }
 }

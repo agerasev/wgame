@@ -304,7 +304,7 @@ async fn main_(mut window: Window<'_>) {
 
     println!("Window created");
 
-    let mut state = WgpuState::new(window.handle()).await;
+    let mut state = WgpuState::new(window.raw()).await;
     println!("Surface created");
 
     let mut scene = TriangleScene::new(&state);

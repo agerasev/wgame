@@ -16,13 +16,13 @@ use winit::{
 
 use crate::{
     executor::{Executor, TaskId},
-    proxy::{AppProxy, CallbackObj},
+    runtime::{CallbackObj, Runtime},
     time::TimerQueue,
     window::WindowState,
 };
 
 thread_local! {
-    pub static CURRENT_APP: RefCell<Option<AppProxy>> = const { RefCell::new(None) };
+    pub static CURRENT: RefCell<Option<Runtime>> = const { RefCell::new(None) };
 }
 
 #[derive(Debug)]
@@ -95,8 +95,8 @@ impl App {
         })
     }
 
-    pub fn proxy(&self) -> AppProxy {
-        AppProxy {
+    pub fn runtime(&self) -> Runtime {
+        Runtime {
             executor: self.executor.proxy(),
             state: self.state.clone(),
             timers: self.timers.clone(),
@@ -105,7 +105,7 @@ impl App {
     }
 
     pub fn run(self) -> Result<(), EventLoopError> {
-        assert!(CURRENT_APP.replace(Some(self.proxy())).is_none());
+        assert!(CURRENT.replace(Some(self.runtime())).is_none());
 
         let mut app = AppHandler {
             state: self.state,
@@ -123,7 +123,7 @@ impl App {
             self.event_loop.run_app(&mut app)
         };
 
-        assert!(CURRENT_APP.replace(None).is_some());
+        assert!(CURRENT.replace(None).is_some());
 
         result
     }

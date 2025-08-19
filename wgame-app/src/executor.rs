@@ -14,8 +14,9 @@ use hashbrown::{
 use winit::event_loop::EventLoopProxy;
 
 type FutureObj = Pin<Box<dyn Future<Output = ()>>>;
+type Terminator = Box<dyn FnOnce()>;
 
-use crate::{app::UserEvent, output::DefaultFallible};
+use crate::app::UserEvent;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
 pub struct TaskId(u64);
@@ -31,7 +32,7 @@ impl TaskId {
 struct Task {
     future: Pin<Box<dyn Future<Output = ()>>>,
     waker: Waker,
-    output: Rc<dyn DefaultFallible>,
+    output: Terminator,
 }
 
 struct TaskData {
@@ -58,13 +59,13 @@ impl Task {
         id: TaskId,
         event_loop: EventLoopProxy<UserEvent>,
         future: Pin<Box<dyn Future<Output = ()>>>,
-        proxy: Rc<dyn DefaultFallible>,
+        output: Terminator,
     ) -> Self {
         let data = Arc::new(TaskData { id, event_loop });
         Self {
             future,
             waker: waker(data),
-            output: proxy,
+            output,
         }
     }
 
@@ -87,7 +88,7 @@ pub struct Executor {
 #[derive(Default)]
 pub struct ExecutorProxy {
     task_counter: TaskId,
-    new_tasks: Vec<(TaskId, FutureObj, Rc<dyn DefaultFallible>)>,
+    new_tasks: Vec<(TaskId, FutureObj, Terminator)>,
     tasks_to_terminate: HashSet<TaskId>,
 }
 
@@ -159,26 +160,20 @@ impl Executor {
     }
 
     pub fn terminate_task(&mut self, task_id: TaskId) {
-        self.tasks_to_poll.retain(|id| *id != task_id);
-        self.tasks.retain(|id, task| {
-            if *id != task_id {
-                true
-            } else {
-                task.output.set_failed();
-                false
-            }
-        });
+        self.tasks_to_poll.remove(&task_id);
+        self.tasks.remove(&task_id).map(|task| (task.output)());
     }
 }
 
 impl ExecutorProxy {
-    pub fn spawn<F: Future<Output = ()> + 'static>(
+    pub fn spawn<F: Future<Output = ()> + 'static, G: FnOnce() + 'static>(
         &mut self,
         future: F,
-        output: Rc<dyn DefaultFallible>,
+        terminator: G,
     ) -> TaskId {
         let id = self.task_counter.get_and_inc();
         let future = Box::pin(future);
+        let output = Box::new(terminator);
         self.new_tasks.push((id, future, output));
         id
     }

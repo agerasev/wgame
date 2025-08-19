@@ -81,24 +81,6 @@ impl<T> CallOutput<T> {
         self.0.set(State::Ready(value));
     }
 }
-impl<T: 'static, E: Default + 'static> CallOutput<Result<T, E>> {
-    pub fn default_fallible(&self) -> Rc<dyn DefaultFallible> {
-        self.0.clone() as _
-    }
-}
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
 pub struct Terminated;
-
-pub trait DefaultFallible {
-    fn set_failed(&self);
-}
-
-impl<T, E: Default> DefaultFallible for Cell<State<Result<T, E>>> {
-    fn set_failed(&self) {
-        if let State::Pending(Some(waker)) = self.take() {
-            waker.wake();
-        }
-        self.set(State::Ready(Err(E::default())));
-    }
-}
