@@ -1,20 +1,17 @@
 use core::time::Duration;
 
-use wgame_app::{Runtime, main};
+use wgame_app::{app_main, sleep, spawn};
 
-async fn main_(rt: Runtime) {
+async fn main_() {
     println!("Spawning new task");
-    rt.create_task({
-        let rt = rt.clone();
-        async move {
-            println!("Sleep task 1");
-            rt.create_timer(Duration::from_secs(2)).await;
-            println!("Awakened task 1");
-        }
+    spawn(async {
+        println!("Sleep task 1");
+        sleep(Duration::from_secs(2)).await;
+        println!("Awakened task 1");
     });
     println!("Sleep task 0");
-    rt.create_timer(Duration::from_secs(1)).await;
+    sleep(Duration::from_secs(1)).await;
     println!("Awakened task 0");
 }
 
-main!(main_);
+app_main!(main_);

@@ -16,6 +16,7 @@ pub use self::{
     frame::Frame,
     renderer::{Instance, InstanceExt, Renderer},
 };
+pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
 use alloc::rc::Rc;

@@ -21,3 +21,4 @@ futures.workspace = true
 glam.workspace = true
 rgb.workspace = true
 image = { workspace = true, features = ["png"] }
+log.workspace = true

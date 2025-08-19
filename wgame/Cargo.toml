@@ -37,6 +37,7 @@ wgame-text = { workspace = true, optional = true }
 wgame-utils = { workspace = true, optional = true }
 wgame-macros.workspace = true
 anyhow.workspace = true
+log.workspace = true
 
 [dev-dependencies]
 futures = { workspace = true, default-features = true }
@@ -45,4 +46,3 @@ wgpu = { workspace = true, default-features = true }
 bytemuck.workspace = true
 glam.workspace = true
 rgb.workspace = true
-log.workspace = true
