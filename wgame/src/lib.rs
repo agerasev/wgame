@@ -45,6 +45,7 @@ macro_rules! run_window {
     };
 }
 
+#[allow(clippy::await_holding_refcell_ref)]
 pub async fn app_with_single_window<R, F>(window_fn: F) -> R
 where
     R: app::MainResult + 'static,

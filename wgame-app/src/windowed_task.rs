@@ -77,9 +77,8 @@ impl<T> WindowedTask<T> {
             (&mut state.stage, &mut state.terminated)
         });
         *terminated = true;
-        match &*stage {
-            Stage::Run(task) => task.terminate(),
-            _ => (),
+        if let Stage::Run(task) = &*stage {
+            task.terminate();
         }
     }
 }

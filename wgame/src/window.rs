@@ -35,7 +35,7 @@ where
     T: 'static,
     F: AsyncFnOnce(Window<'_>) -> Result<T> + 'static,
 {
-    Ok(create_windowed_task(&Runtime::current(), config, window_fn).await???)
+    create_windowed_task(&Runtime::current(), config, window_fn).await??
 }
 
 pub struct Window<'a> {

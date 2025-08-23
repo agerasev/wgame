@@ -55,6 +55,7 @@ where
         .try_unwrap();
 }
 
+#[allow(clippy::await_holding_refcell_ref)]
 pub async fn app_with_single_window<R, F>(window_fn: F) -> R
 where
     R: MainResult + 'static,
@@ -86,6 +87,7 @@ where
 }
 
 #[cfg(feature = "std")]
+#[allow(clippy::unit_arg)]
 pub fn entry<R, F>(app_fn: F)
 where
     R: MainResult + 'static,
@@ -93,10 +95,11 @@ where
 {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    run_app(app_fn).try_unwrap()
+    run_app(app_fn).try_unwrap();
 }
 
 #[cfg(feature = "web")]
+#[allow(clippy::unit_arg)]
 pub fn entry<R, F>(app_fn: F)
 where
     R: MainResult + 'static,

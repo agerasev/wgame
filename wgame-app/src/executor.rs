@@ -161,7 +161,9 @@ impl Executor {
 
     pub fn terminate_task(&mut self, task_id: TaskId) {
         self.tasks_to_poll.remove(&task_id);
-        self.tasks.remove(&task_id).map(|task| (task.output)());
+        if let Some(task) = self.tasks.remove(&task_id) {
+            (task.output)();
+        }
     }
 }
 
