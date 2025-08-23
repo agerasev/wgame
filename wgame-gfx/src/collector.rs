@@ -1,12 +1,14 @@
-use alloc::boxed::Box;
+use alloc::{
+    boxed::Box,
+    collections::btree_map::{BTreeMap, Entry},
+};
 
 use anyhow::Result;
-use hashbrown::{HashMap, hash_map::Entry};
 
 use crate::{Context, Instance, Resources, instance::AnyResources};
 
 pub struct Collector<R: Resources = Box<dyn AnyResources>> {
-    render_passes: HashMap<R, R::Storage>,
+    render_passes: BTreeMap<R, R::Storage>,
 }
 
 impl<R: Resources> Default for Collector<R> {

@@ -101,7 +101,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             frame.push(text.transform(Affine2::from_scale_angle_translation(
                 Vec2::splat(1.0 / window_size.1 as f32),
                 0.0,
-                Vec2::new(-1.0, 0.8),
+                Vec2::new(0.4, 0.3),
             )));
         }
 

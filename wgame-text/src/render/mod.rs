@@ -6,7 +6,7 @@ use anyhow::Result;
 use glam::{Mat4, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{Graphics, Renderer, Resources};
+use wgame_gfx::{Graphics, Renderer, Resources, utils::Ordered};
 
 pub use texture::TexturedFont;
 
@@ -213,6 +213,12 @@ impl Resources for TextResources {
             instance_buffer,
             instance_count: storage.instances.len() as u32,
         })
+    }
+}
+impl Ordered for TextResources {
+    fn order(&self) -> i64 {
+        // Text is rendered over other shapes by default
+        1 << 16
     }
 }
 

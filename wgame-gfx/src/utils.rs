@@ -1,14 +1,16 @@
 use core::{
     any::Any,
+    cmp::Ordering,
     hash::{Hash, Hasher},
 };
 
 pub trait AnyKey: Any + 'static {
     fn hash_dyn(&self, state: &mut dyn Hasher);
     fn eq_dyn(&self, other: &dyn AnyKey) -> bool;
+    fn cmp_dyn(&self, other: &dyn AnyKey) -> Ordering;
 }
 
-impl<T: Eq + Hash + 'static> AnyKey for T {
+impl<T: Ord + Hash + 'static> AnyKey for T {
     fn hash_dyn(&self, mut state: &mut dyn Hasher) {
         self.hash(&mut state);
     }
@@ -17,6 +19,16 @@ impl<T: Eq + Hash + 'static> AnyKey for T {
             self.eq(other)
         } else {
             false
+        }
+    }
+    fn cmp_dyn(&self, other: &dyn AnyKey) -> Ordering {
+        match self.type_id().cmp(&other.type_id()) {
+            Ordering::Equal => self.cmp(
+                (other as &dyn Any)
+                    .downcast_ref::<T>()
+                    .expect("Type IDs are equal, but downcast failed"),
+            ),
+            not_equal => not_equal,
         }
     }
 }
@@ -32,5 +44,11 @@ impl Eq for dyn AnyKey {}
 impl Hash for dyn AnyKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash_dyn(state);
+    }
+}
+
+pub trait Ordered {
+    fn order(&self) -> i64 {
+        0
     }
 }

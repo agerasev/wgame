@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use anyhow::Result;
 use smallvec::SmallVec;
 
-use wgame_gfx::{Renderer, Resources};
+use wgame_gfx::{Renderer, Resources, utils::Ordered};
 use wgpu::util::DeviceExt;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -58,6 +58,7 @@ impl Resources for ShapeResources {
         })
     }
 }
+impl Ordered for ShapeResources {}
 
 impl Renderer for ShapeRenderer {
     fn draw(&self, pass: &mut wgpu::RenderPass<'_>) -> Result<()> {
