@@ -18,7 +18,7 @@ use wgame::{
     utils::FrameCounter,
 };
 
-#[wgame::window]
+#[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
 async fn main(mut window: Window<'_>) -> Result<()> {
     let gfx = Library::new(window.graphics()).unwrap();
     let tex = image_to_texture(&gfx, &read_bytes("assets/lenna.png").await.unwrap()).unwrap();

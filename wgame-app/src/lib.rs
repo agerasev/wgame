@@ -20,7 +20,7 @@ pub use crate::{
     windowed_task::{WindowError, WindowedTask, create_windowed_task},
 };
 
-pub use winit::window::WindowAttributes;
+pub use winit::{dpi::PhysicalSize as Size, window::WindowAttributes};
 
 use alloc::rc::Rc;
 use core::{cell::RefCell, fmt::Debug};

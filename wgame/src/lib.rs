@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+mod config;
 mod window;
 
 use core::cell::RefCell;
@@ -26,7 +27,7 @@ pub use wgame_utils as utils;
 pub use anyhow::{Error, Result};
 pub use app::{Runtime, sleep, spawn};
 
-pub use crate::window::*;
+pub use crate::{config::*, window::*};
 
 #[macro_export]
 macro_rules! run_app {
@@ -39,14 +40,16 @@ macro_rules! run_app {
 
 #[macro_export]
 macro_rules! run_window {
-    ($main:ident, $window_fn:expr) => {
-        $crate::run_app!($main, async || $crate::app_with_single_window($window_fn)
-            .await);
+    ($main:ident, $window_fn:expr, $config:expr) => {
+        $crate::run_app!($main, async || $crate::app_with_single_window(
+            $window_fn, $config,
+        )
+        .await);
     };
 }
 
 #[allow(clippy::await_holding_refcell_ref)]
-pub async fn app_with_single_window<R, F>(window_fn: F) -> R
+pub async fn app_with_single_window<R, F>(window_fn: F, config: WindowConfig) -> R
 where
     R: app::MainResult + 'static,
     F: AsyncFnMut(Window) -> R + 'static,
@@ -54,17 +57,14 @@ where
     let window_fn = Rc::new(RefCell::new(window_fn));
     loop {
         let window_fn = window_fn.clone();
-        let result = create_windowed_task(
-            &Runtime::current(),
-            WindowConfig::default(),
-            async move |window| {
+        let result =
+            create_windowed_task(&Runtime::current(), config.clone(), async move |window| {
                 log::info!("Window created");
                 let result = (window_fn.borrow_mut())(window).await;
                 log::info!("Window closed");
                 result
-            },
-        )
-        .await;
+            })
+            .await;
         match result {
             Ok(r) => match r {
                 Ok(x) => break x,

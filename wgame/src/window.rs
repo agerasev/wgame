@@ -3,17 +3,12 @@ use core::ops::{Deref, DerefMut};
 use anyhow::Result;
 
 use crate::{
-    app::{self, Runtime, WindowAttributes},
+    app::{self, Runtime},
+    config::WindowConfig,
     gfx,
 };
 
 pub use app::{WindowError, WindowedTask};
-
-#[derive(Clone, Default, Debug)]
-pub struct WindowConfig {
-    pub app: WindowAttributes,
-    pub gfx: gfx::Config,
-}
 
 pub fn create_windowed_task<T, F>(
     rt: &Runtime,
