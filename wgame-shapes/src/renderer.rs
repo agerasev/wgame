@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use anyhow::Result;
 use smallvec::SmallVec;
 
-use wgame_gfx::{Renderer, Resources, utils::Ordered};
+use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
 use wgpu::util::DeviceExt;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -28,11 +28,13 @@ pub struct VertexStorage {
     pub data: Vec<u8>,
 }
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct ShapeRenderer {
     pub resources: ShapeResources,
     pub instance_buffer: wgpu::Buffer,
     pub instance_count: u32,
 }
+impl AnyOrder for ShapeRenderer {}
 
 impl Resources for ShapeResources {
     type Storage = VertexStorage;
@@ -58,7 +60,6 @@ impl Resources for ShapeResources {
         })
     }
 }
-impl Ordered for ShapeResources {}
 
 impl Renderer for ShapeRenderer {
     fn draw(&self, pass: &mut wgpu::RenderPass<'_>) -> Result<()> {

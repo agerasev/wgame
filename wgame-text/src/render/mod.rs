@@ -6,7 +6,7 @@ use anyhow::Result;
 use glam::{Mat4, Vec4};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{Graphics, Renderer, Resources, utils::Ordered};
+use wgame_gfx::{Graphics, Renderer, Resources, utils::AnyOrder};
 
 pub use texture::TexturedFont;
 
@@ -168,6 +168,7 @@ pub struct TextStorage {
     pub(crate) instances: Vec<GlyphInstance>,
 }
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextRenderer {
     resources: TextResources,
     bind_group: wgpu::BindGroup,
@@ -215,12 +216,6 @@ impl Resources for TextResources {
         })
     }
 }
-impl Ordered for TextResources {
-    fn order(&self) -> i64 {
-        // Text is rendered over other shapes by default
-        1 << 16
-    }
-}
 
 impl Renderer for TextRenderer {
     fn draw(&self, pass: &mut wgpu::RenderPass) -> Result<()> {
@@ -239,5 +234,11 @@ impl Renderer for TextRenderer {
         pass.draw_indexed(0..6, 0, 0..self.instance_count);
 
         Ok(())
+    }
+}
+impl AnyOrder for TextRenderer {
+    fn order(&self) -> i64 {
+        // Text is rendered over other shapes by default
+        1 << 16
     }
 }

@@ -53,8 +53,7 @@ fn fragment_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
     }
     let value = f32(int_value) / 255.0;
 
-    // var color = vec4<f32>(1.0, 1.0, 1.0, value);
-    var color = vec4<f32>(value, value, value, 1.0);
+    var color = vec4<f32>(1.0, 1.0, 1.0, value);
     color *= vertex.color;
 
     return color;

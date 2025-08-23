@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use core::{
     any::Any,
     cmp::Ordering,
@@ -47,8 +48,14 @@ impl Hash for dyn AnyKey {
     }
 }
 
-pub trait Ordered {
+pub trait AnyOrder {
     fn order(&self) -> i64 {
         0
+    }
+}
+
+impl<T: AnyOrder + ?Sized> AnyOrder for Box<T> {
+    fn order(&self) -> i64 {
+        (**self).order()
     }
 }

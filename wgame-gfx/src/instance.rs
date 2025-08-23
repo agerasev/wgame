@@ -9,18 +9,18 @@ use anyhow::Result;
 
 use crate::{
     Context,
-    modifiers::Transformed,
+    modifiers::{Colored, Ordered, Transformed},
     renderer::Renderer,
-    types::Transform,
-    utils::{AnyKey, Ordered},
+    types::{Color, Transform},
+    utils::AnyKey,
 };
 
 /// Shared resource required to draw an instance.
 ///
 /// Equality of the instances' resources means that they can be draw in single render pass.
-pub trait Resources: Any + Ord + Hash + Ordered {
+pub trait Resources: Any + Ord + Hash {
     type Storage: Any;
-    type Renderer: Renderer;
+    type Renderer: Renderer + Ord + Hash;
 
     fn new_storage(&self) -> Self::Storage;
     fn make_renderer(&self, instances: &Self::Storage) -> Result<Self::Renderer>;
@@ -48,22 +48,16 @@ pub trait InstanceExt: Instance + Sized {
     fn transform<T: Transform>(&self, xform: T) -> Transformed<&Self> {
         Transformed::new(self, xform)
     }
+    fn color<C: Color>(&self, color: C) -> Colored<&Self> {
+        Colored::new(self, color)
+    }
+    fn order(&self, order: i64) -> Ordered<&Self> {
+        Ordered::new(self, order)
+    }
 }
-
 impl<T: Instance> InstanceExt for T {}
 
-impl<T: Instance> Instance for Transformed<T> {
-    type Resources = T::Resources;
-
-    fn get_resources(&self) -> Self::Resources {
-        self.inner.get_resources()
-    }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
-        self.inner.store(&ctx.transform(self.xform), storage);
-    }
-}
-
-pub trait AnyResources: AnyKey + Ordered {
+pub trait AnyResources: AnyKey {
     fn new_dyn_storage(&self) -> Box<dyn Any>;
     fn make_dyn_renderer(&self, instances: &dyn Any) -> Result<Box<dyn Renderer>>;
 }
@@ -87,7 +81,6 @@ impl PartialEq for dyn AnyResources {
     }
 }
 impl Eq for dyn AnyResources {}
-
 impl PartialOrd for dyn AnyResources {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -95,12 +88,9 @@ impl PartialOrd for dyn AnyResources {
 }
 impl Ord for dyn AnyResources {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.order()
-            .cmp(&other.order())
-            .then_with(|| self.cmp_dyn(other))
+        self.cmp_dyn(other)
     }
 }
-
 impl Hash for dyn AnyResources {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash_dyn(state);
@@ -128,10 +118,5 @@ impl Resources for Box<dyn AnyResources> {
     }
     fn make_renderer(&self, instances: &Self::Storage) -> Result<Self::Renderer> {
         (**self).make_dyn_renderer(&**instances)
-    }
-}
-impl Ordered for Box<dyn AnyResources> {
-    fn order(&self) -> i64 {
-        (**self).order()
     }
 }

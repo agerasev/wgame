@@ -1,14 +1,12 @@
-use alloc::{
-    boxed::Box,
-    collections::btree_map::{BTreeMap, Entry},
-};
+use alloc::boxed::Box;
 
 use anyhow::Result;
+use hashbrown::{HashMap, hash_map::Entry};
 
 use crate::{Context, Instance, Resources, instance::AnyResources};
 
 pub struct Collector<R: Resources = Box<dyn AnyResources>> {
-    render_passes: BTreeMap<R, R::Storage>,
+    render_passes: HashMap<R, R::Storage>,
 }
 
 impl<R: Resources> Default for Collector<R> {
@@ -49,7 +47,7 @@ impl<R: Resources> Collector<R> {
         }
     }
 
-    pub fn renderers(&self) -> impl Iterator<Item = Result<R::Renderer>> {
+    pub fn renderers(&self) -> impl ExactSizeIterator<Item = Result<R::Renderer>> {
         self.render_passes.iter().map(|(k, v)| k.make_renderer(v))
     }
 }

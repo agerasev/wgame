@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use anyhow::{Context as _, Result};
 use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
@@ -78,8 +79,9 @@ impl<'a, 'b> Frame<'a, 'b> {
             ..Default::default()
         });
 
-        for renderer_or_err in self.render_passes.renderers() {
-            let renderer = renderer_or_err?;
+        let mut renderers: Vec<_> = self.render_passes.renderers().collect::<Result<_>>()?;
+        renderers.sort_by(|a, b| a.order().cmp(&b.order()).then_with(|| a.cmp(b)));
+        for renderer in renderers {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &self.view,
