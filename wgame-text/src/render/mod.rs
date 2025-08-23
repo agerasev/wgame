@@ -115,7 +115,11 @@ impl TextLibrary {
                 module: &shader,
                 entry_point: Some("fragment_main"),
                 compilation_options: Default::default(),
-                targets: &[Some(swapchain_format.into())],
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: swapchain_format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
             }),
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
