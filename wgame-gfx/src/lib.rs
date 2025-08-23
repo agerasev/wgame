@@ -8,7 +8,7 @@ mod context;
 mod frame;
 mod instance;
 pub mod modifiers;
-mod renderer;
+pub mod renderer;
 pub mod types;
 pub mod utils;
 
