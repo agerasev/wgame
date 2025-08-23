@@ -3,8 +3,7 @@ use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
-    Context, Instance, Renderer, Surface,
-    queue::RenderQueue,
+    Collector, Context, Instance, Surface,
     types::{Color, color},
 };
 
@@ -12,7 +11,7 @@ pub struct Frame<'a, 'b> {
     owner: &'b mut Surface<'a>,
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
-    render_passes: RenderQueue,
+    render_passes: Collector,
     clear_color: wgpu::Color,
     ctx: Context,
 }
@@ -42,7 +41,7 @@ impl<'a, 'b> Frame<'a, 'b> {
             owner,
             surface,
             view,
-            render_passes: RenderQueue::default(),
+            render_passes: Collector::default(),
             clear_color: wgpu::Color::BLACK,
             ctx,
         })
@@ -57,7 +56,7 @@ impl<'a, 'b> Frame<'a, 'b> {
     }
 
     pub fn push<T: Instance>(&mut self, instance: T) {
-        self.render_passes.push(&self.ctx, instance);
+        self.render_passes.push_any(&self.ctx, instance);
     }
 
     fn render(&self) -> Result<()> {
@@ -79,7 +78,8 @@ impl<'a, 'b> Frame<'a, 'b> {
             ..Default::default()
         });
 
-        for (renderer, instances) in self.render_passes.iter() {
+        for renderer_or_err in self.render_passes.renderers() {
+            let renderer = renderer_or_err?;
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &self.view,
@@ -91,7 +91,7 @@ impl<'a, 'b> Frame<'a, 'b> {
                 })],
                 ..Default::default()
             });
-            renderer.draw(instances, &mut pass)?;
+            renderer.draw(&mut pass)?;
         }
 
         self.owner.state.queue().submit(Some(encoder.finish()));

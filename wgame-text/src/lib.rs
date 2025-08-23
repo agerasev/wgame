@@ -1,13 +1,13 @@
 #![forbid(unsafe_code)]
 
 mod raster;
-mod render;
+pub mod render;
 mod text;
 
 pub(crate) use self::render::GlyphInstance;
 pub use self::{
     raster::RasterizedFont,
-    render::{TextLibrary, TextRenderer, TexturedFont},
+    render::{TextLibrary, TexturedFont},
     text::Text,
 };
 
