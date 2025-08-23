@@ -75,6 +75,7 @@ impl<'a, 'b> Frame<'a, 'b> {
                     load: wgpu::LoadOp::Clear(self.clear_color),
                     store: wgpu::StoreOp::Store,
                 },
+                depth_slice: None,
             })],
             ..Default::default()
         });
@@ -90,6 +91,7 @@ impl<'a, 'b> Frame<'a, 'b> {
                         load: wgpu::LoadOp::Load,
                         store: wgpu::StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 ..Default::default()
             });

@@ -29,17 +29,17 @@ wgame-text = { version = "0.1.0", path = "wgame-text" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
-winit = { version = "0.30.11", default-features = false, features = ["rwh_06"] }
-wgpu = { version = "25.0.2", default-features = false, features = ["wgsl"] }
-bytemuck = "1.23.1"
-glam = { version = "0.30.4", features = ["bytemuck"] }
-rgb = { version = "0.8.50", default-features = false, features = ["bytemuck"] }
+winit = { version = "0.30.12", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "26.0.1", default-features = false, features = ["wgsl"] }
+bytemuck = "1.23.2"
+glam = { version = "0.30.5", features = ["bytemuck"] }
+rgb = { version = "0.8.52", default-features = false, features = ["bytemuck"] }
 half = { version = "2.6.0", default-features = false, features = ["bytemuck"] }
 image = { version = "0.25.6", default-features = false }
-hashbrown = { version = "0.15.4", features = ["core", "alloc"] }
+hashbrown = { version = "0.15.5", features = ["core", "alloc"] }
 smallvec = "1.15.1"
-thiserror = { version = "2.0.15", default-features = false }
-anyhow = "1.0.98"
+thiserror = { version = "2.0.16", default-features = false }
+anyhow = "1.0.99"
 log = "0.4.27"
 wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4.50"
