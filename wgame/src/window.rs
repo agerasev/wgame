@@ -94,4 +94,8 @@ impl Frame<'_, '_> {
     pub fn resized(&self) -> Option<(u32, u32)> {
         self.app.resized()
     }
+
+    pub fn render(&mut self) -> Result<usize> {
+        self.gfx.as_mut().unwrap().render()
+    }
 }

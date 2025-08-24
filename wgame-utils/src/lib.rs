@@ -4,7 +4,7 @@
 #[cfg(feature = "std")]
 extern crate std;
 
-use core::time::Duration;
+use core::{ops::Deref, time::Duration};
 #[cfg(feature = "std")]
 use std::time::Instant;
 #[cfg(feature = "web")]
@@ -33,15 +33,46 @@ impl FrameCounter {
 
     #[must_use]
     pub fn count(&mut self) -> Option<f32> {
+        self.count_ext().map(|guard| guard.per_second())
+    }
+
+    #[must_use]
+    pub fn count_ext(&mut self) -> Option<CountGuard<'_>> {
         self.count += 1;
-        let mut value = None;
         let now = Instant::now();
         let elapsed = now - self.start;
         if elapsed > self.period {
-            value = Some(self.count as f32 / elapsed.as_secs_f32());
-            self.start = now;
-            self.count = 0;
+            Some(CountGuard { owner: self, now })
+        } else {
+            None
         }
-        value
+    }
+}
+
+pub struct CountGuard<'a> {
+    owner: &'a mut FrameCounter,
+    pub now: Instant,
+}
+
+impl CountGuard<'_> {
+    pub fn elapsed(&self) -> Duration {
+        self.now - self.start
+    }
+    pub fn per_second(&self) -> f32 {
+        self.count as f32 / self.elapsed().as_secs_f32()
+    }
+}
+
+impl Deref for CountGuard<'_> {
+    type Target = FrameCounter;
+    fn deref(&self) -> &Self::Target {
+        self.owner
+    }
+}
+
+impl Drop for CountGuard<'_> {
+    fn drop(&mut self) {
+        self.owner.start = self.now;
+        self.owner.count = 0;
     }
 }

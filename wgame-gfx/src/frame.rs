@@ -13,7 +13,7 @@ pub struct Frame<'a, 'b> {
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
     render_passes: Collector,
-    clear_color: wgpu::Color,
+    clear_color: Option<wgpu::Color>,
     ctx: Context,
 }
 
@@ -43,7 +43,7 @@ impl<'a, 'b> Frame<'a, 'b> {
             surface,
             view,
             render_passes: Collector::default(),
-            clear_color: wgpu::Color::BLACK,
+            clear_color: Some(wgpu::Color::BLACK),
             ctx,
         })
     }
@@ -52,7 +52,7 @@ impl<'a, 'b> Frame<'a, 'b> {
     pub fn clear(&mut self, color: impl Color) {
         self.clear_color = {
             let Rgba { r, g, b, a } = color.to_rgba().map(|c| c.to_f64());
-            wgpu::Color { r, g, b, a }
+            Some(wgpu::Color { r, g, b, a })
         };
     }
 
@@ -60,28 +60,31 @@ impl<'a, 'b> Frame<'a, 'b> {
         self.render_passes.push_any(&self.ctx, instance);
     }
 
-    fn render(&self) -> Result<()> {
+    pub fn render(&mut self) -> Result<usize> {
         let mut encoder = self
             .owner
             .state
             .device()
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &self.view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(self.clear_color),
-                    store: wgpu::StoreOp::Store,
-                },
-                depth_slice: None,
-            })],
-            ..Default::default()
-        });
+        if let Some(clear_color) = self.clear_color.take() {
+            let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(clear_color),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                ..Default::default()
+            });
+        }
 
         let mut renderers: Vec<_> = self.render_passes.renderers().collect::<Result<_>>()?;
         renderers.sort_by(|a, b| a.order().cmp(&b.order()).then_with(|| a.cmp(b)));
+        let n_passes = renderers.len();
         for renderer in renderers {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -97,13 +100,13 @@ impl<'a, 'b> Frame<'a, 'b> {
             });
             renderer.draw(&mut pass)?;
         }
-
+        self.render_passes = Collector::default();
         self.owner.state.queue().submit(Some(encoder.finish()));
 
-        Ok(())
+        Ok(n_passes)
     }
 
-    pub fn present(self) {
+    pub fn present(mut self) {
         self.render().expect("Error during rendering");
         self.surface.present();
     }

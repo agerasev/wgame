@@ -59,6 +59,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let scale = 1.0 / 3.0;
     let start_time = Instant::now();
     let mut fps = FrameCounter::new(Duration::from_secs(4));
+    let mut n_passes = 0;
     while let Some(mut frame) = window.next_frame().await? {
         if let Some((width, height)) = frame.resized() {
             window_size = (width, height);
@@ -108,8 +109,14 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             )));
         }
 
-        if let Some(fps) = fps.count() {
-            log::info!("FPS: {fps}");
+        n_passes += frame.render()?;
+        if let Some(frames) = fps.count_ext() {
+            log::info!(
+                "FPS: {},\tRPasses per frame: {}",
+                frames.per_second(),
+                n_passes as f32 / frames.count as f32,
+            );
+            n_passes = 0;
         }
     }
     Ok(())
