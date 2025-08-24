@@ -5,11 +5,11 @@ use glam::Affine2;
 use half::f16;
 use rgb::Rgba;
 
-use crate::{Graphics, LibraryState, atlas::InnerAtlas};
+use crate::{Graphics, SharedState, atlas::InnerAtlas};
 
 #[derive(Clone)]
 pub struct Texture {
-    state: LibraryState,
+    state: SharedState,
     atlas: Rc<RefCell<InnerAtlas>>,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
@@ -18,42 +18,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub(crate) fn create_bind_group_layout(state: &Graphics) -> wgpu::BindGroupLayout {
-        state
-            .device()
-            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("texture_bind_group"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            })
-    }
-    pub(crate) fn create_sampler(state: &Graphics) -> wgpu::Sampler {
-        state.device().create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        })
-    }
-
-    pub(crate) fn new(state: &LibraryState, size: (u32, u32)) -> Self {
+    pub(crate) fn new(state: &SharedState, size: (u32, u32)) -> Self {
         let device = state.device();
 
         let extent = wgpu::Extent3d {
@@ -74,7 +39,7 @@ impl Texture {
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &state.texture_bind_group_layout,
+            layout: &state.float_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -82,7 +47,7 @@ impl Texture {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&state.texture_sampler),
+                    resource: wgpu::BindingResource::Sampler(&state.float_sampler),
                 },
             ],
             label: None,
@@ -128,7 +93,7 @@ impl Texture {
     }
 
     pub fn bind_group_layout(&self) -> wgpu::BindGroupLayout {
-        self.state.texture_bind_group_layout.clone()
+        self.state.float_bind_group_layout.clone()
     }
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
