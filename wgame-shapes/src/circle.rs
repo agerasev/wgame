@@ -5,7 +5,7 @@ use glam::{Affine2, Mat2, Vec2};
 use wgame_macros::{Attributes, StoreBytes};
 
 use crate::{
-    Library, LibraryState, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
+    ShapeLibrary, LibraryState, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
     renderer::VertexBuffers, shader::ShaderConfig,
 };
 
@@ -44,7 +44,7 @@ impl CircleLibrary {
 }
 
 pub struct Circle {
-    state: Library,
+    state: ShapeLibrary,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
@@ -54,7 +54,7 @@ pub struct Circle {
 impl Shape for Circle {
     type Attributes = CircleAttrs;
 
-    fn state(&self) -> &Library {
+    fn state(&self) -> &ShapeLibrary {
         &self.state
     }
 
@@ -77,7 +77,7 @@ impl Shape for Circle {
     }
 }
 
-impl Library {
+impl ShapeLibrary {
     pub fn unit_ring(&self, inner_radius: f32) -> impl Shape {
         Circle {
             state: self.clone(),

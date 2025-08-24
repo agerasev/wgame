@@ -5,12 +5,12 @@ use wgame_gfx::{
     types::{Color, Transform},
 };
 
-use crate::{Library, Texture, Textured, attributes::Attributes, renderer::VertexBuffers};
+use crate::{ShapeLibrary, Texture, Textured, attributes::Attributes, renderer::VertexBuffers};
 
 pub trait Shape {
     type Attributes: Attributes;
 
-    fn state(&self) -> &Library;
+    fn state(&self) -> &ShapeLibrary;
 
     fn vertices(&self) -> VertexBuffers;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
@@ -26,7 +26,7 @@ pub trait Shape {
 impl<T: Shape> Shape for &T {
     type Attributes = T::Attributes;
 
-    fn state(&self) -> &Library {
+    fn state(&self) -> &ShapeLibrary {
         T::state(self)
     }
     fn vertices(&self) -> VertexBuffers {
@@ -79,7 +79,7 @@ impl<T: Shape> ShapeExt for T {}
 impl<T: Shape> Shape for Transformed<T> {
     type Attributes = T::Attributes;
 
-    fn state(&self) -> &Library {
+    fn state(&self) -> &ShapeLibrary {
         self.inner.state()
     }
     fn vertices(&self) -> VertexBuffers {

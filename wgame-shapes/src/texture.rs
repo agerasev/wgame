@@ -3,8 +3,9 @@ use half::f16;
 use rgb::Rgba;
 
 use wgame_gfx::types::Color;
+use wgame_img::Image;
 
-use crate::{Graphics, Library, LibraryState};
+use crate::{Graphics, LibraryState, ShapeLibrary};
 
 #[derive(Clone)]
 pub struct Texture {
@@ -102,7 +103,7 @@ impl Texture {
         }
     }
 
-    pub fn write(&self, data: &[Rgba<f16>]) {
+    pub(crate) fn write(&self, data: &[Rgba<f16>]) {
         let format = self.texture.format();
         let bytes_per_block = format.block_copy_size(None).unwrap();
         assert_eq!(
@@ -136,17 +137,10 @@ impl Texture {
     }
 }
 
-impl Library {
-    pub fn texture(&self, size: impl Into<(u32, u32)>) -> Texture {
-        Texture::new(self, size.into())
-    }
-    pub fn texture_with_data(
-        &self,
-        size: impl Into<(u32, u32)>,
-        data: impl AsRef<[Rgba<f16>]>,
-    ) -> Texture {
-        let tex = self.texture(size);
-        tex.write(data.as_ref());
+impl ShapeLibrary {
+    pub fn texture(&self, image: &Image) -> Texture {
+        let tex = Texture::new(self, image.size());
+        tex.write(image.data());
         tex
     }
 
@@ -160,7 +154,7 @@ impl Library {
     ) -> Texture {
         let colors = colors.map(|row| row.map(|color| color.to_rgba()));
         let pix_size = Vec2::new(M as f32, N as f32).recip();
-        self.texture_with_data((M as u32, N as u32), colors.as_flattened())
+        self.texture(&Image::new((M as u32, N as u32), colors.as_flattened()).unwrap())
             .transform_coord(Affine2::from_scale_angle_translation(
                 1.0 - pix_size,
                 0.0,

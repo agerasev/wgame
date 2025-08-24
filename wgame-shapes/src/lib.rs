@@ -63,21 +63,21 @@ impl InnerState {
 
 /// 2D graphics library
 #[derive(Clone)]
-pub struct Library {
+pub struct ShapeLibrary {
     state: LibraryState,
     polygon: PolygonLibrary,
     circle: CircleLibrary,
     white_texture: Texture,
 }
 
-impl Deref for Library {
+impl Deref for ShapeLibrary {
     type Target = LibraryState;
     fn deref(&self) -> &Self::Target {
         &self.state
     }
 }
 
-impl Library {
+impl ShapeLibrary {
     pub fn new(state: &Graphics) -> Result<Self> {
         let state = Rc::new(InnerState::new(state));
         Ok(Self {

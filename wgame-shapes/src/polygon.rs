@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 use wgame_gfx::types::Position;
 
 use crate::{
-    Library, LibraryState, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline,
+    ShapeLibrary, LibraryState, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline,
     primitive::VertexData, renderer::VertexBuffers,
 };
 
@@ -92,7 +92,7 @@ impl PolygonLibrary {
 }
 
 pub struct Polygon<const N: u32> {
-    state: Library,
+    state: ShapeLibrary,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
@@ -101,7 +101,7 @@ pub struct Polygon<const N: u32> {
 impl<const N: u32> Shape for Polygon<N> {
     type Attributes = ();
 
-    fn state(&self) -> &Library {
+    fn state(&self) -> &ShapeLibrary {
         &self.state
     }
 
@@ -120,7 +120,7 @@ impl<const N: u32> Shape for Polygon<N> {
     }
 }
 
-impl Library {
+impl ShapeLibrary {
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<3> {
         let vertices = self
             .state

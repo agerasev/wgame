@@ -15,13 +15,13 @@ thread_local! {
 }
 
 #[derive(Clone)]
-pub struct RasterizedFont {
+pub struct FontRaster {
     font: Font,
     size: f32,
     pub(crate) atlas: Rc<RefCell<FontAtlas>>,
 }
 
-impl RasterizedFont {
+impl FontRaster {
     pub fn new(font: &Font, size: f32) -> Self {
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();

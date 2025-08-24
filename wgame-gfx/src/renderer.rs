@@ -1,94 +1,70 @@
+use alloc::boxed::Box;
 use core::{
-    any::Any,
+    cmp::Ordering,
     hash::{Hash, Hasher},
 };
 
-use alloc::boxed::Box;
 use anyhow::Result;
 
-use crate::{Context, modifiers::Transformed, types::Transform, utils::AnyKey};
+use crate::{
+    Context, Instance, Resources,
+    utils::{AnyKey, AnyOrder},
+};
 
-pub trait Renderer: Any + Eq + Hash {
-    type Storage: Any;
-    fn new_storage(&self) -> Self::Storage;
-    fn draw(&self, instances: &Self::Storage, pass: &mut wgpu::RenderPass) -> Result<()>;
+pub trait Renderer: AnyKey + AnyOrder {
+    fn draw(&self, pass: &mut wgpu::RenderPass<'_>) -> Result<()>;
 }
 
-pub trait Instance {
-    type Renderer: Renderer;
-    fn get_renderer(&self) -> Self::Renderer;
-    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage);
-}
-
-impl<T: Instance> Instance for &'_ T {
-    type Renderer = T::Renderer;
-
-    fn get_renderer(&self) -> Self::Renderer {
-        T::get_renderer(self)
-    }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
-        T::store(self, ctx, storage);
-    }
-}
-
-pub trait InstanceExt: Instance + Sized {
-    fn transform<T: Transform>(&self, xform: T) -> Transformed<&Self> {
-        Transformed::new(self, xform)
-    }
-}
-
-impl<T: Instance> InstanceExt for T {}
-
-impl<T: Instance> Instance for Transformed<T> {
-    type Renderer = T::Renderer;
-
-    fn get_renderer(&self) -> Self::Renderer {
-        self.inner.get_renderer()
-    }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
-        self.inner.store(&ctx.transform(self.xform), storage);
-    }
-}
-
-pub trait AnyRenderer: AnyKey {
-    fn new_dyn_storage(&self) -> Box<dyn Any>;
-    fn draw_dyn(&self, instances: &dyn Any, pass: &mut wgpu::RenderPass) -> Result<()>;
-}
-
-impl<R: Renderer> AnyRenderer for R {
-    fn new_dyn_storage(&self) -> Box<dyn Any> {
-        Box::new(self.new_storage())
-    }
-
-    fn draw_dyn(&self, instances: &dyn Any, pass: &mut wgpu::RenderPass) -> Result<()> {
-        let instances = instances
-            .downcast_ref::<R::Storage>()
-            .expect("Error downcasting storage during draw");
-        self.draw(instances, pass)
-    }
-}
-
-impl PartialEq for dyn AnyRenderer {
-    fn eq(&self, other: &dyn AnyRenderer) -> bool {
+impl PartialEq for dyn Renderer {
+    fn eq(&self, other: &dyn Renderer) -> bool {
         self.eq_dyn(other)
     }
 }
+impl Eq for dyn Renderer {}
 
-impl Eq for dyn AnyRenderer {}
+impl PartialOrd for dyn Renderer {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for dyn Renderer {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.cmp_dyn(other)
+    }
+}
 
-impl Hash for dyn AnyRenderer {
+impl Hash for dyn Renderer {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash_dyn(state);
     }
 }
 
-impl Renderer for dyn AnyRenderer {
-    type Storage = Box<dyn Any>;
-
-    fn new_storage(&self) -> Self::Storage {
-        self.new_dyn_storage()
+impl Renderer for Box<dyn Renderer> {
+    fn draw(&self, pass: &mut wgpu::RenderPass<'_>) -> Result<()> {
+        (**self).draw(pass)
     }
-    fn draw(&self, instances: &Self::Storage, pass: &mut wgpu::RenderPass) -> Result<()> {
-        self.draw_dyn(&**instances, pass)
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RendererInstance<R: Renderer + Clone + Ord + Hash>(pub R);
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RendererResources<R: Renderer + Clone + Ord + Hash>(pub R);
+
+impl<T: Renderer + Clone + Ord + Hash> Instance for RendererInstance<T> {
+    type Resources = RendererResources<T>;
+
+    fn get_resources(&self) -> Self::Resources {
+        RendererResources(self.0.clone())
+    }
+    fn store(&self, _ctx: &Context, _storage: &mut <Self::Resources as Resources>::Storage) {}
+}
+
+impl<T: Renderer + Clone + Ord + Hash> Resources for RendererResources<T> {
+    type Renderer = T;
+    type Storage = ();
+
+    fn new_storage(&self) -> Self::Storage {}
+    fn make_renderer(&self, _instances: &Self::Storage) -> Result<Self::Renderer> {
+        Ok(self.0.clone())
     }
 }

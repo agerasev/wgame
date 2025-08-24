@@ -14,6 +14,7 @@ use hashbrown::{
 use winit::event_loop::EventLoopProxy;
 
 type FutureObj = Pin<Box<dyn Future<Output = ()>>>;
+type Terminator = Box<dyn FnOnce()>;
 
 use crate::app::UserEvent;
 
@@ -31,6 +32,7 @@ impl TaskId {
 struct Task {
     future: Pin<Box<dyn Future<Output = ()>>>,
     waker: Waker,
+    output: Terminator,
 }
 
 struct TaskData {
@@ -57,11 +59,13 @@ impl Task {
         id: TaskId,
         event_loop: EventLoopProxy<UserEvent>,
         future: Pin<Box<dyn Future<Output = ()>>>,
+        output: Terminator,
     ) -> Self {
         let data = Arc::new(TaskData { id, event_loop });
         Self {
             future,
             waker: waker(data),
+            output,
         }
     }
 
@@ -84,7 +88,7 @@ pub struct Executor {
 #[derive(Default)]
 pub struct ExecutorProxy {
     task_counter: TaskId,
-    new_tasks: Vec<(TaskId, FutureObj)>,
+    new_tasks: Vec<(TaskId, FutureObj, Terminator)>,
     tasks_to_terminate: HashSet<TaskId>,
 }
 
@@ -105,8 +109,8 @@ impl Executor {
     fn sync(&mut self) {
         let mut proxy = self.proxy.borrow_mut();
 
-        for (id, future) in proxy.new_tasks.drain(..) {
-            let task = Task::new(id, self.event_loop.clone(), future);
+        for (id, future, output) in proxy.new_tasks.drain(..) {
+            let task = Task::new(id, self.event_loop.clone(), future, output);
             assert!(self.tasks.insert(id, task).is_none());
             self.tasks_to_poll.insert(id);
             log::trace!("task spawned: {id:?}");
@@ -156,16 +160,23 @@ impl Executor {
     }
 
     pub fn terminate_task(&mut self, task_id: TaskId) {
-        self.tasks_to_poll.retain(|id| *id != task_id);
-        self.tasks.retain(|id, _| *id != task_id);
+        self.tasks_to_poll.remove(&task_id);
+        if let Some(task) = self.tasks.remove(&task_id) {
+            (task.output)();
+        }
     }
 }
 
 impl ExecutorProxy {
-    pub fn spawn<F: Future<Output = ()> + 'static>(&mut self, future: F) -> TaskId {
+    pub fn spawn<F: Future<Output = ()> + 'static, G: FnOnce() + 'static>(
+        &mut self,
+        future: F,
+        terminator: G,
+    ) -> TaskId {
         let id = self.task_counter.get_and_inc();
         let future = Box::pin(future);
-        self.new_tasks.push((id, future));
+        let output = Box::new(terminator);
+        self.new_tasks.push((id, future, output));
         id
     }
 

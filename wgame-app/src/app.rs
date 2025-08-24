@@ -3,6 +3,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{cell::RefCell, task::Poll};
+use std::thread_local;
 
 use hashbrown::hash_map::{Entry, HashMap};
 use winit::{
@@ -15,10 +16,14 @@ use winit::{
 
 use crate::{
     executor::{Executor, TaskId},
-    proxy::{AppProxy, CallbackObj},
-    timer::TimerQueue,
+    runtime::{CallbackObj, Runtime},
+    time::TimerQueue,
     window::WindowState,
 };
+
+thread_local! {
+    pub static CURRENT: RefCell<Option<Runtime>> = const { RefCell::new(None) };
+}
 
 #[derive(Debug)]
 pub struct UserEvent {
@@ -90,8 +95,8 @@ impl App {
         })
     }
 
-    pub fn proxy(&self) -> AppProxy {
-        AppProxy {
+    pub fn runtime(&self) -> Runtime {
+        Runtime {
             executor: self.executor.proxy(),
             state: self.state.clone(),
             timers: self.timers.clone(),
@@ -100,6 +105,8 @@ impl App {
     }
 
     pub fn run(self) -> Result<(), EventLoopError> {
+        assert!(CURRENT.replace(Some(self.runtime())).is_none());
+
         let mut app = AppHandler {
             state: self.state,
             executor: self.executor,
@@ -109,12 +116,16 @@ impl App {
         };
 
         // Poll tasks before running the event loop
-        if app.executor.poll().is_ready() {
-            return Ok(());
-        }
+        let result = if app.executor.poll().is_ready() {
+            Ok(())
+        } else {
+            self.event_loop.set_control_flow(ControlFlow::Wait);
+            self.event_loop.run_app(&mut app)
+        };
 
-        self.event_loop.set_control_flow(ControlFlow::Wait);
-        self.event_loop.run_app(&mut app)
+        assert!(CURRENT.replace(None).is_some());
+
+        result
     }
 }
 

@@ -1,11 +1,11 @@
 use core::time::Duration;
 
-use wgame_app::{Runtime, main};
+use wgame_app::{app_main, sleep};
 
-async fn main_(rt: Runtime) {
+async fn main_() {
     log::info!("Going to sleep");
-    rt.create_timer(Duration::from_secs(1)).await;
+    sleep(Duration::from_secs(1)).await;
     log::info!("Awakened");
 }
 
-main!(main_);
+app_main!(main_);

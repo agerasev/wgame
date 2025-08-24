@@ -1,27 +1,30 @@
 use futures::join;
-use wgame_app::{Runtime, WindowAttributes, main};
+use wgame_app::{Runtime, WindowAttributes, app_main, create_windowed_task};
 
-async fn main_(rt: Runtime) {
+async fn main_() {
     log::info!("Started");
 
-    async fn make_window_and_wait_closed(rt: &Runtime, index: usize) {
-        rt.create_windowed_task(WindowAttributes::default(), async move |mut window| {
-            log::info!("Window #{index} created");
-            while window.request_redraw().await.is_some() {}
-        })
+    async fn make_window_and_wait_closed(index: usize) {
+        create_windowed_task(
+            &Runtime::current(),
+            WindowAttributes::default(),
+            async move |mut window| {
+                log::info!("Window #{index} created");
+                while window.request_redraw().await.is_some() {}
+            },
+        )
         .await
-        .unwrap()
-        .await;
+        .unwrap();
         log::info!("Window #{index} closed");
     }
 
     join!(
-        make_window_and_wait_closed(&rt, 0),
-        make_window_and_wait_closed(&rt, 1),
-        make_window_and_wait_closed(&rt, 2),
+        make_window_and_wait_closed(0),
+        make_window_and_wait_closed(1),
+        make_window_and_wait_closed(2),
     );
 
     log::info!("Closed");
 }
 
-main!(main_);
+app_main!(main_);

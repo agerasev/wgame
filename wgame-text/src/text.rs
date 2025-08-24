@@ -3,9 +3,12 @@ use core::cell::RefCell;
 use glam::{Mat4, Quat, Vec3, Vec4};
 use swash::{GlyphId, shape::ShapeContext};
 
-use wgame_gfx::{Context, Instance, Renderer};
+use wgame_gfx::{Context, Instance, Resources};
 
-use crate::{GlyphInstance, TextRenderer, TexturedFont};
+use crate::{
+    GlyphInstance,
+    render::{FontTexture, TextResources},
+};
 
 thread_local! {
     static CONTEXT: RefCell<ShapeContext> = Default::default();
@@ -17,12 +20,12 @@ pub struct GlyphInfo {
 }
 
 pub struct Text {
-    font: TexturedFont,
+    font: FontTexture,
     glyphs: Vec<GlyphInfo>,
 }
 
 impl Text {
-    pub fn new(font: &TexturedFont, text: &str) -> Self {
+    pub fn new(font: &FontTexture, text: &str) -> Self {
         let glyphs = CONTEXT.with_borrow_mut(|context| {
             let mut shaper = context
                 .builder(font.font().as_ref())
@@ -51,12 +54,12 @@ impl Text {
 }
 
 impl Instance for Text {
-    type Renderer = TextRenderer;
+    type Resources = TextResources;
 
-    fn get_renderer(&self) -> Self::Renderer {
-        TextRenderer::new(&self.font)
+    fn get_resources(&self) -> Self::Resources {
+        TextResources::new(&self.font)
     }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Renderer as Renderer>::Storage) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
         let atlas = self.font.atlas.borrow();
         for glyph in &self.glyphs {
             let glyph_image = match atlas.get_glyph(glyph.id) {

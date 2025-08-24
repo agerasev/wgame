@@ -48,10 +48,12 @@ var texture: texture_2d<u32>;
 fn fragment_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
     let tex_coord = vec2<u32>(vertex.tex_coord);
     let int_value = textureLoad(texture, tex_coord, 0).x;
+    if (int_value == 0) {
+        discard;
+    }
     let value = f32(int_value) / 255.0;
 
-    // var color = vec4<f32>(1.0, 1.0, 1.0, value);
-    var color = vec4<f32>(value, value, value, 1.0);
+    var color = vec4<f32>(1.0, 1.0, 1.0, value);
     color *= vertex.color;
 
     return color;

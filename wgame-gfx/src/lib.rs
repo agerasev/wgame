@@ -3,19 +3,23 @@
 
 extern crate alloc;
 
+mod collector;
 mod context;
 mod frame;
+mod instance;
 pub mod modifiers;
-mod queue;
-mod renderer;
+pub mod renderer;
 pub mod types;
 pub mod utils;
 
 pub use self::{
+    collector::Collector,
     context::Context,
     frame::Frame,
-    renderer::{Instance, InstanceExt, Renderer},
+    instance::{Instance, InstanceExt, Resources},
+    renderer::Renderer,
 };
+pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
 use alloc::rc::Rc;
