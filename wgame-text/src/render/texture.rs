@@ -12,15 +12,15 @@ use wgpu::Extent3d;
 
 use wgame_gfx::Graphics;
 
-use crate::{RasterizedFont, TextLibrary, raster::FontAtlas};
+use crate::{FontRaster, Text, TextLibrary, raster::FontAtlas};
 
-pub struct FontTexture {
+struct Texture {
     size: Extent3d,
     inner: wgpu::Texture,
     view: wgpu::TextureView,
 }
 
-impl FontTexture {
+impl Texture {
     pub fn new(state: &Graphics, size: (u32, u32)) -> Self {
         let device = state.device();
 
@@ -125,45 +125,45 @@ impl FontTexture {
 }
 
 #[derive(Clone)]
-pub struct TexturedFont {
+pub struct FontTexture {
     pub(crate) library: TextLibrary,
-    raster: RasterizedFont,
-    texture: Rc<RefCell<Option<FontTexture>>>,
+    raster: FontRaster,
+    texture: Rc<RefCell<Option<Texture>>>,
 }
 
-impl Deref for TexturedFont {
-    type Target = RasterizedFont;
+impl Deref for FontTexture {
+    type Target = FontRaster;
     fn deref(&self) -> &Self::Target {
         &self.raster
     }
 }
 
-impl PartialOrd for TexturedFont {
+impl PartialOrd for FontTexture {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
-impl Ord for TexturedFont {
+impl Ord for FontTexture {
     fn cmp(&self, other: &Self) -> Ordering {
         self.texture.as_ptr().cmp(&other.texture.as_ptr())
     }
 }
 
-impl PartialEq for TexturedFont {
+impl PartialEq for FontTexture {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.texture, &other.texture)
     }
 }
-impl Eq for TexturedFont {}
+impl Eq for FontTexture {}
 
-impl Hash for TexturedFont {
+impl Hash for FontTexture {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.texture.as_ptr().hash(state);
     }
 }
 
-impl TexturedFont {
-    pub fn new(library: &TextLibrary, raster: RasterizedFont) -> Self {
+impl FontTexture {
+    pub fn new(library: &TextLibrary, raster: FontRaster) -> Self {
         Self {
             raster,
             library: library.clone(),
@@ -173,11 +173,15 @@ impl TexturedFont {
 
     pub fn sync(&self) -> Option<wgpu::TextureView> {
         let mut texture = self.texture.borrow_mut();
-        FontTexture::sync(
+        Texture::sync(
             &mut texture,
             &self.library,
             &mut self.raster.atlas.borrow_mut(),
         );
         texture.as_ref().map(|t| t.view.clone())
+    }
+
+    pub fn text(&self, text: &str) -> Text {
+        Text::new(self, text)
     }
 }

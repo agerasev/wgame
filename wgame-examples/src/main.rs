@@ -8,28 +8,30 @@ use core::{
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
-    Result, Window,
+    Library, Result, Window,
     app::time::Instant,
     fs::read_bytes,
     gfx::{InstanceExt, types::color},
-    img::image_to_texture,
-    shapes::{Library, ShapeExt},
-    text::{Font, RasterizedFont, Text, TextLibrary, TexturedFont},
+    img::Image,
+    shapes::ShapeExt,
+    text::Font,
     utils::FrameCounter,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
 async fn main(mut window: Window<'_>) -> Result<()> {
-    let gfx = Library::new(window.graphics()).unwrap();
-    let tex = image_to_texture(&gfx, &read_bytes("assets/lenna.png").await.unwrap()).unwrap();
+    let gfx = Library::new(window.graphics())?;
 
-    let text_lib = TextLibrary::new(&gfx).unwrap();
-    let font = Font::new(read_bytes("assets/free-sans-bold.ttf").await.unwrap(), 0).unwrap();
-    let mut raster = None;
+    let texture = gfx.shapes.texture(&Image::from_formatted_data(
+        &read_bytes("assets/lenna.png").await?,
+    )?);
+    let font = Font::new(read_bytes("assets/free-sans-bold.ttf").await?, 0)?;
+    let mut font_raster = None;
     let mut text = None;
     let mut window_size = (0, 0);
 
     let triangle = gfx
+        .shapes
         .triangle(
             Vec2::new(0.0, 1.0),
             Vec2::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos()),
@@ -41,15 +43,18 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         ]);
 
     let quad = gfx
+        .shapes
         .quad(-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2))
-        .texture(tex.clone());
+        .texture(texture.clone());
 
-    let hexagon = gfx.hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
+    let hexagon = gfx.shapes.hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
 
-    let grad = gfx.gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
-    let circle = gfx.circle(Vec2::ZERO, 0.8).texture(grad.clone());
-    let ring0 = gfx.ring(Vec2::ZERO, 0.8, 0.4).texture(grad.clone());
-    let ring1 = gfx.ring(Vec2::ZERO, 0.8, 0.5).texture(grad.clone());
+    let grad = gfx
+        .shapes
+        .gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
+    let circle = gfx.shapes.circle(Vec2::ZERO, 0.8).texture(grad.clone());
+    let ring0 = gfx.shapes.ring(Vec2::ZERO, 0.8, 0.4).texture(grad.clone());
+    let ring1 = gfx.shapes.ring(Vec2::ZERO, 0.8, 0.5).texture(grad.clone());
 
     let scale = 1.0 / 3.0;
     let start_time = Instant::now();
@@ -57,11 +62,9 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     while let Some(mut frame) = window.next_frame().await? {
         if let Some((width, height)) = frame.resized() {
             window_size = (width, height);
-            let raster = raster.insert(TexturedFont::new(
-                &text_lib,
-                RasterizedFont::new(&font, height as f32 / 10.0),
-            ));
-            text = Some(Text::new(raster, "Hello, World!"));
+            let raster =
+                font_raster.insert(gfx.text.font_texture(font.rasterize(height as f32 / 10.0)));
+            text = Some(raster.text("Hello, World!"));
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));

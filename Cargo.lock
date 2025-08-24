@@ -2505,9 +2505,7 @@ dependencies = [
  "bytemuck",
  "half",
  "image",
- "wgame-gfx",
- "wgame-shapes",
- "wgpu",
+ "rgb",
 ]
 
 [[package]]
@@ -2533,6 +2531,7 @@ dependencies = [
  "serde",
  "smallvec",
  "wgame-gfx",
+ "wgame-img",
  "wgame-macros",
  "wgpu",
 ]

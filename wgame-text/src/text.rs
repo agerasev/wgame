@@ -7,7 +7,7 @@ use wgame_gfx::{Context, Instance, Resources};
 
 use crate::{
     GlyphInstance,
-    render::{TextResources, TexturedFont},
+    render::{FontTexture, TextResources},
 };
 
 thread_local! {
@@ -20,12 +20,12 @@ pub struct GlyphInfo {
 }
 
 pub struct Text {
-    font: TexturedFont,
+    font: FontTexture,
     glyphs: Vec<GlyphInfo>,
 }
 
 impl Text {
-    pub fn new(font: &TexturedFont, text: &str) -> Self {
+    pub fn new(font: &FontTexture, text: &str) -> Self {
         let glyphs = CONTEXT.with_borrow_mut(|context| {
             let mut shaper = context
                 .builder(font.font().as_ref())

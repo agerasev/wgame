@@ -6,8 +6,8 @@ mod text;
 
 pub(crate) use self::render::GlyphInstance;
 pub use self::{
-    raster::RasterizedFont,
-    render::{TextLibrary, TexturedFont},
+    raster::FontRaster,
+    render::{FontTexture, TextLibrary},
     text::Text,
 };
 
@@ -44,7 +44,7 @@ impl Font {
         }
     }
 
-    pub fn rasterize(&self, size: f32) -> RasterizedFont {
-        RasterizedFont::new(self, size)
+    pub fn rasterize(&self, size: f32) -> FontRaster {
+        FontRaster::new(self, size)
     }
 }

@@ -4,6 +4,7 @@
 extern crate alloc;
 
 mod config;
+mod library;
 mod window;
 
 use core::cell::RefCell;
@@ -27,7 +28,7 @@ pub use wgame_utils as utils;
 pub use anyhow::{Error, Result};
 pub use app::{Runtime, sleep, spawn};
 
-pub use crate::{config::*, window::*};
+pub use crate::{config::*, library::*, window::*};
 
 #[macro_export]
 macro_rules! run_app {
