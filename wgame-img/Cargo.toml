@@ -11,6 +11,7 @@ png = ["image/png"]
 [dependencies]
 image.workspace = true
 bytemuck.workspace = true
+euclid.workspace = true
 rgb.workspace = true
 half.workspace = true
 anyhow.workspace = true

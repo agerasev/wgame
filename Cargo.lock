@@ -2513,6 +2513,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
+ "euclid",
  "half",
  "image",
  "rgb",
@@ -2568,12 +2569,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
+ "euclid",
  "glam",
  "guillotiere",
  "half",
  "log",
  "rgb",
  "wgame-gfx",
+ "wgame-img",
  "wgpu",
 ]
 

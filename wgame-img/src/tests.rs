@@ -1,3 +1,5 @@
+use euclid::default::Size2D;
+
 use crate::{Image, prelude::*};
 
 #[test]
@@ -11,9 +13,9 @@ fn slice() {
         ],
     );
 
-    let slice = img.slice(..2, ..2);
+    let slice = img.slice((..2, ..2));
 
-    assert_eq!(slice.size(), (2, 2));
+    assert_eq!(slice.size(), Size2D::new(2, 2));
     assert_eq!(slice.stride(), 3);
     assert_eq!(slice.data(), [0, 1, 2, 3, 4]);
     assert_eq!(
@@ -42,9 +44,9 @@ fn empty_slice() {
         ],
     );
 
-    let slice = img.slice(1..1, 1..1);
+    let slice = img.slice((1..1, 1..1));
 
-    assert_eq!(slice.size(), (0, 0));
+    assert_eq!(slice.size(), Size2D::new(0, 0));
     assert_eq!(slice.data(), []);
     assert_eq!(slice.rows().next(), None);
     assert_eq!(slice.pixels().next(), None);
@@ -62,9 +64,9 @@ fn slice_mut() {
         ],
     );
 
-    let mut slice = img.slice_mut(1..3, 1..3);
+    let mut slice = img.slice_mut((1..3, 1..3));
 
-    assert_eq!(slice.size(), (2, 2));
+    assert_eq!(slice.size(), Size2D::new(2, 2));
     assert_eq!(slice.stride(), 4);
     assert_eq!(slice.data(), [5, 6, 7, 8, 9, 10]);
     assert_eq!(
@@ -109,7 +111,7 @@ fn copy_from() {
         ],
     );
 
-    let mut slice = img.slice_mut(1..3, 1..3);
+    let mut slice = img.slice_mut((1..3, 1..3));
 
     slice.copy_from(Image::new((2, 2), [15, 16, 19, 20]));
 

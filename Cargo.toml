@@ -37,6 +37,7 @@ bytemuck = "1.23.2"
 glam = { version = "0.30.5", features = ["bytemuck"] }
 rgb = { version = "0.8.52", default-features = false, features = ["bytemuck"] }
 half = { version = "2.6.0", default-features = false, features = ["bytemuck"] }
+euclid = { version = "0.22.11", default-features = false }
 image = { version = "0.25.6", default-features = false }
 hashbrown = { version = "0.15.5", features = ["core", "alloc"] }
 smallvec = "1.15.1"
