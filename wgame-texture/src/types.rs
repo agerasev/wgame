@@ -1,8 +1,6 @@
 use half::f16;
 use rgb::Rgba;
 
-pub type Rect = guillotiere::euclid::default::Box2D<u32>;
-
 pub trait Texel: Copy + bytemuck::Pod {
     fn is_format_supported(format: wgpu::TextureFormat) -> bool;
 }

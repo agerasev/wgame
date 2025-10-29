@@ -6,10 +6,12 @@ license.workspace = true
 
 [dependencies]
 wgame-gfx.workspace = true
+wgame-img.workspace = true
 wgpu.workspace = true
 anyhow.workspace = true
 log.workspace = true
 bytemuck.workspace = true
+euclid.workspace = true
 glam.workspace = true
 rgb.workspace = true
 half.workspace = true

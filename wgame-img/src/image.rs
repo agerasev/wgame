@@ -130,7 +130,7 @@ impl Image<Rgba<f16>> {
 }
 
 impl<P: Pixel> ImageResize for Image<P> {
-    fn resize(&mut self, new_size: impl Into<Size2D<u32>>, fill: P) {
+    fn resize_with_fill(&mut self, new_size: impl Into<Size2D<u32>>, fill: P) {
         let new_size = new_size.into();
         if self.size == new_size {
             return;

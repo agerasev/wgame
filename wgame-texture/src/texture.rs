@@ -1,19 +1,32 @@
+use alloc::rc::Rc;
 use core::cell::RefCell;
 
-use alloc::rc::Rc;
 use glam::Affine2;
 use half::f16;
 use rgb::Rgba;
+use wgame_img::{Image, Pixel, Rect};
 
-use crate::{Graphics, SharedState, atlas::InnerAtlas};
+use crate::SharedState;
+
+pub trait TextureData {
+    type Pixel: Pixel;
+    fn image(&self) -> Image<Self::Pixel>;
+    fn take_update(&mut self) -> Option<Rect>;
+}
 
 #[derive(Clone)]
-pub struct Texture {
+pub struct InnerTexture<T: TextureData> {
+    data: T,
     state: SharedState,
-    atlas: Rc<RefCell<InnerAtlas>>,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
+    xform: Affine2,
+}
+
+#[derive(Clone)]
+pub struct Texture<T: TextureData> {
+    inner: Rc<RefCell<InnerTexture<T>>>,
     xform: Affine2,
 }
 
@@ -55,7 +68,6 @@ impl Texture {
 
         Self {
             state: state.clone(),
-            atlas: unimplemented!(),
             extent,
             texture,
             bind_group,

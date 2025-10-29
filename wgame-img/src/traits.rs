@@ -1,4 +1,4 @@
-use euclid::default::{Point2D, Rect, Size2D};
+use euclid::default::{Box2D, Point2D, Rect, Size2D};
 use std::ops::{Bound, Range, RangeBounds};
 
 use crate::{ImageSlice, ImageSliceMut, Pixel};
@@ -48,6 +48,12 @@ impl<X: RangeBounds<u32>, Y: RangeBounds<u32>> RectRange<u32> for (X, Y) {
 }
 
 impl RectRange<u32> for Rect<u32> {
+    fn into_ranges(self, size: Size2D<u32>) -> (Range<u32>, Range<u32>) {
+        (self.x_range(), self.y_range()).into_ranges(size)
+    }
+}
+
+impl RectRange<u32> for Box2D<u32> {
     fn into_ranges(self, size: Size2D<u32>) -> (Range<u32>, Range<u32>) {
         (self.x_range(), self.y_range()).into_ranges(size)
     }
@@ -148,14 +154,58 @@ pub trait ImageWriteMut: ImageWrite {
             dst.copy_from_slice(src);
         }
     }
+
+    fn copy_within(&mut self, src_rect: Rect<u32>, dst_origin: Point2D<u32>) {
+        let all_rect = Rect::from_size(self.size());
+        assert!(all_rect.contains_rect(&src_rect));
+        if src_rect.origin == dst_origin {
+            return;
+        }
+        let dst_rect = Rect {
+            origin: dst_origin,
+            size: src_rect.size,
+        };
+        assert!(all_rect.contains_rect(&dst_rect));
+
+        let stride = self.stride() as usize;
+        let origin_offset = |origin: Point2D<u32>| origin.x as usize + origin.y as usize * stride;
+        let src_offset = origin_offset(src_rect.origin);
+        let dst_offset = origin_offset(dst_rect.origin);
+
+        let data = self.data_mut();
+        let mut copy_line = |index: usize| {
+            let line_offset = src_offset + index * stride;
+            data.copy_within(
+                line_offset..(line_offset + src_rect.size.width as usize),
+                dst_offset + index * stride,
+            );
+        };
+
+        if src_offset > dst_offset {
+            for index in 0..(src_rect.size.height as usize) {
+                copy_line(index);
+            }
+        } else {
+            for index in (0..(src_rect.size.height as usize)).rev() {
+                copy_line(index);
+            }
+        }
+    }
 }
 
 impl<Q: ImageRead> ImageReadExt for Q {}
 impl<Q: ImageWrite> ImageWriteMut for Q {}
 
 pub trait ImageResize: ImageBase {
-    /// Resize image copying old data and filling new pixels with `fill` value.
-    fn resize(&mut self, new_size: impl Into<Size2D<u32>>, fill: Self::Pixel);
+    /// Resize image copying old data.
+    /// New pixels can contain arbitrary data.
+    fn resize(&mut self, new_size: impl Into<Size2D<u32>>) {
+        self.resize_with_fill(new_size, Self::Pixel::default());
+    }
+
+    /// Resize image copying old data.
+    /// New pixels are filled with `fill` value.
+    fn resize_with_fill(&mut self, new_size: impl Into<Size2D<u32>>, fill: Self::Pixel);
 }
 
 pub trait WithImage: ImageBase {
