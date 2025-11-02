@@ -1,7 +1,8 @@
 use half::f16;
 use rgb::Rgba;
+use wgame_img::Pixel;
 
-pub trait Texel: Copy + bytemuck::Pod {
+pub trait Texel: Pixel {
     fn is_format_supported(format: wgpu::TextureFormat) -> bool;
 }
 

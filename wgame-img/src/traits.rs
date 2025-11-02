@@ -9,6 +9,7 @@ pub trait ImageBase {
 }
 
 pub trait ImageRead: ImageBase {
+    /// Offset between rows in pixels
     fn stride(&self) -> u32;
     fn data(&self) -> &[Self::Pixel];
 }

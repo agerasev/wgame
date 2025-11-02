@@ -59,6 +59,15 @@ impl<Q: ImageModifier> InnerAtlas<Q> {
             self.allocator.grow(atlas_size);
         };
         self.image.resize(size.cast());
+        self.updates.retain_mut(|queue| match queue.upgrade() {
+            Some(queue) => {
+                let mut queue = queue.borrow_mut();
+                queue.clear();
+                queue.push_back(Rect::from_size(size.cast()));
+                true
+            }
+            None => false,
+        });
         alloc
     }
 

@@ -6,7 +6,7 @@ use rgb::Rgba;
 
 use crate::{
     SharedState,
-    types::{Rect, Texel},
+    texel::{Rect, Texel},
 };
 
 #[derive(Clone)]

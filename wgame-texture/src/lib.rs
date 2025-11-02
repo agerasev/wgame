@@ -5,8 +5,8 @@ extern crate alloc;
 
 mod atlas;
 mod atlas_texture;
+mod texel;
 mod texture;
-mod types;
 
 use core::ops::Deref;
 
