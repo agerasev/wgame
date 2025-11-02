@@ -1,33 +1,43 @@
-use alloc::rc::Rc;
+use alloc::{
+    collections::vec_deque::VecDeque,
+    rc::{Rc, Weak},
+    vec::Vec,
+};
 use core::cell::RefCell;
 use euclid::default::{Rect, Size2D};
 use guillotiere::{AllocId, Allocation, AtlasAllocator};
 use wgame_img::{ImageSlice, ImageSliceMut, prelude::*};
 
-pub trait ImageOrigin: ImageResize + WithImage + WithImageMut {}
-impl<Q: ImageOrigin + WithImage + WithImageMut> ImageOrigin for Q {}
+pub trait ImageModifier: ImageResize + WithImage + WithImageMut {}
+impl<Q: ImageModifier + WithImage + WithImageMut> ImageModifier for Q {}
 
-pub struct AtlasItem<Q: ImageOrigin> {
+pub type UpdateNotifier = Weak<RefCell<VecDeque<Rect<u32>>>>;
+pub trait ImageWatcher: WithImage {
+    fn subscribe_to_updates(&mut self, notifier: UpdateNotifier);
+}
+
+struct InnerAtlas<Q: ImageModifier> {
+    allocator: AtlasAllocator,
+    image: Q,
+    updates: Vec<UpdateNotifier>,
+}
+
+#[derive(Clone)]
+pub struct Atlas<Q: ImageModifier> {
+    inner: Rc<RefCell<InnerAtlas<Q>>>,
+}
+
+struct AtlasItem<Q: ImageModifier> {
     atlas: Rc<RefCell<InnerAtlas<Q>>>,
     alloc: Allocation,
 }
 
-struct InnerAtlas<Q: ImageOrigin> {
-    allocator: AtlasAllocator,
-    image: Q,
-}
-
 #[derive(Clone)]
-pub struct Atlas<Q: ImageOrigin> {
-    inner: Rc<RefCell<InnerAtlas<Q>>>,
-}
-
-#[derive(Clone)]
-struct AtlasImage<Q: ImageOrigin> {
+pub struct AtlasImage<Q: ImageModifier> {
     inner: Rc<RefCell<AtlasItem<Q>>>,
 }
 
-impl<Q: ImageOrigin> InnerAtlas<Q> {
+impl<Q: ImageModifier> InnerAtlas<Q> {
     fn allocate_growing(&mut self, size: Size2D<i32>) -> Allocation {
         let mut atlas_size = self.allocator.size();
         let size = size.into();
@@ -60,15 +70,26 @@ impl<Q: ImageOrigin> InnerAtlas<Q> {
     fn dealloc_item(&mut self, id: AllocId) {
         self.allocator.deallocate(id);
     }
+
+    fn notify_update(&mut self, rect: Rect<u32>) {
+        self.updates.retain_mut(|queue| match queue.upgrade() {
+            Some(queue) => {
+                queue.borrow_mut().push_back(rect);
+                true
+            }
+            None => false,
+        });
+    }
 }
 
-impl<Q: ImageOrigin> Atlas<Q> {
+impl<Q: ImageModifier> Atlas<Q> {
     pub fn new(image: Q) -> Self {
         let size = image.size().cast::<i32>();
         Self {
             inner: Rc::new(RefCell::new(InnerAtlas {
                 allocator: AtlasAllocator::new(size),
                 image,
+                updates: Vec::new(),
             })),
         }
     }
@@ -85,42 +106,39 @@ impl<Q: ImageOrigin> Atlas<Q> {
     }
 }
 
-impl<Q: ImageOrigin> Drop for AtlasItem<Q> {
+impl<Q: ImageModifier> ImageBase for Atlas<Q> {
+    type Pixel = Q::Pixel;
+
+    fn size(&self) -> Size2D<u32> {
+        self.inner.borrow().image.size()
+    }
+}
+
+impl<Q: ImageModifier> WithImage for Atlas<Q> {
+    fn with_image_slice<F, R>(&self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSlice<Self::Pixel>) -> R,
+    {
+        self.inner.borrow().image.with_image_slice(f, rect)
+    }
+}
+
+impl<Q: ImageModifier> ImageWatcher for Atlas<Q> {
+    fn subscribe_to_updates(&mut self, notifier: UpdateNotifier) {
+        self.inner.borrow_mut().updates.push(notifier);
+    }
+}
+
+impl<Q: ImageModifier> Drop for AtlasItem<Q> {
     fn drop(&mut self) {
         self.atlas.borrow_mut().dealloc_item(self.alloc.id);
     }
 }
 
-impl<Q: ImageOrigin> ImageBase for AtlasItem<Q> {
-    type Pixel = Q::Pixel;
-
-    fn size(&self) -> Size2D<u32> {
-        self.alloc.rectangle.size().cast()
-    }
-}
-
-impl<Q: ImageOrigin> WithImage for AtlasItem<Q> {
-    fn with_image<F: FnOnce(ImageSlice<Self::Pixel>) -> R, R>(&self, f: F) -> R {
-        self.atlas
-            .borrow()
-            .image
-            .with_image(|image| f(image.slice(self.alloc.rectangle.cast::<u32>())))
-    }
-}
-
-impl<Q: ImageOrigin> WithImageMut for AtlasItem<Q> {
-    fn with_image_mut<F: FnOnce(ImageSliceMut<Self::Pixel>) -> R, R>(&mut self, f: F) -> R {
-        self.atlas
-            .borrow_mut()
-            .image
-            .with_image_mut(|mut image| f(image.slice_mut(self.alloc.rectangle.cast::<u32>())))
-    }
-}
-
-impl<Q: ImageOrigin> ImageResize for AtlasItem<Q> {
-    fn resize(&mut self, new_size: impl Into<Size2D<u32>>) {
+impl<Q: ImageModifier> AtlasItem<Q> {
+    fn resize(&mut self, new_size: Size2D<u32>) {
         let old_rect = self.alloc.rectangle.to_rect();
-        let new_size = new_size.into().cast::<i32>();
+        let new_size = new_size.cast::<i32>();
 
         let mut atlas = self.atlas.borrow_mut();
 
@@ -138,6 +156,49 @@ impl<Q: ImageOrigin> ImageResize for AtlasItem<Q> {
                 new_alloc.rectangle.min.cast(),
             )
         });
+    }
+}
+
+impl<Q: ImageModifier> ImageBase for AtlasImage<Q> {
+    type Pixel = Q::Pixel;
+
+    fn size(&self) -> Size2D<u32> {
+        let this = self.inner.borrow();
+        this.alloc.rectangle.size().cast()
+    }
+}
+
+impl<Q: ImageModifier> WithImage for AtlasImage<Q> {
+    fn with_image_slice<F, R>(&self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSlice<Self::Pixel>) -> R,
+    {
+        let this = self.inner.borrow();
+        this.atlas.borrow().image.with_image_slice(
+            |image| f(image.slice(this.alloc.rectangle.cast::<u32>())),
+            rect,
+        )
+    }
+}
+
+impl<Q: ImageModifier> WithImageMut for AtlasImage<Q> {
+    fn with_image_slice_mut<F, R>(&mut self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSliceMut<Self::Pixel>) -> R,
+    {
+        let this = self.inner.borrow();
+        let mut atlas = this.atlas.borrow_mut();
+        atlas.notify_update(rect);
+        atlas.image.with_image_slice_mut(
+            |mut image| f(image.slice_mut(this.alloc.rectangle.cast::<u32>())),
+            rect,
+        )
+    }
+}
+
+impl<Q: ImageModifier> ImageResize for AtlasImage<Q> {
+    fn resize(&mut self, new_size: impl Into<Size2D<u32>>) {
+        self.inner.borrow_mut().resize(new_size.into());
     }
     fn resize_with_fill(&mut self, _new_size: impl Into<Size2D<u32>>, _fill: Self::Pixel) {
         unimplemented!()

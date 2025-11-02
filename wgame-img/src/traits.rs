@@ -209,21 +209,45 @@ pub trait ImageResize: ImageBase {
 }
 
 pub trait WithImage: ImageBase {
-    fn with_image<F: FnOnce(ImageSlice<Self::Pixel>) -> R, R>(&self, f: F) -> R;
+    fn with_image<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(ImageSlice<Self::Pixel>) -> R,
+    {
+        self.with_image_slice(f, Rect::from_size(self.size()))
+    }
+
+    fn with_image_slice<F, R>(&self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSlice<Self::Pixel>) -> R;
 }
 
 pub trait WithImageMut: ImageBase {
-    fn with_image_mut<F: FnOnce(ImageSliceMut<Self::Pixel>) -> R, R>(&mut self, f: F) -> R;
+    fn with_image_mut<F, R>(&mut self, f: F) -> R
+    where
+        F: FnOnce(ImageSliceMut<Self::Pixel>) -> R,
+    {
+        self.with_image_slice_mut(f, Rect::from_size(self.size()))
+    }
+
+    fn with_image_slice_mut<F, R>(&mut self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSliceMut<Self::Pixel>) -> R;
 }
 
 impl<Q: ImageRead> WithImage for Q {
-    fn with_image<F: FnOnce(ImageSlice<Self::Pixel>) -> R, R>(&self, f: F) -> R {
-        f(self.slice((.., ..)))
+    fn with_image_slice<F, R>(&self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSlice<Self::Pixel>) -> R,
+    {
+        f(self.slice((rect.x_range(), rect.y_range())))
     }
 }
 
 impl<Q: ImageWrite> WithImageMut for Q {
-    fn with_image_mut<F: FnOnce(ImageSliceMut<Self::Pixel>) -> R, R>(&mut self, f: F) -> R {
-        f(self.slice_mut((.., ..)))
+    fn with_image_slice_mut<F, R>(&mut self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSliceMut<Self::Pixel>) -> R,
+    {
+        f(self.slice_mut((rect.x_range(), rect.y_range())))
     }
 }

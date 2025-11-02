@@ -1,37 +1,29 @@
 use alloc::rc::Rc;
 use core::cell::RefCell;
+use euclid::default::{Rect, Size2D};
 
 use glam::Affine2;
 use half::f16;
 use rgb::Rgba;
-use wgame_img::{Image, Pixel, Rect};
 
-use crate::SharedState;
-
-pub trait TextureData {
-    type Pixel: Pixel;
-    fn image(&self) -> Image<Self::Pixel>;
-    fn take_update(&mut self) -> Option<Rect>;
-}
+use crate::{SharedState, atlas::ImageWatcher};
 
 #[derive(Clone)]
-pub struct InnerTexture<T: TextureData> {
-    data: T,
+pub struct InnerTexture<Q: ImageWatcher> {
+    data: Q,
     state: SharedState,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
-    xform: Affine2,
 }
 
 #[derive(Clone)]
-pub struct Texture<T: TextureData> {
-    inner: Rc<RefCell<InnerTexture<T>>>,
-    xform: Affine2,
+pub struct Texture<Q: ImageWatcher> {
+    inner: Rc<RefCell<InnerTexture<Q>>>,
 }
 
-impl Texture {
-    pub(crate) fn new(state: &SharedState, size: (u32, u32)) -> Self {
+impl<Q: ImageWatcher> InnerTexture<Q> {
+    pub(crate) fn new(state: &SharedState, size: Size2D<u32>) -> Self {
         let device = state.device();
 
         let extent = wgpu::Extent3d {
@@ -71,7 +63,6 @@ impl Texture {
             extent,
             texture,
             bind_group,
-            xform: Affine2::IDENTITY,
         }
     }
 
