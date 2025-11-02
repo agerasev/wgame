@@ -1,12 +1,11 @@
 use alloc::{collections::vec_deque::VecDeque, rc::Rc};
 use core::cell::RefCell;
 use euclid::default::{Point2D, Rect, Size2D};
-use glam::Affine2;
-use wgame_img::{ImageBase, ImageRead, ImageSlice};
+use wgame_img::{ImageBase, ImageRead, ImageReadExt, ImageSlice};
 
 use crate::{
     SharedState,
-    atlas::{ImageModifier, ImageWatcher},
+    atlas::{Atlas, AtlasImage, Notifier},
     texel::Texel,
 };
 
@@ -18,24 +17,18 @@ pub struct TextureData {
     bind_group: wgpu::BindGroup,
 }
 
-pub struct InnerTexture<U: ImageWatcher>
-where
-    U::Pixel: Texel,
-{
+pub struct TextureAtlas<T: Texel> {
     state: SharedState,
     format: wgpu::TextureFormat,
     dst: Option<TextureData>,
-    src: U,
-    updates: Rc<RefCell<VecDeque<Rect<u32>>>>,
+    src: Atlas<T>,
+    notifier: Rc<Notifier>,
 }
 
 #[derive(Clone)]
-pub struct Texture<T: Texel, U: ImageWatcher<Pixel = T>, V: ImageModifier<Pixel = T>>
-where
-    U::Pixel: Texel,
-{
-    inner: Rc<RefCell<InnerTexture<U>>>,
-    part: V,
+pub struct Texture<T: Texel> {
+    atlas: Rc<RefCell<TextureAtlas<T>>>,
+    image: AtlasImage<T>,
 }
 
 impl TextureData {
@@ -135,26 +128,31 @@ impl TextureData {
     }
 }
 
-impl<U: ImageWatcher> InnerTexture<U>
-where
-    U::Pixel: Texel,
-{
-    pub fn new(state: &SharedState, mut image: U, format: wgpu::TextureFormat) -> Self {
-        assert!(U::Pixel::is_format_supported(format));
+impl<T: Texel> Drop for TextureAtlas<T> {
+    fn drop(&mut self) {
+        self.src.unsubscribe();
+    }
+}
+
+impl<T: Texel> TextureAtlas<T> {
+    fn new(state: &SharedState, mut src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
+        assert!(T::is_format_supported(format));
         let mut updates = VecDeque::new();
-        updates.push_back(Rect::from_size(image.size()));
-        let updates = Rc::new(RefCell::new(updates));
-        image.subscribe_to_updates(Rc::downgrade(&updates));
+        updates.push_back(Rect::from_size(src.size()));
+        let notifier = Rc::new(Notifier {
+            updates: RefCell::new(updates),
+        });
+        src.subscribe(Rc::downgrade(&notifier));
         Self {
             state: state.clone(),
             format,
             dst: None,
-            src: image,
-            updates,
+            src,
+            notifier,
         }
     }
 
-    fn sync_with_image(&mut self) {
+    fn sync(&mut self) -> TextureData {
         self.dst.take_if(|texture| {
             Size2D::new(texture.extent.width, texture.extent.height) != self.src.size()
         });
@@ -166,21 +164,16 @@ where
             }
         };
 
-        for rect in self.updates.borrow_mut().drain(..) {
+        for rect in self.notifier.updates.borrow_mut().drain(..) {
             self.src
-                .with_image_slice(|image| dst.write(image, rect.origin), rect)
+                .with_data(|image| dst.write(image.slice(rect), rect.origin))
         }
-    }
 
-    pub fn bind_group_layout(&self) -> wgpu::BindGroupLayout {
-        self.state.float_bind_group_layout.clone()
-    }
-    pub fn bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
+        dst.clone()
     }
 }
-
-impl<U: ImageWatcher> Texture<U> {
+/*
+impl<T: Texel> Texture<T> {
     pub fn transform_coord(self, xform: Affine2) -> Self {
         Self {
             xform: xform * self.xform,
@@ -192,3 +185,4 @@ impl<U: ImageWatcher> Texture<U> {
         self.xform
     }
 }
+*/

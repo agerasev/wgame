@@ -1,43 +1,39 @@
 use alloc::{
     collections::vec_deque::VecDeque,
     rc::{Rc, Weak},
-    vec::Vec,
+    vec,
 };
 use core::cell::RefCell;
-use euclid::default::{Rect, Size2D};
+use euclid::default::{Point2D, Rect, Size2D};
 use guillotiere::{AllocId, Allocation, AtlasAllocator};
-use wgame_img::{ImageSlice, ImageSliceMut, prelude::*};
+use wgame_img::{Image, ImageSlice, ImageSliceMut, Pixel, prelude::*};
 
-pub trait ImageModifier: ImageResize + WithImage + WithImageMut {}
-impl<Q: ImageModifier + WithImage + WithImageMut> ImageModifier for Q {}
-
-pub type UpdateNotifier = Weak<RefCell<VecDeque<Rect<u32>>>>;
-pub trait ImageWatcher: WithImage {
-    fn subscribe_to_updates(&mut self, notifier: UpdateNotifier);
+pub struct Notifier {
+    pub updates: RefCell<VecDeque<Rect<u32>>>,
 }
 
-struct InnerAtlas<Q: ImageModifier> {
+struct InnerAtlas<P: Pixel> {
     allocator: AtlasAllocator,
-    image: Q,
-    updates: Vec<UpdateNotifier>,
+    image: Image<P>,
+    notifier: Weak<Notifier>,
 }
 
 #[derive(Clone)]
-pub struct Atlas<Q: ImageModifier> {
-    inner: Rc<RefCell<InnerAtlas<Q>>>,
+pub struct Atlas<P: Pixel> {
+    inner: Rc<RefCell<InnerAtlas<P>>>,
 }
 
-struct AtlasItem<Q: ImageModifier> {
-    atlas: Rc<RefCell<InnerAtlas<Q>>>,
+struct AtlasItem<P: Pixel> {
+    atlas: Rc<RefCell<InnerAtlas<P>>>,
     alloc: Allocation,
 }
 
 #[derive(Clone)]
-pub struct AtlasImage<Q: ImageModifier> {
-    inner: Rc<RefCell<AtlasItem<Q>>>,
+pub struct AtlasImage<P: Pixel> {
+    inner: Rc<RefCell<AtlasItem<P>>>,
 }
 
-impl<Q: ImageModifier> InnerAtlas<Q> {
+impl<P: Pixel> InnerAtlas<P> {
     fn allocate_growing(&mut self, size: Size2D<i32>) -> Allocation {
         let mut atlas_size = self.allocator.size();
         let size = size.into();
@@ -59,15 +55,11 @@ impl<Q: ImageModifier> InnerAtlas<Q> {
             self.allocator.grow(atlas_size);
         };
         self.image.resize(size.cast());
-        self.updates.retain_mut(|queue| match queue.upgrade() {
-            Some(queue) => {
-                let mut queue = queue.borrow_mut();
-                queue.clear();
-                queue.push_back(Rect::from_size(size.cast()));
-                true
-            }
-            None => false,
-        });
+        if let Some(notifier) = self.notifier.upgrade() {
+            let mut queue = notifier.updates.borrow_mut();
+            queue.clear();
+            queue.push_back(Rect::from_size(size.cast()));
+        }
         alloc
     }
 
@@ -81,29 +73,32 @@ impl<Q: ImageModifier> InnerAtlas<Q> {
     }
 
     fn notify_update(&mut self, rect: Rect<u32>) {
-        self.updates.retain_mut(|queue| match queue.upgrade() {
-            Some(queue) => {
-                queue.borrow_mut().push_back(rect);
-                true
-            }
-            None => false,
-        });
+        if let Some(notifier) = self.notifier.upgrade() {
+            notifier.updates.borrow_mut().push_back(rect);
+        }
     }
 }
 
-impl<Q: ImageModifier> Atlas<Q> {
-    pub fn new(image: Q) -> Self {
-        let size = image.size().cast::<i32>();
+impl<P: Pixel> Default for Atlas<P> {
+    fn default() -> Self {
+        Self::with_size(Self::INITIAL_SIZE)
+    }
+}
+
+impl<P: Pixel> Atlas<P> {
+    const INITIAL_SIZE: Size2D<u32> = Size2D::new(16, 16);
+
+    pub fn with_size(size: Size2D<u32>) -> Self {
         Self {
             inner: Rc::new(RefCell::new(InnerAtlas {
-                allocator: AtlasAllocator::new(size),
-                image,
-                updates: Vec::new(),
+                allocator: AtlasAllocator::new(size.cast()),
+                image: Image::new(size, vec![P::default(); size.cast::<usize>().area()]),
+                notifier: Weak::default(),
             })),
         }
     }
 
-    pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> AtlasImage<Q> {
+    pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> AtlasImage<P> {
         let size = size.into().cast::<i32>();
         let mut inner = self.inner.borrow_mut();
         let inner_item = AtlasItem {
@@ -113,38 +108,42 @@ impl<Q: ImageModifier> Atlas<Q> {
         let item = Rc::new(RefCell::new(inner_item));
         AtlasImage { inner: item }
     }
-}
 
-impl<Q: ImageModifier> ImageBase for Atlas<Q> {
-    type Pixel = Q::Pixel;
-
-    fn size(&self) -> Size2D<u32> {
-        self.inner.borrow().image.size()
+    pub(crate) fn subscribe(&mut self, notifier: Weak<Notifier>) {
+        let mut inner = self.inner.borrow_mut();
+        assert!(
+            inner.notifier.upgrade().is_none(),
+            "Someone already subscribed"
+        );
+        inner.notifier = notifier;
     }
-}
+    pub(crate) fn unsubscribe(&mut self) {
+        self.inner.borrow_mut().notifier = Weak::default();
+    }
 
-impl<Q: ImageModifier> WithImage for Atlas<Q> {
-    fn with_image_slice<F, R>(&self, f: F, rect: Rect<u32>) -> R
+    pub fn size(&self) -> Size2D<u32> {
+        self.inner.borrow().allocator.size().cast()
+    }
+
+    pub(crate) fn with_data<F, R>(&self, f: F) -> R
     where
-        F: FnOnce(ImageSlice<Self::Pixel>) -> R,
+        F: FnOnce(&Image<P>) -> R,
     {
-        self.inner.borrow().image.with_image_slice(f, rect)
+        f(&self.inner.borrow().image)
     }
 }
 
-impl<Q: ImageModifier> ImageWatcher for Atlas<Q> {
-    fn subscribe_to_updates(&mut self, notifier: UpdateNotifier) {
-        self.inner.borrow_mut().updates.push(notifier);
-    }
-}
-
-impl<Q: ImageModifier> Drop for AtlasItem<Q> {
+impl<P: Pixel> Drop for AtlasItem<P> {
     fn drop(&mut self) {
         self.atlas.borrow_mut().dealloc_item(self.alloc.id);
     }
 }
 
-impl<Q: ImageModifier> AtlasItem<Q> {
+impl<P: Pixel> AtlasItem<P> {
+    fn rect(&self) -> Rect<u32> {
+        self.alloc.rectangle.to_rect().cast()
+    }
+
     fn resize(&mut self, new_size: Size2D<u32>) {
         let old_rect = self.alloc.rectangle.to_rect();
         let new_size = new_size.cast::<i32>();
@@ -155,61 +154,80 @@ impl<Q: ImageModifier> AtlasItem<Q> {
         let new_alloc = atlas.alloc_item(new_size);
 
         let common_size = new_size.min(old_rect.size);
-        atlas.image.with_image_mut(|mut image| {
-            image.copy_within(
-                Rect {
-                    origin: old_rect.origin,
-                    size: common_size,
-                }
-                .cast(),
-                new_alloc.rectangle.min.cast(),
-            )
-        });
+        atlas.image.copy_within(
+            Rect {
+                origin: old_rect.origin,
+                size: common_size,
+            }
+            .cast(),
+            new_alloc.rectangle.min.cast(),
+        );
     }
 }
 
-impl<Q: ImageModifier> ImageBase for AtlasImage<Q> {
-    type Pixel = Q::Pixel;
-
-    fn size(&self) -> Size2D<u32> {
-        let this = self.inner.borrow();
-        this.alloc.rectangle.size().cast()
+impl<P: Pixel> AtlasImage<P> {
+    pub(crate) fn rect(&self) -> Rect<u32> {
+        self.inner.borrow().rect()
     }
-}
+    pub fn size(&self) -> Size2D<u32> {
+        self.rect().size
+    }
 
-impl<Q: ImageModifier> WithImage for AtlasImage<Q> {
-    fn with_image_slice<F, R>(&self, f: F, rect: Rect<u32>) -> R
+    pub fn atlas(&self) -> Atlas<P> {
+        Atlas {
+            inner: self.inner.borrow().atlas.clone(),
+        }
+    }
+
+    pub fn with_data<F, R>(&self, f: F) -> R
     where
-        F: FnOnce(ImageSlice<Self::Pixel>) -> R,
+        F: FnOnce(ImageSlice<P>) -> R,
     {
         let this = self.inner.borrow();
-        this.atlas.borrow().image.with_image_slice(
-            |image| f(image.slice(this.alloc.rectangle.cast::<u32>())),
-            rect,
-        )
+        f(this.atlas.borrow().image.slice(this.rect()))
     }
-}
 
-impl<Q: ImageModifier> WithImageMut for AtlasImage<Q> {
-    fn with_image_slice_mut<F, R>(&mut self, f: F, rect: Rect<u32>) -> R
+    pub fn update<F, R>(&mut self, f: F) -> R
     where
-        F: FnOnce(ImageSliceMut<Self::Pixel>) -> R,
+        F: FnOnce(ImageSliceMut<P>) -> R,
+    {
+        self.update_part(f, Rect::from_size(self.size()))
+    }
+
+    pub fn update_part<F, R>(&mut self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSliceMut<P>) -> R,
     {
         let this = self.inner.borrow();
+        let this_rect = this.rect();
+        assert!(
+            rect.size.width <= this_rect.size.width && rect.size.height <= this_rect.size.height
+        );
+        let part_rect = Rect {
+            origin: this_rect.origin + rect.origin.to_vector(),
+            size: rect.size,
+        };
         let mut atlas = this.atlas.borrow_mut();
-        atlas.notify_update(rect);
-        atlas.image.with_image_slice_mut(
-            |mut image| f(image.slice_mut(this.alloc.rectangle.cast::<u32>())),
-            rect,
-        )
+        atlas.notify_update(part_rect);
+        f(atlas.image.slice_mut(part_rect))
     }
-}
 
-impl<Q: ImageModifier> ImageResize for AtlasImage<Q> {
-    fn resize(&mut self, new_size: impl Into<Size2D<u32>>) {
+    pub fn resize(&mut self, new_size: impl Into<Size2D<u32>>) {
         self.inner.borrow_mut().resize(new_size.into());
     }
-    fn resize_with_fill(&mut self, _new_size: impl Into<Size2D<u32>>, _fill: Self::Pixel) {
-        unimplemented!()
+
+    pub fn from_single(image: Image<P>) -> Self {
+        let size = image.size().cast();
+        let mut allocator = AtlasAllocator::new(size);
+        let alloc = allocator.allocate(size).unwrap();
+        assert_eq!(alloc.rectangle.min, Point2D::new(0, 0));
+        let atlas = Rc::new(RefCell::new(InnerAtlas {
+            allocator,
+            image,
+            notifier: Weak::default(),
+        }));
+        Self {
+            inner: Rc::new(RefCell::new(AtlasItem { atlas, alloc })),
+        }
     }
 }

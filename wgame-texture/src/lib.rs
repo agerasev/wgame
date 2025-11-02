@@ -4,7 +4,6 @@
 extern crate alloc;
 
 mod atlas;
-mod atlas_texture;
 mod texel;
 mod texture;
 
@@ -12,7 +11,10 @@ use core::ops::Deref;
 
 use wgame_gfx::Graphics;
 
-pub use self::texture::Texture;
+pub use self::{
+    atlas::{Atlas, AtlasImage},
+    texture::{Texture, TextureData},
+};
 
 /// Shared state
 #[derive(Clone)]
