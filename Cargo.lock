@@ -2438,12 +2438,12 @@ dependencies = [
  "log",
  "rgb",
  "wgame-app",
+ "wgame-font",
  "wgame-fs",
  "wgame-gfx",
- "wgame-img",
+ "wgame-image",
  "wgame-macros",
  "wgame-shapes",
- "wgame-text",
  "wgame-utils",
  "wgpu",
  "winit",
@@ -2480,6 +2480,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "wgame-font"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "etagere",
+ "glam",
+ "hashbrown",
+ "image",
+ "rgb",
+ "swash",
+ "wgame-gfx",
+ "wgpu",
+]
+
+[[package]]
 name = "wgame-fs"
 version = "0.1.0"
 dependencies = [
@@ -2508,7 +2524,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgame-img"
+name = "wgame-image"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2542,24 +2558,8 @@ dependencies = [
  "serde",
  "smallvec",
  "wgame-gfx",
- "wgame-img",
+ "wgame-image",
  "wgame-macros",
- "wgpu",
-]
-
-[[package]]
-name = "wgame-text"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "etagere",
- "glam",
- "hashbrown",
- "image",
- "rgb",
- "swash",
- "wgame-gfx",
  "wgpu",
 ]
 
@@ -2576,7 +2576,7 @@ dependencies = [
  "log",
  "rgb",
  "wgame-gfx",
- "wgame-img",
+ "wgame-image",
  "wgpu",
 ]
 

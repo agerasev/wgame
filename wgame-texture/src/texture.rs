@@ -1,7 +1,7 @@
 use alloc::{collections::vec_deque::VecDeque, rc::Rc};
 use core::cell::RefCell;
 use euclid::default::{Point2D, Rect, Size2D};
-use wgame_img::{ImageBase, ImageRead, ImageReadExt, ImageSlice};
+use wgame_image::{ImageBase, ImageRead, ImageReadExt, ImageSlice};
 
 use crate::{
     SharedState,

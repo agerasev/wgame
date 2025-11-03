@@ -12,8 +12,8 @@ web = ["wgame/web"]
 wgame = { workspace = true, features = [
     "shapes",
     "fs",
-    "img",
-    "text",
+    "image",
+    "font",
     "utils",
 ] }
 wgame-utils.workspace = true

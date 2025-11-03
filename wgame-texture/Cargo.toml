@@ -6,7 +6,7 @@ license.workspace = true
 
 [dependencies]
 wgame-gfx.workspace = true
-wgame-img.workspace = true
+wgame-image.workspace = true
 wgpu.workspace = true
 anyhow.workspace = true
 log.workspace = true

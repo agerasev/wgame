@@ -3,7 +3,7 @@ use half::f16;
 use rgb::Rgba;
 
 use wgame_gfx::types::Color;
-use wgame_img::Image;
+use wgame_image::Image;
 
 use crate::{Graphics, LibraryState, ShapeLibrary};
 

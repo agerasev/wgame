@@ -6,7 +6,7 @@ use alloc::{
 use core::cell::RefCell;
 use euclid::default::{Point2D, Rect, Size2D};
 use guillotiere::{AllocId, Allocation, AtlasAllocator};
-use wgame_img::{Image, ImageSlice, ImageSliceMut, Pixel, prelude::*};
+use wgame_image::{Image, ImageSlice, ImageSliceMut, Pixel, prelude::*};
 
 pub struct Notifier {
     pub updates: RefCell<VecDeque<Rect<u32>>>,

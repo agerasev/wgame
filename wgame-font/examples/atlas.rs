@@ -5,7 +5,7 @@ use std::{
     io::{Read, Write},
 };
 
-use wgame_text::{Font, FontRaster};
+use wgame_font::{Font, FontRaster};
 
 fn main() {
     let mut contents = Vec::new();

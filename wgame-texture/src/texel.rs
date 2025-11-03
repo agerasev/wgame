@@ -1,6 +1,6 @@
 use half::f16;
 use rgb::Rgba;
-use wgame_img::Pixel;
+use wgame_image::Pixel;
 
 pub trait Texel: Pixel {
     fn is_format_supported(format: wgpu::TextureFormat) -> bool;

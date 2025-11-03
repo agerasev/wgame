@@ -6,8 +6,8 @@ members = [
     "wgame-shapes",
     "wgame-texture",
     "wgame-fs",
-    "wgame-img",
-    "wgame-text",
+    "wgame-image",
+    "wgame-font",
     "wgame-utils",
     "wgame-macros",
     "wgame-examples",
@@ -26,8 +26,8 @@ wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-shapes = { version = "0.1.0", path = "wgame-shapes" }
 wgame-texture = { version = "0.1.0", path = "wgame-texture" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
-wgame-img = { version = "0.1.0", path = "wgame-img" }
-wgame-text = { version = "0.1.0", path = "wgame-text" }
+wgame-image = { version = "0.1.0", path = "wgame-image" }
+wgame-font = { version = "0.1.0", path = "wgame-font" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
