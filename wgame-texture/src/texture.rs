@@ -1,16 +1,14 @@
 use alloc::{collections::vec_deque::VecDeque, rc::Rc};
 use core::cell::RefCell;
 use euclid::default::{Point2D, Rect, Size2D};
-use wgame_image::{ImageBase, ImageRead, ImageReadExt, ImageSlice};
-
-use crate::{
-    SharedState,
-    atlas::{Atlas, AtlasImage, Notifier},
-    texel::Texel,
+use wgame_image::{
+    Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, atlas::Tracker,
 };
 
+use crate::{SharedState, texel::Texel};
+
 #[derive(Clone)]
-pub struct TextureData {
+pub struct TextureHandle {
     state: SharedState,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
@@ -20,9 +18,9 @@ pub struct TextureData {
 pub struct TextureAtlas<T: Texel> {
     state: SharedState,
     format: wgpu::TextureFormat,
-    dst: Option<TextureData>,
+    dst: Option<TextureHandle>,
     src: Atlas<T>,
-    notifier: Rc<Notifier>,
+    tracker: Rc<Tracker>,
 }
 
 #[derive(Clone)]
@@ -31,7 +29,7 @@ pub struct Texture<T: Texel> {
     image: AtlasImage<T>,
 }
 
-impl TextureData {
+impl TextureHandle {
     pub(crate) fn new(state: &SharedState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
         let state = state.clone();
         let device = state.device();
@@ -139,32 +137,30 @@ impl<T: Texel> TextureAtlas<T> {
         assert!(T::is_format_supported(format));
         let mut updates = VecDeque::new();
         updates.push_back(Rect::from_size(src.size()));
-        let notifier = Rc::new(Notifier {
-            updates: RefCell::new(updates),
-        });
-        src.subscribe(Rc::downgrade(&notifier));
+        let tracker = Rc::new(Tracker::default());
+        src.subscribe(Rc::downgrade(&tracker));
         Self {
             state: state.clone(),
             format,
             dst: None,
             src,
-            notifier,
+            tracker,
         }
     }
 
-    fn sync(&mut self) -> TextureData {
+    fn sync(&mut self) -> TextureHandle {
         self.dst.take_if(|texture| {
             Size2D::new(texture.extent.width, texture.extent.height) != self.src.size()
         });
         let dst = match &mut self.dst {
             Some(dst) => dst,
             dst @ None => {
-                let texture = TextureData::new(&self.state, self.src.size(), self.format);
+                let texture = TextureHandle::new(&self.state, self.src.size(), self.format);
                 dst.insert(texture)
             }
         };
 
-        for rect in self.notifier.updates.borrow_mut().drain(..) {
+        while let Some(rect) = self.tracker.take_next() {
             self.src
                 .with_data(|image| dst.write(image.slice(rect), rect.origin))
         }

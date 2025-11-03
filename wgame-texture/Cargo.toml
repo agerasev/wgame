@@ -15,4 +15,4 @@ euclid.workspace = true
 glam.workspace = true
 rgb.workspace = true
 half.workspace = true
-guillotiere = "0.6.2"
+hashbrown.workspace = true

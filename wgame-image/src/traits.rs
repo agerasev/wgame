@@ -1,7 +1,7 @@
 use euclid::default::{Box2D, Point2D, Rect, Size2D};
 use std::ops::{Bound, Range, RangeBounds};
 
-use crate::{ImageSlice, ImageSliceMut, Pixel};
+use crate::{Image, ImageSlice, ImageSliceMut, Pixel};
 
 pub trait ImageBase {
     type Pixel: Pixel;
@@ -16,6 +16,41 @@ pub trait ImageRead: ImageBase {
 
 pub trait ImageWrite: ImageRead {
     fn data_mut(&mut self) -> &mut [Self::Pixel];
+}
+
+impl<Q: ImageBase + ?Sized> ImageBase for &Q {
+    type Pixel = Q::Pixel;
+    fn size(&self) -> Size2D<u32> {
+        Q::size(self)
+    }
+}
+impl<Q: ImageRead + ?Sized> ImageRead for &Q {
+    fn data(&self) -> &[Self::Pixel] {
+        Q::data(self)
+    }
+    fn stride(&self) -> u32 {
+        Q::stride(self)
+    }
+}
+
+impl<Q: ImageBase + ?Sized> ImageBase for &mut Q {
+    type Pixel = Q::Pixel;
+    fn size(&self) -> Size2D<u32> {
+        Q::size(self)
+    }
+}
+impl<Q: ImageRead + ?Sized> ImageRead for &mut Q {
+    fn data(&self) -> &[Self::Pixel] {
+        Q::data(self)
+    }
+    fn stride(&self) -> u32 {
+        Q::stride(self)
+    }
+}
+impl<Q: ImageWrite + ?Sized> ImageWrite for &mut Q {
+    fn data_mut(&mut self) -> &mut [Self::Pixel] {
+        Q::data_mut(self)
+    }
 }
 
 fn into_range(range: impl RangeBounds<u32>, size: u32) -> Range<u32> {
@@ -102,6 +137,12 @@ pub trait ImageReadExt: ImageRead {
                 .enumerate()
                 .map(move |(i, pixel)| (Point2D::new(i as u32, j), pixel))
         })
+    }
+
+    fn to_image(&self) -> Image<Self::Pixel> {
+        let mut image = Image::new(self.size());
+        image.copy_from(self);
+        image
     }
 }
 
@@ -194,17 +235,5 @@ pub trait ImageWriteMut: ImageWrite {
     }
 }
 
-impl<Q: ImageRead> ImageReadExt for Q {}
-impl<Q: ImageWrite> ImageWriteMut for Q {}
-
-pub trait ImageResize: ImageBase {
-    /// Resize image copying old data.
-    /// New pixels can contain arbitrary data.
-    fn resize(&mut self, new_size: impl Into<Size2D<u32>>) {
-        self.resize_with_fill(new_size, Self::Pixel::default());
-    }
-
-    /// Resize image copying old data.
-    /// New pixels are filled with `fill` value.
-    fn resize_with_fill(&mut self, new_size: impl Into<Size2D<u32>>, fill: Self::Pixel);
-}
+impl<Q: ImageRead + ?Sized> ImageReadExt for Q {}
+impl<Q: ImageWrite + ?Sized> ImageWriteMut for Q {}

@@ -1,34 +1,36 @@
-mod mapping;
+mod atlas;
 
 use core::cell::RefCell;
 use std::rc::Rc;
 
-use image::GrayImage;
+use euclid::default::Size2D;
 use swash::{GlyphId, scale::ScaleContext};
+use wgame_image::{Atlas, AtlasImage};
 
 use crate::Font;
 
-pub use self::mapping::FontAtlas;
+pub use self::atlas::StyleAtlas;
 
 thread_local! {
     static CONTEXT: RefCell<ScaleContext> = Default::default();
 }
 
 #[derive(Clone)]
-pub struct FontRaster {
+pub struct Style {
     font: Font,
     size: f32,
-    pub(crate) atlas: Rc<RefCell<FontAtlas>>,
+    pub(crate) atlas: Rc<RefCell<StyleAtlas>>,
 }
 
-impl FontRaster {
-    pub fn new(font: &Font, size: f32) -> Self {
+impl Style {
+    pub fn new(atlas: &Atlas<u8>, font: &Font, size: f32) -> Self {
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();
+        let image = atlas.allocate(Size2D::new(init_dim, init_dim));
         Self {
             font: font.clone(),
             size,
-            atlas: Rc::new(RefCell::new(FontAtlas::new(init_dim))),
+            atlas: Rc::new(RefCell::new(StyleAtlas::new(image))),
         }
     }
 
@@ -58,7 +60,7 @@ impl FontRaster {
     pub fn size(&self) -> f32 {
         self.size
     }
-    pub fn image(&self) -> GrayImage {
+    pub fn image(&self) -> AtlasImage<u8> {
         self.atlas.borrow().image().clone()
     }
     pub fn atlas_svg(&self) -> Vec<u8> {

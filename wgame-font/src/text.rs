@@ -82,10 +82,10 @@ impl Instance for Text {
                         ),
                     ),
                 tex_coord: Vec4::new(
-                    glyph_image.location.x as f32,
-                    glyph_image.location.y as f32,
-                    glyph_image.location.width as f32,
-                    glyph_image.location.height as f32,
+                    glyph_image.location.origin.x as f32,
+                    glyph_image.location.origin.y as f32,
+                    glyph_image.location.size.width as f32,
+                    glyph_image.location.size.height as f32,
                 ),
                 color: Vec4::ONE,
             });

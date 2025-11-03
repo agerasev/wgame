@@ -1,21 +1,36 @@
-use alloc::{
-    collections::vec_deque::VecDeque,
-    rc::{Rc, Weak},
-    vec,
-};
-use core::cell::RefCell;
+use alloc::rc::{Rc, Weak};
+use core::cell::{Cell, RefCell};
 use euclid::default::{Point2D, Rect, Size2D};
 use guillotiere::{AllocId, Allocation, AtlasAllocator};
-use wgame_image::{Image, ImageSlice, ImageSliceMut, Pixel, prelude::*};
 
-pub struct Notifier {
-    pub updates: RefCell<VecDeque<Rect<u32>>>,
+use crate::{Image, ImageSlice, ImageSliceMut, Pixel, prelude::*};
+
+#[derive(Default)]
+pub struct Tracker {
+    rect: Cell<Option<Rect<u32>>>,
+}
+
+impl Tracker {
+    pub fn add(&self, rect: Rect<u32>) {
+        self.rect.update(|old| {
+            Some(match old {
+                Some(old) => old.union(&rect),
+                None => rect,
+            })
+        })
+    }
+    pub fn clear(&self) {
+        self.rect.take();
+    }
+    pub fn take_next(&self) -> Option<Rect<u32>> {
+        self.rect.take()
+    }
 }
 
 struct InnerAtlas<P: Pixel> {
     allocator: AtlasAllocator,
     image: Image<P>,
-    notifier: Weak<Notifier>,
+    tracker: Weak<Tracker>,
 }
 
 #[derive(Clone)]
@@ -54,11 +69,10 @@ impl<P: Pixel> InnerAtlas<P> {
             }
             self.allocator.grow(atlas_size);
         };
-        self.image.resize(size.cast());
-        if let Some(notifier) = self.notifier.upgrade() {
-            let mut queue = notifier.updates.borrow_mut();
-            queue.clear();
-            queue.push_back(Rect::from_size(size.cast()));
+        self.image.resize(size.cast(), P::default());
+        if let Some(tracker) = self.tracker.upgrade() {
+            tracker.clear();
+            tracker.add(Rect::from_size(size.cast()));
         }
         alloc
     }
@@ -72,9 +86,9 @@ impl<P: Pixel> InnerAtlas<P> {
         self.allocator.deallocate(id);
     }
 
-    fn notify_update(&mut self, rect: Rect<u32>) {
-        if let Some(notifier) = self.notifier.upgrade() {
-            notifier.updates.borrow_mut().push_back(rect);
+    fn track_update(&mut self, rect: Rect<u32>) {
+        if let Some(tracker) = self.tracker.upgrade() {
+            tracker.add(rect);
         }
     }
 }
@@ -92,8 +106,8 @@ impl<P: Pixel> Atlas<P> {
         Self {
             inner: Rc::new(RefCell::new(InnerAtlas {
                 allocator: AtlasAllocator::new(size.cast()),
-                image: Image::new(size, vec![P::default(); size.cast::<usize>().area()]),
-                notifier: Weak::default(),
+                image: Image::new(size),
+                tracker: Weak::default(),
             })),
         }
     }
@@ -109,23 +123,23 @@ impl<P: Pixel> Atlas<P> {
         AtlasImage { inner: item }
     }
 
-    pub(crate) fn subscribe(&mut self, notifier: Weak<Notifier>) {
+    pub fn subscribe(&mut self, tracker: Weak<Tracker>) {
         let mut inner = self.inner.borrow_mut();
         assert!(
-            inner.notifier.upgrade().is_none(),
+            inner.tracker.upgrade().is_none(),
             "Someone already subscribed"
         );
-        inner.notifier = notifier;
+        inner.tracker = tracker;
     }
-    pub(crate) fn unsubscribe(&mut self) {
-        self.inner.borrow_mut().notifier = Weak::default();
+    pub fn unsubscribe(&mut self) {
+        self.inner.borrow_mut().tracker = Weak::default();
     }
 
     pub fn size(&self) -> Size2D<u32> {
         self.inner.borrow().allocator.size().cast()
     }
 
-    pub(crate) fn with_data<F, R>(&self, f: F) -> R
+    pub fn with_data<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&Image<P>) -> R,
     {
@@ -179,7 +193,7 @@ impl<P: Pixel> AtlasImage<P> {
         }
     }
 
-    pub fn with_data<F, R>(&self, f: F) -> R
+    pub fn with<F, R>(&self, f: F) -> R
     where
         F: FnOnce(ImageSlice<P>) -> R,
     {
@@ -208,7 +222,7 @@ impl<P: Pixel> AtlasImage<P> {
             size: rect.size,
         };
         let mut atlas = this.atlas.borrow_mut();
-        atlas.notify_update(part_rect);
+        atlas.track_update(part_rect);
         f(atlas.image.slice_mut(part_rect))
     }
 
@@ -224,7 +238,7 @@ impl<P: Pixel> AtlasImage<P> {
         let atlas = Rc::new(RefCell::new(InnerAtlas {
             allocator,
             image,
-            notifier: Weak::default(),
+            tracker: Weak::default(),
         }));
         Self {
             inner: Rc::new(RefCell::new(AtlasItem { atlas, alloc })),

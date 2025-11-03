@@ -1,13 +1,13 @@
 #![forbid(unsafe_code)]
 
-mod raster;
 pub mod render;
+mod style;
 mod text;
 
 pub(crate) use self::render::GlyphInstance;
 pub use self::{
-    raster::FontRaster,
     render::{FontTexture, TextLibrary},
+    style::Style,
     text::Text,
 };
 
@@ -42,9 +42,5 @@ impl Font {
             offset: self.offset,
             key: self.key,
         }
-    }
-
-    pub fn rasterize(&self, size: f32) -> FontRaster {
-        FontRaster::new(self, size)
     }
 }

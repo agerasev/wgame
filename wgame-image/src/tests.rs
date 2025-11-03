@@ -4,7 +4,7 @@ use crate::{Image, prelude::*};
 
 #[test]
 fn slice() {
-    let img = Image::<u8>::new(
+    let img = Image::<u8>::with_data(
         (3, 3),
         [
             0, 1, 2, //
@@ -36,7 +36,7 @@ fn slice() {
 
 #[test]
 fn empty_slice() {
-    let img = Image::<u8>::new(
+    let img = Image::<u8>::with_data(
         (2, 2),
         [
             0, 1, //
@@ -54,7 +54,7 @@ fn empty_slice() {
 
 #[test]
 fn slice_mut() {
-    let mut img = Image::<u8>::new(
+    let mut img = Image::<u8>::with_data(
         (4, 4),
         [
             0, 1, 2, 3, //
@@ -101,7 +101,7 @@ fn slice_mut() {
 
 #[test]
 fn copy_from() {
-    let mut img = Image::<u8>::new(
+    let mut img = Image::<u8>::with_data(
         (4, 4),
         [
             0, 1, 2, 3, //
@@ -113,7 +113,7 @@ fn copy_from() {
 
     let mut slice = img.slice_mut((1..3, 1..3));
 
-    slice.copy_from(Image::new((2, 2), [15, 16, 19, 20]));
+    slice.copy_from(Image::with_data((2, 2), [15, 16, 19, 20]));
 
     assert_eq!(
         img.data(),

@@ -6,7 +6,7 @@ use wgpu::util::DeviceExt;
 
 use wgame_gfx::Graphics;
 
-use crate::{FontRaster, FontTexture};
+use crate::{FontTexture, Style};
 
 #[derive(Clone)]
 pub struct TextLibrary {
@@ -134,7 +134,7 @@ impl TextLibrary {
         })
     }
 
-    pub fn font_texture(&self, font_raster: FontRaster) -> FontTexture {
+    pub fn font_texture(&self, font_raster: Style) -> FontTexture {
         FontTexture::new(self, font_raster)
     }
 }

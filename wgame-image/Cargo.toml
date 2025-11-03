@@ -5,13 +5,16 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["png"]
-png = ["image/png"]
+default = ["std", "png"]
+std = []
+image = ["std"]
+png = ["dep:image", "image/png"]
 
 [dependencies]
-image.workspace = true
 bytemuck.workspace = true
 euclid.workspace = true
 rgb.workspace = true
 half.workspace = true
 anyhow.workspace = true
+guillotiere = "0.6.2"
+image = { workspace = true, optional = true }
