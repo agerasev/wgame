@@ -180,7 +180,7 @@ impl<P: Pixel> AtlasItem<P> {
 }
 
 impl<P: Pixel> AtlasImage<P> {
-    pub(crate) fn rect(&self) -> Rect<u32> {
+    pub fn rect(&self) -> Rect<u32> {
         self.inner.borrow().rect()
     }
     pub fn size(&self) -> Size2D<u32> {

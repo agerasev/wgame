@@ -1,36 +1,48 @@
 use alloc::{collections::vec_deque::VecDeque, rc::Rc};
-use core::cell::RefCell;
+use core::{
+    cell::{RefCell, RefMut},
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+    ops::Deref,
+};
 use euclid::default::{Point2D, Rect, Size2D};
+use glam::{Affine2, Vec2};
 use wgame_image::{
-    Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, atlas::Tracker,
+    Atlas, AtlasImage, Image, ImageBase, ImageRead, ImageReadExt, ImageSlice, atlas::Tracker,
 };
 
 use crate::{SharedState, texel::Texel};
 
 #[derive(Clone)]
-pub struct TextureHandle {
+struct TextureInstance {
     state: SharedState,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
 }
 
-pub struct TextureAtlas<T: Texel> {
+pub(crate) struct InnerAtlas<T: Texel> {
     state: SharedState,
     format: wgpu::TextureFormat,
-    dst: Option<TextureHandle>,
+    dst: Option<TextureInstance>,
     src: Atlas<T>,
     tracker: Rc<Tracker>,
 }
 
 #[derive(Clone)]
-pub struct Texture<T: Texel> {
-    atlas: Rc<RefCell<TextureAtlas<T>>>,
-    image: AtlasImage<T>,
+pub struct TextureAtlas<T: Texel> {
+    pub(crate) inner: Rc<RefCell<InnerAtlas<T>>>,
 }
 
-impl TextureHandle {
-    pub(crate) fn new(state: &SharedState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
+#[derive(Clone)]
+pub struct Texture<T: Texel> {
+    atlas: Rc<RefCell<InnerAtlas<T>>>,
+    image: AtlasImage<T>,
+    xform: Affine2,
+}
+
+impl TextureInstance {
+    fn new(state: &SharedState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
         let state = state.clone();
         let device = state.device();
 
@@ -126,13 +138,13 @@ impl TextureHandle {
     }
 }
 
-impl<T: Texel> Drop for TextureAtlas<T> {
+impl<T: Texel> Drop for InnerAtlas<T> {
     fn drop(&mut self) {
         self.src.unsubscribe();
     }
 }
 
-impl<T: Texel> TextureAtlas<T> {
+impl<T: Texel> InnerAtlas<T> {
     fn new(state: &SharedState, mut src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
         assert!(T::is_format_supported(format));
         let mut updates = VecDeque::new();
@@ -148,14 +160,14 @@ impl<T: Texel> TextureAtlas<T> {
         }
     }
 
-    fn sync(&mut self) -> TextureHandle {
+    fn sync(&mut self) -> TextureInstance {
         self.dst.take_if(|texture| {
             Size2D::new(texture.extent.width, texture.extent.height) != self.src.size()
         });
         let dst = match &mut self.dst {
             Some(dst) => dst,
             dst @ None => {
-                let texture = TextureHandle::new(&self.state, self.src.size(), self.format);
+                let texture = TextureInstance::new(&self.state, self.src.size(), self.format);
                 dst.insert(texture)
             }
         };
@@ -168,8 +180,48 @@ impl<T: Texel> TextureAtlas<T> {
         dst.clone()
     }
 }
-/*
+
+impl<T: Texel> TextureAtlas<T> {
+    pub fn new(state: &SharedState, src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(InnerAtlas::new(state, src, format))),
+        }
+    }
+
+    pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> Texture<T> {
+        let image = self.inner.borrow().src.allocate(size);
+        Texture {
+            atlas: self.inner.clone(),
+            image,
+            xform: Affine2::IDENTITY,
+        }
+    }
+}
+
 impl<T: Texel> Texture<T> {
+    pub fn atlas(&self) -> TextureAtlas<T> {
+        TextureAtlas {
+            inner: self.atlas.clone(),
+        }
+    }
+
+    pub fn image(&self) -> &AtlasImage<T> {
+        &self.image
+    }
+
+    pub fn coord_xform(&self) -> Affine2 {
+        let atlas_size = self.atlas.borrow().src.size();
+        let item_rect = self.image.rect();
+        let item_xform = Affine2::from_scale(Vec2::new(
+            item_rect.size.width as f32 / atlas_size.width as f32,
+            item_rect.size.height as f32 / atlas_size.height as f32,
+        )) * Affine2::from_translation(Vec2::new(
+            item_rect.origin.x as f32 / atlas_size.width as f32,
+            item_rect.origin.y as f32 / atlas_size.height as f32,
+        ));
+        self.xform * item_xform
+    }
+
     pub fn transform_coord(self, xform: Affine2) -> Self {
         Self {
             xform: xform * self.xform,
@@ -177,8 +229,80 @@ impl<T: Texel> Texture<T> {
         }
     }
 
-    pub fn coord_xform(&self) -> Affine2 {
-        self.xform
+    pub fn resource(&self) -> TextureResource<T> {
+        TextureResource {
+            atlas: self.atlas.clone(),
+        }
+    }
+
+    pub fn from_image(state: &SharedState, image: Image<T>, format: wgpu::TextureFormat) -> Self {
+        let image = AtlasImage::from_single(image);
+        let atlas = TextureAtlas::new(state, image.atlas(), format);
+        Self {
+            atlas: atlas.inner.clone(),
+            image,
+            xform: Affine2::IDENTITY,
+        }
     }
 }
-*/
+
+impl<T: Texel> Deref for Texture<T> {
+    type Target = AtlasImage<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.image
+    }
+}
+
+pub struct TextureResource<T: Texel> {
+    atlas: Rc<RefCell<InnerAtlas<T>>>,
+}
+
+impl<T: Texel> TextureResource<T> {
+    fn get_instance(&self) -> RefMut<'_, TextureInstance> {
+        let mut atlas = self.atlas.borrow_mut();
+        atlas.sync();
+        RefMut::map(atlas, |atlas| atlas.dst.as_mut().unwrap())
+    }
+
+    pub fn bind_group(&self) -> wgpu::BindGroup {
+        self.get_instance().bind_group.clone()
+    }
+
+    pub fn bind_group_layout(&self) -> wgpu::BindGroupLayout {
+        let instance = self.get_instance();
+        let format = instance.texture.format();
+        let state = &instance.state;
+        match format.sample_type(None, None) {
+            Some(wgpu::TextureSampleType::Uint) => state.uint_bind_group_layout.clone(),
+            Some(wgpu::TextureSampleType::Float { filterable: true }) => {
+                state.float_bind_group_layout.clone()
+            }
+            _ => panic!("Unsupported texture format: {format:?}"),
+        }
+    }
+}
+
+impl<T: Texel> PartialOrd for TextureResource<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl<T: Texel> Ord for TextureResource<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.atlas.as_ptr().cmp(&other.atlas.as_ptr())
+    }
+}
+
+impl<T: Texel> PartialEq for TextureResource<T> {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.atlas, &other.atlas)
+    }
+}
+impl<T: Texel> Eq for TextureResource<T> {}
+
+impl<T: Texel> Hash for TextureResource<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.atlas.as_ptr().hash(state);
+    }
+}

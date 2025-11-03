@@ -28,30 +28,6 @@ impl Deref for FontTexture {
     }
 }
 
-impl PartialOrd for FontTexture {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-impl Ord for FontTexture {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.texture.as_ptr().cmp(&other.texture.as_ptr())
-    }
-}
-
-impl PartialEq for FontTexture {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.texture, &other.texture)
-    }
-}
-impl Eq for FontTexture {}
-
-impl Hash for FontTexture {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.texture.as_ptr().hash(state);
-    }
-}
-
 impl FontTexture {
     pub fn new(library: &TextLibrary, raster: Style) -> Self {
         Self {

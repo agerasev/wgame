@@ -9,7 +9,7 @@ mod texture;
 use core::ops::Deref;
 use wgame_gfx::Graphics;
 
-pub use self::texture::{Texture, TextureHandle};
+pub use self::texture::{Texture, TextureAtlas, TextureResource};
 
 /// Shared state
 #[derive(Clone)]
@@ -36,6 +36,23 @@ impl SharedState {
             float_sampler: create_float_sampler(state),
         }
     }
+
+    /*
+    pub fn texture(&self, image: Image<Rgba<f16>>) -> Texture<Rgba<f16>> {
+        match self.default_atlas.upgrade() {
+            None => {
+                let texture = Texture::from_image(self, image, wgpu::TextureFormat::Rgba16Float);
+                self.default_atlas = Rc::downgrade(&texture.atlas().inner);
+                texture
+            }
+            Some(atlas) => {
+                let texture = TextureAtlas { inner: atlas }.allocate(image.size());
+                texture.image().update(|mut dst| dst.copy_from(image));
+                texture
+            }
+        }
+    }
+    */
 }
 
 fn create_uint_bind_group_layout(state: &Graphics) -> wgpu::BindGroupLayout {
