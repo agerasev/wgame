@@ -9,31 +9,41 @@ mod texture;
 use core::ops::Deref;
 use wgame_gfx::Graphics;
 
-pub use self::texture::{Texture, TextureAtlas, TextureResource};
+pub use self::texture::{Texture, TextureAtlas, TextureResources};
 
 /// Shared state
 #[derive(Clone)]
-pub struct SharedState {
+pub struct TextureLibrary {
     inner: Graphics,
     uint_bind_group_layout: wgpu::BindGroupLayout,
     float_bind_group_layout: wgpu::BindGroupLayout,
     float_sampler: wgpu::Sampler,
 }
 
-impl Deref for SharedState {
+impl Deref for TextureLibrary {
     type Target = Graphics;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl SharedState {
+impl TextureLibrary {
     pub fn new(state: &Graphics) -> Self {
         Self {
             inner: state.clone(),
             uint_bind_group_layout: create_uint_bind_group_layout(state),
             float_bind_group_layout: create_float_bind_group_layout(state),
             float_sampler: create_float_sampler(state),
+        }
+    }
+
+    pub fn bind_group_layout(&self, format: wgpu::TextureFormat) -> wgpu::BindGroupLayout {
+        match format.sample_type(None, None) {
+            Some(wgpu::TextureSampleType::Uint) => self.uint_bind_group_layout.clone(),
+            Some(wgpu::TextureSampleType::Float { filterable: true }) => {
+                self.float_bind_group_layout.clone()
+            }
+            _ => panic!("Unsupported texture format: {format:?}"),
         }
     }
 

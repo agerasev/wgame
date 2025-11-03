@@ -9,20 +9,20 @@ use swash::{
 use wgame_image::{AtlasImage, Image, prelude::*};
 
 #[derive(Clone, Copy, Debug)]
-pub struct GlyphImageInfo {
+pub(crate) struct GlyphImageInfo {
     pub _alloc_id: AllocId,
     pub location: Rect<u32>,
     pub placement: Placement,
 }
 
-pub struct StyleAtlas {
+pub(super) struct InnerAtlas {
     allocator: AtlasAllocator,
     mapping: BTreeMap<GlyphId, Option<GlyphImageInfo>>,
     image: AtlasImage<u8>,
     render: Render<'static>,
 }
 
-impl StyleAtlas {
+impl InnerAtlas {
     pub fn new(image: AtlasImage<u8>) -> Self {
         Self {
             allocator: AtlasAllocator::new(image.size().cast()),

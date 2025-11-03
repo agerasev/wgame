@@ -2,31 +2,29 @@ use std::{borrow::Cow, ops::Deref};
 
 use anyhow::Result;
 use glam::Vec4;
+use wgame_texture::TextureLibrary;
 use wgpu::util::DeviceExt;
-
-use wgame_gfx::Graphics;
-
-use crate::{FontTexture, Style};
 
 #[derive(Clone)]
 pub struct TextLibrary {
-    pub(crate) state: Graphics,
+    pub(crate) inner: TextureLibrary,
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
     pub(crate) pipeline: wgpu::RenderPipeline,
 }
 
 impl Deref for TextLibrary {
-    type Target = Graphics;
+    type Target = TextureLibrary;
     fn deref(&self) -> &Self::Target {
-        &self.state
+        &self.inner
     }
 }
 
 impl TextLibrary {
     const INSTANCE_COMPONENTS: u32 = 6;
 
-    pub fn new(state: &Graphics) -> Result<Self> {
+    pub fn new(texture_lib: &TextureLibrary) -> Result<Self> {
+        let state = &*texture_lib;
         let device = state.device().clone();
         let swapchain_format = state.format();
 
@@ -80,19 +78,7 @@ impl TextLibrary {
                 usage: wgpu::BufferUsages::INDEX,
             });
 
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("text_bind_group"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Uint,
-                },
-                count: None,
-            }],
-        });
+        let bind_group_layout = texture_lib.bind_group_layout(wgpu::TextureFormat::R8Uint);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -127,14 +113,10 @@ impl TextLibrary {
         });
 
         Ok(Self {
-            state: state.clone(),
+            inner: texture_lib.clone(),
             vertex_buffer,
             index_buffer,
             pipeline,
         })
-    }
-
-    pub fn font_texture(&self, font_raster: Style) -> FontTexture {
-        FontTexture::new(self, font_raster)
     }
 }

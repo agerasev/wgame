@@ -1,53 +1,45 @@
-use std::{
-    cell::RefCell,
-    cmp::Ordering,
-    hash::{Hash, Hasher},
-    ops::Deref,
-    rc::Rc,
-};
+use std::ops::Deref;
+use wgame_texture::{Texture, TextureAtlas};
 
-use etagere::euclid::default::Box2D;
-use wgame_texture::Texture;
-use wgpu::Extent3d;
-
-use wgame_gfx::Graphics;
-
-use crate::{Style, Text, TextLibrary, style::StyleAtlas};
+use crate::{FontAtlas, Text, TextLibrary};
 
 #[derive(Clone)]
 pub struct FontTexture {
     pub(crate) library: TextLibrary,
-    style: Style,
+    font: FontAtlas,
     texture: Texture<u8>,
 }
 
 impl Deref for FontTexture {
-    type Target = Style;
+    type Target = FontAtlas;
     fn deref(&self) -> &Self::Target {
-        &self.style
+        &self.font
     }
 }
 
 impl FontTexture {
-    pub fn new(library: &TextLibrary, raster: Style) -> Self {
-        Self {
-            style: raster,
-            library: library.clone(),
-            texture: Rc::new(RefCell::new(None)),
+    pub fn new(
+        library: &TextLibrary,
+        font_atlas: FontAtlas,
+        texture_atlas: &TextureAtlas<u8>,
+    ) -> Self {
+        if font_atlas.atlas.borrow().image().atlas() != texture_atlas.atlas() {
+            panic!("Font atlas and texture atlas are built upon different atlases");
         }
-    }
-
-    pub fn sync(&self) -> Option<wgpu::TextureView> {
-        let mut texture = self.texture.borrow_mut();
-        Texture::sync(
-            &mut texture,
-            &self.library,
-            &mut self.style.atlas.borrow_mut(),
-        );
-        texture.as_ref().map(|t| t.view.clone())
+        let texture =
+            Texture::from_image(&library, font_atlas.image(), wgpu::TextureFormat::R8Uint);
+        Self {
+            library: library.clone(),
+            font: font_atlas,
+            texture,
+        }
     }
 
     pub fn text(&self, text: &str) -> Text {
         Text::new(self, text)
+    }
+
+    pub fn texture(this: &FontTexture) -> &Texture<u8> {
+        &this.texture
     }
 }

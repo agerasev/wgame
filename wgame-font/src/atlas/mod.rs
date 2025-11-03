@@ -1,4 +1,4 @@
-mod atlas;
+mod inner;
 
 use core::cell::RefCell;
 use std::rc::Rc;
@@ -7,22 +7,23 @@ use euclid::default::Size2D;
 use swash::{GlyphId, scale::ScaleContext};
 use wgame_image::{Atlas, AtlasImage};
 
+use self::inner::InnerAtlas;
 use crate::Font;
 
-pub use self::atlas::StyleAtlas;
+pub(crate) use self::inner::GlyphImageInfo;
 
 thread_local! {
     static CONTEXT: RefCell<ScaleContext> = Default::default();
 }
 
 #[derive(Clone)]
-pub struct Style {
+pub struct FontAtlas {
     font: Font,
     size: f32,
-    pub(crate) atlas: Rc<RefCell<StyleAtlas>>,
+    pub(crate) atlas: Rc<RefCell<InnerAtlas>>,
 }
 
-impl Style {
+impl FontAtlas {
     pub fn new(atlas: &Atlas<u8>, font: &Font, size: f32) -> Self {
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();
@@ -30,7 +31,7 @@ impl Style {
         Self {
             font: font.clone(),
             size,
-            atlas: Rc::new(RefCell::new(StyleAtlas::new(image))),
+            atlas: Rc::new(RefCell::new(InnerAtlas::new(image))),
         }
     }
 
@@ -38,7 +39,7 @@ impl Style {
         let font_ref = self.font.as_ref();
         self.add_glyphs(codepoints.into_iter().map(|c| font_ref.charmap().map(c)));
     }
-    pub(crate) fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
+    pub fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
         let mut atlas = self.atlas.borrow_mut();
 
         CONTEXT.with_borrow_mut(|context| {
@@ -52,6 +53,12 @@ impl Style {
                 atlas.add_glyph(&mut scaler, glyph_id);
             }
         });
+    }
+    pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
+        self.atlas.borrow().get_glyph(glyph_id)
+    }
+    pub fn get_glyph_rect(&self, glyph_id: GlyphId) -> Option<Rect<u32>> {
+        self.atlas.borrow().get_glyph(glyph_id)
     }
 
     pub fn font(&self) -> &Font {

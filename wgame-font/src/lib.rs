@@ -1,13 +1,13 @@
 #![forbid(unsafe_code)]
 
+mod atlas;
 pub mod render;
-mod style;
 mod text;
 
 pub(crate) use self::render::GlyphInstance;
 pub use self::{
+    atlas::FontAtlas,
     render::{FontTexture, TextLibrary},
-    style::Style,
     text::Text,
 };
 

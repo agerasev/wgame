@@ -245,3 +245,10 @@ impl<P: Pixel> AtlasImage<P> {
         }
     }
 }
+
+impl<P: Pixel> PartialEq for Atlas<P> {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+impl<P: Pixel> Eq for Atlas<P> {}

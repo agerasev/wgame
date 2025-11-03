@@ -2,10 +2,12 @@ mod library;
 mod texture;
 
 use anyhow::Result;
-use glam::{Mat4, Vec4};
+use glam::{Affine2, Mat4, Vec4};
+use swash::GlyphId;
 use wgpu::util::DeviceExt;
 
 use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
+use wgame_texture::TextureResources;
 
 pub use self::{library::TextLibrary, texture::FontTexture};
 
@@ -13,7 +15,7 @@ pub use self::{library::TextLibrary, texture::FontTexture};
 pub struct TextResources {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    texture: FontTexture,
+    texture: TextureResources<u8>,
     pipeline: wgpu::RenderPipeline,
     device: wgpu::Device,
 }
@@ -27,27 +29,31 @@ impl TextResources {
             vertex_buffer: library.vertex_buffer.clone(),
             index_buffer: library.index_buffer.clone(),
             pipeline,
-            texture: font.clone(),
+            texture: FontTexture::texture(font).resources(),
             device: library.device().clone(),
         }
     }
 }
 
+pub struct TextInstance {
+    pub texture: FontTexture,
+    pub glyphs: Vec<GlyphInstance>,
+    pub color: Vec4,
+}
+
 pub struct GlyphInstance {
     pub xform: Mat4,
-    pub tex_coord: Vec4,
-    pub color: Vec4,
+    pub id: GlyphId,
 }
 
 #[derive(Default)]
 pub struct TextStorage {
-    pub(crate) instances: Vec<GlyphInstance>,
+    pub(crate) instances: Vec<TextInstance>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextRenderer {
     resources: TextResources,
-    bind_group: wgpu::BindGroup,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
 }
@@ -61,10 +67,15 @@ impl Resources for TextResources {
     }
     fn make_renderer(&self, storage: &Self::Storage) -> Result<Self::Renderer> {
         let mut bytes = Vec::new();
-        for instance in &storage.instances {
-            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.xform]));
-            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.tex_coord]));
-            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.color]));
+        for text in &storage.instances {
+            let tex_xform = FontTexture::texture(&text.texture).rect();
+            for glyph in &text.glyphs {
+                let info = text.texture.get_glyph(glyph.id).expect("Glyph not found");
+                let xform =  Affine2::from_scale(scale) * Affine2::from_translation(info.location.origin.x as f32 / info.location.)  *  tex_xform;
+                bytes.extend_from_slice(bytemuck::cast_slice(&[glyph.xform]));
+                bytes.extend_from_slice(bytemuck::cast_slice(&[glyph.tex_coord]));
+                bytes.extend_from_slice(bytemuck::cast_slice(&[text.color]));
+            }
         }
         let instance_buffer = self
             .device
