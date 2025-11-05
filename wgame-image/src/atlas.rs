@@ -67,12 +67,14 @@ impl<P: Pixel> InnerAtlas<P> {
                     .checked_mul(2)
                     .expect("Atlas size overflow");
             }
-            self.allocator.grow(atlas_size);
+            // TODO: Rearrang only if needed
+            // FIXME: Handle returned rearrange list
+            self.allocator.resize_and_rearrange(atlas_size);
         };
-        self.image.resize(size.cast(), P::default());
+        self.image.resize(atlas_size.cast(), P::default());
         if let Some(tracker) = self.tracker.upgrade() {
             tracker.clear();
-            tracker.add(Rect::from_size(size.cast()));
+            tracker.add(Rect::from_size(atlas_size.cast()));
         }
         alloc
     }
@@ -176,6 +178,7 @@ impl<P: Pixel> AtlasItem<P> {
             .cast(),
             new_alloc.rectangle.min.cast(),
         );
+        self.alloc = new_alloc;
     }
 }
 

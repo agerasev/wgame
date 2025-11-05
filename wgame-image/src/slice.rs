@@ -2,6 +2,7 @@ use euclid::default::Size2D;
 
 use crate::{ImageBase, ImageRead, ImageWrite, Pixel};
 
+#[derive(Clone, Copy)]
 pub struct ImageSlice<'a, P: Pixel> {
     pub(crate) size: Size2D<u32>,
     pub(crate) stride: u32,
