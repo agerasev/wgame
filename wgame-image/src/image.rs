@@ -1,10 +1,4 @@
-use anyhow::Result;
 use euclid::default::{Rect, Size2D};
-use half::f16;
-use image::ImageReader;
-use rgb::Rgba;
-#[cfg(feature = "image")]
-use std::io::Cursor;
 
 use crate::{ImageBase, ImageRead, ImageReadExt, ImageWrite, ImageWriteMut, Pixel};
 
@@ -72,30 +66,5 @@ impl<P: Pixel> ImageRead for Image<P> {
 impl<P: Pixel> ImageWrite for Image<P> {
     fn data_mut(&mut self) -> &mut [P] {
         &mut self.data
-    }
-}
-
-#[cfg(feature = "image")]
-impl Image<Rgba<f16>> {
-    pub fn decode(bytes: &[u8]) -> Result<Self> {
-        let reader = Cursor::new(bytes);
-        let image = ImageReader::new(reader).with_guessed_format()?.decode()?;
-
-        let data: Vec<f16> = {
-            // TODO: Convert directly to f16
-            let mut image = image.to_rgba32f();
-            // Convert to sRGB
-            for pix in image.pixels_mut() {
-                for ch in &mut pix.0[0..3] {
-                    *ch = ch.powf(2.2);
-                }
-            }
-            image.into_vec().into_iter().map(f16::from_f32).collect()
-        };
-
-        Ok(Self::with_data(
-            (image.width(), image.height()),
-            bytemuck::cast_slice(&data).to_vec(),
-        ))
     }
 }

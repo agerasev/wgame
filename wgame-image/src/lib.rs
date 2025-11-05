@@ -6,6 +6,8 @@ extern crate alloc;
 extern crate std;
 
 pub mod atlas;
+#[cfg(feature = "image")]
+mod endec;
 mod image;
 mod pixel;
 mod slice;
@@ -20,6 +22,8 @@ pub use crate::{
     slice::{ImageSlice, ImageSliceMut},
     traits::*,
 };
+#[cfg(feature = "image")]
+pub use endec::Encoding;
 
 pub mod prelude {
     pub use crate::traits::*;

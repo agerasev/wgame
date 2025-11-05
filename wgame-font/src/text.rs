@@ -7,7 +7,7 @@ use wgame_gfx::{Context, Instance, Resources};
 
 use crate::{
     GlyphInstance,
-    render::{FontTexture, TextResources},
+    render::{FontTexture, TextInstance, TextResources},
 };
 
 thread_local! {
@@ -60,13 +60,13 @@ impl Instance for Text {
         TextResources::new(&self.font)
     }
     fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
-        let atlas = self.font.atlas.borrow();
+        let mut glyphs = Vec::with_capacity(self.glyphs.len());
         for glyph in &self.glyphs {
-            let glyph_image = match atlas.get_glyph(glyph.id) {
+            let glyph_image = match self.font.glyph_info(glyph.id) {
                 Some(x) => x,
                 None => continue,
             };
-            storage.instances.push(GlyphInstance {
+            glyphs.push(GlyphInstance {
                 xform: ctx.view
                     * Mat4::from_scale_rotation_translation(
                         Vec3::new(
@@ -81,14 +81,13 @@ impl Instance for Text {
                             0.0,
                         ),
                     ),
-                tex_coord: Vec4::new(
-                    glyph_image.location.origin.x as f32,
-                    glyph_image.location.origin.y as f32,
-                    glyph_image.location.size.width as f32,
-                    glyph_image.location.size.height as f32,
-                ),
-                color: Vec4::ONE,
+                id: glyph.id,
             });
         }
+        storage.instances.push(TextInstance {
+            texture: self.font.clone(),
+            glyphs,
+            color: Vec4::ONE,
+        });
     }
 }

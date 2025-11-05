@@ -3,14 +3,13 @@ mod inner;
 use core::cell::RefCell;
 use std::rc::Rc;
 
-use euclid::default::Size2D;
+use euclid::default::{Rect, Size2D};
 use swash::{GlyphId, scale::ScaleContext};
 use wgame_image::{Atlas, AtlasImage};
 
-use self::inner::InnerAtlas;
 use crate::Font;
 
-pub(crate) use self::inner::GlyphImageInfo;
+pub(crate) use self::inner::{GlyphImageInfo, InnerAtlas};
 
 thread_local! {
     static CONTEXT: RefCell<ScaleContext> = Default::default();
@@ -54,11 +53,21 @@ impl FontAtlas {
             }
         });
     }
-    pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
-        self.atlas.borrow().get_glyph(glyph_id)
+    pub(crate) fn glyph_info(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
+        self.atlas.borrow().glyph_info(glyph_id)
     }
-    pub fn get_glyph_rect(&self, glyph_id: GlyphId) -> Option<Rect<u32>> {
-        self.atlas.borrow().get_glyph(glyph_id)
+    pub fn glyph_rect(&self, glyph_id: GlyphId) -> Option<Rect<u32>> {
+        let atlas = self.atlas.borrow();
+        let atlas_rect = atlas.image().rect();
+        if let Some(info) = atlas.glyph_info(glyph_id) {
+            let glyph_rect = info.location;
+            Some(Rect {
+                origin: atlas_rect.origin + glyph_rect.origin.to_vector(),
+                size: glyph_rect.size,
+            })
+        } else {
+            None
+        }
     }
 
     pub fn font(&self) -> &Font {

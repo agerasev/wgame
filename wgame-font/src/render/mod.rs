@@ -2,7 +2,7 @@ mod library;
 mod texture;
 
 use anyhow::Result;
-use glam::{Affine2, Mat4, Vec4};
+use glam::{Mat4, Vec4};
 use swash::GlyphId;
 use wgpu::util::DeviceExt;
 
@@ -68,12 +68,15 @@ impl Resources for TextResources {
     fn make_renderer(&self, storage: &Self::Storage) -> Result<Self::Renderer> {
         let mut bytes = Vec::new();
         for text in &storage.instances {
-            let tex_xform = FontTexture::texture(&text.texture).rect();
             for glyph in &text.glyphs {
-                let info = text.texture.get_glyph(glyph.id).expect("Glyph not found");
-                let xform =  Affine2::from_scale(scale) * Affine2::from_translation(info.location.origin.x as f32 / info.location.)  *  tex_xform;
+                let rect = text.texture.glyph_rect(glyph.id).unwrap();
                 bytes.extend_from_slice(bytemuck::cast_slice(&[glyph.xform]));
-                bytes.extend_from_slice(bytemuck::cast_slice(&[glyph.tex_coord]));
+                bytes.extend_from_slice(bytemuck::cast_slice(&[
+                    rect.origin.x as f32,
+                    rect.origin.y as f32,
+                    rect.size.width as f32,
+                    rect.size.height as f32,
+                ]));
                 bytes.extend_from_slice(bytemuck::cast_slice(&[text.color]));
             }
         }
@@ -85,19 +88,8 @@ impl Resources for TextResources {
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
-        let texture_view = self.texture.sync().unwrap();
-        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.pipeline.get_bind_group_layout(0),
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(&texture_view),
-            }],
-            label: None,
-        });
-
         Ok(TextRenderer {
             resources: self.clone(),
-            bind_group,
             instance_buffer,
             instance_count: storage.instances.len() as u32,
         })
@@ -108,7 +100,7 @@ impl Renderer for TextRenderer {
     fn draw(&self, pass: &mut wgpu::RenderPass) -> Result<()> {
         pass.push_debug_group("prepare");
         pass.set_pipeline(&self.resources.pipeline);
-        pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.set_bind_group(0, &self.resources.texture.bind_group(), &[]);
         pass.set_vertex_buffer(0, self.resources.vertex_buffer.slice(..));
         pass.set_index_buffer(
             self.resources.index_buffer.slice(..),

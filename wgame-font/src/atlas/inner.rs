@@ -15,7 +15,7 @@ pub(crate) struct GlyphImageInfo {
     pub placement: Placement,
 }
 
-pub(super) struct InnerAtlas {
+pub(crate) struct InnerAtlas {
     allocator: AtlasAllocator,
     mapping: BTreeMap<GlyphId, Option<GlyphImageInfo>>,
     image: AtlasImage<u8>,
@@ -143,7 +143,7 @@ impl InnerAtlas {
         assert!(self.mapping.insert(glyph_id, info).is_none());
     }
 
-    pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
+    pub fn glyph_info(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
         self.mapping.get(&glyph_id).and_then(|x| *x)
     }
 
