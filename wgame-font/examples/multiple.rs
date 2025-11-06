@@ -28,14 +28,8 @@ fn main() {
     }
 
     atlas.with_data(|img| {
-        let mut file = File::create("output/multiple_atlases.png").unwrap();
+        let mut file = File::create("output/multiple.png").unwrap();
         file.write_all(&img.slice((.., ..)).encode(Encoding::Png).unwrap())
             .unwrap();
     });
-    for (i, style) in styles.iter().enumerate() {
-        File::create(format!("output/atlas_{i}.svg"))
-            .unwrap()
-            .write_all(&style.atlas_svg())
-            .unwrap();
-    }
 }

@@ -24,3 +24,4 @@ etagere = "0.2.15"
 
 [dev-dependencies]
 image = { workspace = true, features = ["png"] }
+rand = { version = "0.9.2", default-features = false, features = ["small_rng"] }
