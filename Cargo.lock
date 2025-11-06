@@ -2535,8 +2535,10 @@ dependencies = [
  "euclid",
  "guillotiere",
  "half",
+ "hashbrown",
  "image",
  "rgb",
+ "smallvec",
 ]
 
 [[package]]

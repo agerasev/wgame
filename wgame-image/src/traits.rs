@@ -233,6 +233,12 @@ pub trait ImageWriteMut: ImageWrite {
             }
         }
     }
+
+    fn fill(&mut self, color: Self::Pixel) {
+        for (_, row) in self.rows_mut() {
+            row.fill(color);
+        }
+    }
 }
 
 impl<Q: ImageRead + ?Sized> ImageReadExt for Q {}
