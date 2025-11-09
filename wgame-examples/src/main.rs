@@ -1,12 +1,19 @@
 #![no_std]
 
+#[cfg(feature = "dump")]
+extern crate std;
+
 use core::{
     f32::consts::{FRAC_PI_3, PI, SQRT_2},
     time::Duration,
 };
+#[cfg(feature = "dump")]
+use std::io::Write;
 
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
+#[cfg(feature = "dump")]
+use wgame::image::ImageReadExt;
 use wgame::{
     Library, Result, Window,
     app::time::Instant,
@@ -55,6 +62,14 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let circle = gfx.shapes.circle(Vec2::ZERO, 0.8).texture(grad.clone());
     let ring0 = gfx.shapes.ring(Vec2::ZERO, 0.8, 0.4).texture(grad.clone());
     let ring1 = gfx.shapes.ring(Vec2::ZERO, 0.8, 0.5).texture(grad.clone());
+
+    #[cfg(feature = "dump")]
+    std::fs::File::create("dump/atlas.png")?.write_all(
+        &texture
+            .atlas()
+            .inner()
+            .with_data(|img| img.slice((.., ..)).encode("png"))?,
+    )?;
 
     let scale = 1.0 / 3.0;
     let start_time = Instant::now();

@@ -24,7 +24,7 @@ impl FontTexture {
         texture_atlas: &TextureAtlas<u8>,
     ) -> Self {
         assert_eq!(&**state, &texture_atlas.state());
-        if font_atlas.atlas.borrow().image().atlas() != texture_atlas.atlas() {
+        if font_atlas.atlas.borrow().image().atlas() != texture_atlas.inner() {
             panic!("Font atlas and texture atlas are built upon different atlases");
         }
         let texture = Texture::new(texture_atlas, font_atlas.image());

@@ -200,7 +200,7 @@ impl<T: Texel> TextureAtlas<T> {
         Texture::new(&self, image)
     }
 
-    pub fn atlas(&self) -> Atlas<T> {
+    pub fn inner(&self) -> Atlas<T> {
         self.inner.borrow().src.clone()
     }
 }

@@ -141,7 +141,7 @@ impl TextLibrary {
     }
 
     pub fn texture(&self, font: &Font, size: f32) -> FontTexture {
-        let atlas = self.default_atlas.atlas();
+        let atlas = self.default_atlas.inner();
         let font_atlas = FontAtlas::new(&atlas, font, size);
         FontTexture::new(&self.state, &font_atlas, &self.default_atlas)
     }

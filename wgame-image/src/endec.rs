@@ -1,9 +1,9 @@
-use anyhow::{Error, Result};
+use anyhow::{Error, Result, anyhow};
 use euclid::default::Size2D;
 use half::f16;
-use image::{GrayImage, ImageFormat, ImageReader, Rgba32FImage};
+use image::{DynamicImage, GrayImage, ImageFormat, ImageReader, Rgba32FImage};
 use rgb::{ComponentMap, Rgba};
-use std::io::Cursor;
+use std::{fmt::Debug, io::Cursor};
 
 use crate::{Image, ImageBase, ImageReadExt, ImageSlice};
 
@@ -11,6 +11,28 @@ use crate::{Image, ImageBase, ImageReadExt, ImageSlice};
 pub enum Encoding {
     #[cfg(feature = "png")]
     Png,
+}
+
+impl TryFrom<&str> for Encoding {
+    type Error = Error;
+    fn try_from(value: &str) -> Result<Self> {
+        match value {
+            #[cfg(feature = "png")]
+            "png" => Ok(Self::Png),
+            other => Err(anyhow!("Unsupported format string: {other:?}")),
+        }
+    }
+}
+
+impl TryFrom<ImageFormat> for Encoding {
+    type Error = Error;
+    fn try_from(format: ImageFormat) -> Result<Self> {
+        match format {
+            #[cfg(feature = "png")]
+            ImageFormat::Png => Ok(Self::Png),
+            other => Err(anyhow!("Unsupported format: {other:?}")),
+        }
+    }
 }
 
 impl Into<ImageFormat> for Encoding {
@@ -45,18 +67,18 @@ impl TryFrom<image::DynamicImage> for Image<Rgba<f16>> {
 }
 
 impl Image<Rgba<f16>> {
-    fn decode_inner(bytes: &[u8], encoding: Option<ImageFormat>) -> Result<Self> {
+    fn decode_inner(bytes: &[u8], encoding: Option<Encoding>) -> Result<Self> {
         let mut reader = ImageReader::new(Cursor::new(bytes));
         match encoding {
             None => reader = reader.with_guessed_format()?,
-            Some(enc) => reader.set_format(enc),
+            Some(enc) => reader.set_format(enc.into()),
         }
 
         let image = reader.decode()?;
         Self::try_from(image)
     }
 
-    pub fn decode(bytes: &[u8], encoding: impl Into<ImageFormat>) -> Result<Self> {
+    pub fn decode(bytes: &[u8], encoding: impl Into<Encoding>) -> Result<Self> {
         Self::decode_inner(bytes, Some(encoding.into()))
     }
 
@@ -66,14 +88,21 @@ impl Image<Rgba<f16>> {
 }
 
 impl ImageSlice<'_, Rgba<f16>> {
-    pub fn encode(&self, encoding: impl Into<ImageFormat>) -> Result<Vec<u8>> {
+    pub fn encode<C: TryInto<Encoding>>(&self, encoding: C) -> Result<Vec<u8>>
+    where
+        C::Error: Into<Error>,
+    {
+        let encoding = encoding.try_into().map_err(|e| e.into())?;
         let Size2D { width, height, .. } = self.size();
         let data: Vec<Rgba<f32>> = self
             .rows()
             .flat_map(|(_, row)| row.iter().map(|c| c.map(|v| f32::from(v).powf(1.0 / 2.2))))
             .collect();
-        let image = Rgba32FImage::from_vec(width, height, bytemuck::cast_vec(data))
-            .expect("Buffer is smaller than expected");
+        let image = DynamicImage::from(
+            Rgba32FImage::from_vec(width, height, bytemuck::cast_vec(data))
+                .expect("Buffer is smaller than expected"),
+        )
+        .to_rgba8();
 
         let mut buffer = Cursor::new(Vec::<u8>::new());
         image.write_to(&mut buffer, encoding.into())?;
@@ -82,7 +111,11 @@ impl ImageSlice<'_, Rgba<f16>> {
 }
 
 impl ImageSlice<'_, u8> {
-    pub fn encode(&self, encoding: impl Into<ImageFormat>) -> Result<Vec<u8>> {
+    pub fn encode<C: TryInto<Encoding>>(&self, encoding: C) -> Result<Vec<u8>>
+    where
+        C::Error: Into<Error>,
+    {
+        let encoding = encoding.try_into().map_err(|e| e.into())?;
         let Size2D { width, height, .. } = self.size();
         let data: Vec<u8> = self
             .rows()

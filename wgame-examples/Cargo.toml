@@ -5,8 +5,9 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["wgame/desktop"]
+default = ["wgame/desktop", "dump"]
 web = ["wgame/web"]
+dump = []
 
 [dependencies]
 wgame = { workspace = true, features = [
