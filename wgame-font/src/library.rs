@@ -1,35 +1,35 @@
 use std::{borrow::Cow, ops::Deref};
 
-use anyhow::Result;
 use glam::Vec4;
-use wgame_texture::TextureLibrary;
+use wgame_texture::{TextureAtlas, TextureLibrary, TextureState};
 use wgpu::util::DeviceExt;
 
+use crate::{FontAtlas, FontTexture};
+
 #[derive(Clone)]
-pub struct TextLibrary {
-    pub(crate) inner: TextureLibrary,
+pub struct TextState {
+    pub(crate) inner: TextureState,
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
     pub(crate) pipeline: wgpu::RenderPipeline,
 }
 
-impl Deref for TextLibrary {
-    type Target = TextureLibrary;
+impl Deref for TextState {
+    type Target = TextureState;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl TextLibrary {
+impl TextState {
     const INSTANCE_COMPONENTS: u32 = 6;
 
-    pub fn new(texture_lib: &TextureLibrary) -> Result<Self> {
-        let state = &*texture_lib;
+    pub fn new(state: &TextureState) -> Self {
         let device = state.device().clone();
         let swapchain_format = state.format();
 
         let shader_source =
-            wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../../shaders/text.wgsl")));
+            wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/text.wgsl")));
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("text_shader"),
             source: shader_source,
@@ -78,7 +78,7 @@ impl TextLibrary {
                 usage: wgpu::BufferUsages::INDEX,
             });
 
-        let bind_group_layout = texture_lib.bind_group_layout(wgpu::TextureFormat::R8Uint);
+        let bind_group_layout = state.bind_group_layout(wgpu::TextureFormat::R8Uint);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -112,11 +112,35 @@ impl TextLibrary {
             cache: None,
         });
 
-        Ok(Self {
-            inner: texture_lib.clone(),
+        Self {
+            inner: state.clone(),
             vertex_buffer,
             index_buffer,
             pipeline,
-        })
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct TextLibrary {
+    state: TextState,
+    default_atlas: TextureAtlas<u8>,
+}
+
+impl TextLibrary {
+    pub fn new(texture: &TextureLibrary) -> Self {
+        let state = TextState::new(texture.state());
+        Self {
+            default_atlas: TextureAtlas::new(
+                &state,
+                Default::default(),
+                wgpu::TextureFormat::R8Uint,
+            ),
+            state,
+        }
+    }
+
+    pub fn texture(&self, font: &FontAtlas) -> FontTexture {
+        FontTexture::new(&self.state, &font, &self.default_atlas)
     }
 }

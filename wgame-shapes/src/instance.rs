@@ -39,10 +39,8 @@ impl<T: Shape> Instance for Textured<T> {
         ShapeResources {
             order: 0,
             vertices: self.shape.vertices(),
-            uniforms: [self.texture.bind_group().clone()]
-                .into_iter()
-                .chain(self.shape.uniforms())
-                .collect(),
+            texture: self.texture.resources(),
+            uniforms: self.shape.uniforms(),
             pipeline: self.shape.pipeline(),
             device: self.shape.state().device().clone(),
         }

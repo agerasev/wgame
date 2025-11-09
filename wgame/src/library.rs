@@ -8,7 +8,7 @@ use crate::gfx::Graphics;
 pub struct Library {
     state: Graphics,
     #[cfg(feature = "shapes")]
-    pub shapes: crate::shapes::ShapeLibrary,
+    pub shapes: crate::shapes::ShapesLibrary,
     #[cfg(feature = "text")]
     pub text: crate::text::TextLibrary,
 }
@@ -25,7 +25,7 @@ impl Library {
         Ok(Self {
             state: state.clone(),
             #[cfg(feature = "shapes")]
-            shapes: crate::shapes::ShapeLibrary::new(state)?,
+            shapes: crate::shapes::ShapesLibrary::new(state)?,
             #[cfg(feature = "text")]
             text: crate::text::TextLibrary::new(state)?,
         })

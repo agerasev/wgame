@@ -5,12 +5,12 @@ use wgame_gfx::{
     types::{Color, Transform},
 };
 
-use crate::{ShapeLibrary, Texture, Textured, attributes::Attributes, renderer::VertexBuffers};
+use crate::{ShapesLibrary, Texture, Textured, attributes::Attributes, renderer::VertexBuffers};
 
 pub trait Shape {
     type Attributes: Attributes;
 
-    fn state(&self) -> &ShapeLibrary;
+    fn state(&self) -> &ShapesLibrary;
 
     fn vertices(&self) -> VertexBuffers;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
@@ -26,7 +26,7 @@ pub trait Shape {
 impl<T: Shape> Shape for &T {
     type Attributes = T::Attributes;
 
-    fn state(&self) -> &ShapeLibrary {
+    fn state(&self) -> &ShapesLibrary {
         T::state(self)
     }
     fn vertices(&self) -> VertexBuffers {
@@ -57,17 +57,6 @@ pub trait ShapeExt: Shape + Sized {
     fn texture(self, texture: Texture) -> Textured<Self> {
         Textured::new(self, texture)
     }
-    fn gradient<T: Color, const N: usize>(self, colors: [T; N]) -> Textured<Self> {
-        let tex = self.state().gradient(colors);
-        self.texture(tex)
-    }
-    fn gradient2<T: Color, const M: usize, const N: usize>(
-        self,
-        colors: [[T; M]; N],
-    ) -> Textured<Self> {
-        let tex = self.state().gradient2(colors);
-        self.texture(tex)
-    }
     fn color(self, color: impl Color) -> Textured<Self> {
         let texture = self.state().white_texture.clone();
         Textured::new(self, texture).color(color)
@@ -79,7 +68,7 @@ impl<T: Shape> ShapeExt for T {}
 impl<T: Shape> Shape for Transformed<T> {
     type Attributes = T::Attributes;
 
-    fn state(&self) -> &ShapeLibrary {
+    fn state(&self) -> &ShapesLibrary {
         self.inner.state()
     }
     fn vertices(&self) -> VertexBuffers {

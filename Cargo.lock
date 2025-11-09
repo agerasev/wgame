@@ -2582,6 +2582,7 @@ dependencies = [
  "wgame-gfx",
  "wgame-image",
  "wgame-macros",
+ "wgame-texture",
  "wgpu",
 ]
 

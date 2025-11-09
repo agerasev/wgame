@@ -2,27 +2,30 @@ use alloc::{collections::vec_deque::VecDeque, rc::Rc};
 use core::{
     cell::{RefCell, RefMut},
     cmp::Ordering,
+    fmt::{self, Debug},
     hash::{Hash, Hasher},
     ops::Deref,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use glam::{Affine2, Vec2};
+use half::f16;
+use rgb::Rgba;
 use wgame_image::{
     Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, atlas::Tracker,
 };
 
-use crate::{TextureLibrary, texel::Texel};
+use crate::{TextureState, texel::Texel};
 
 #[derive(Clone)]
 struct TextureInstance {
-    state: TextureLibrary,
+    state: TextureState,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
 }
 
 pub(crate) struct InnerAtlas<T: Texel> {
-    state: TextureLibrary,
+    state: TextureState,
     format: wgpu::TextureFormat,
     dst: Option<TextureInstance>,
     src: Atlas<T>,
@@ -30,19 +33,19 @@ pub(crate) struct InnerAtlas<T: Texel> {
 }
 
 #[derive(Clone)]
-pub struct TextureAtlas<T: Texel> {
+pub struct TextureAtlas<T: Texel = Rgba<f16>> {
     pub(crate) inner: Rc<RefCell<InnerAtlas<T>>>,
 }
 
 #[derive(Clone)]
-pub struct Texture<T: Texel> {
+pub struct Texture<T: Texel = Rgba<f16>> {
     atlas: Rc<RefCell<InnerAtlas<T>>>,
     image: AtlasImage<T>,
     xform: Affine2,
 }
 
 impl TextureInstance {
-    fn new(state: &TextureLibrary, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
+    fn new(state: &TextureState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
         let state = state.clone();
         let device = state.device();
 
@@ -145,7 +148,7 @@ impl<T: Texel> Drop for InnerAtlas<T> {
 }
 
 impl<T: Texel> InnerAtlas<T> {
-    fn new(state: &TextureLibrary, mut src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
+    fn new(state: &TextureState, mut src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
         assert!(T::is_format_supported(format));
         let mut updates = VecDeque::new();
         updates.push_back(Rect::from_size(src.size()));
@@ -182,10 +185,14 @@ impl<T: Texel> InnerAtlas<T> {
 }
 
 impl<T: Texel> TextureAtlas<T> {
-    pub fn new(state: &TextureLibrary, src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
+    pub fn new(state: &TextureState, src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
         Self {
             inner: Rc::new(RefCell::new(InnerAtlas::new(state, src, format))),
         }
+    }
+
+    pub fn state(&self) -> TextureState {
+        self.inner.borrow().state.clone()
     }
 
     pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> Texture<T> {
@@ -240,7 +247,7 @@ impl<T: Texel> Texture<T> {
     }
 
     pub fn from_image(
-        state: &TextureLibrary,
+        state: &TextureState,
         image: AtlasImage<T>,
         format: wgpu::TextureFormat,
     ) -> Self {
@@ -262,7 +269,7 @@ impl<T: Texel> Deref for Texture<T> {
 }
 
 #[derive(Clone)]
-pub struct TextureResources<T: Texel> {
+pub struct TextureResources<T: Texel = Rgba<f16>> {
     atlas: Rc<RefCell<InnerAtlas<T>>>,
 }
 
@@ -305,5 +312,11 @@ impl<T: Texel> Eq for TextureResources<T> {}
 impl<T: Texel> Hash for TextureResources<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.atlas.as_ptr().hash(state);
+    }
+}
+
+impl<T: Texel> Debug for TextureResources<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Texture atlas at {:?}", self.atlas.as_ptr())
     }
 }

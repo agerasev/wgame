@@ -278,14 +278,14 @@ impl<P: Pixel> AtlasImage<P> {
         f(this.atlas.borrow().item_image(this.id))
     }
 
-    pub fn update<F, R>(&mut self, f: F) -> R
+    pub fn update<F, R>(&self, f: F) -> R
     where
         F: FnOnce(ImageSliceMut<P>) -> R,
     {
         self.update_part(f, Rect::from_size(self.size()))
     }
 
-    pub fn update_part<F, R>(&mut self, f: F, rect: Rect<u32>) -> R
+    pub fn update_part<F, R>(&self, f: F, rect: Rect<u32>) -> R
     where
         F: FnOnce(ImageSliceMut<P>) -> R,
     {
@@ -295,7 +295,7 @@ impl<P: Pixel> AtlasImage<P> {
         f(atlas.item_image_mut(this.id).slice_mut(rect))
     }
 
-    pub fn resize(&mut self, new_size: impl Into<Size2D<u32>>) {
+    pub fn resize(&self, new_size: impl Into<Size2D<u32>>) {
         // TODO: Reserve 1px border
         self.inner.borrow_mut().resize(new_size.into());
     }

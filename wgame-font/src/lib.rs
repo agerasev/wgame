@@ -1,14 +1,16 @@
 #![forbid(unsafe_code)]
 
 mod atlas;
-pub mod render;
+mod library;
+mod render;
 mod text;
+mod texture;
 
-pub(crate) use self::render::GlyphInstance;
 pub use self::{
     atlas::FontAtlas,
-    render::{FontTexture, TextLibrary},
+    library::{TextLibrary, TextState},
     text::Text,
+    texture::FontTexture,
 };
 
 use std::rc::Rc;

@@ -1,15 +1,11 @@
-mod library;
-mod texture;
-
 use anyhow::Result;
 use glam::{Mat4, Vec4};
 use swash::GlyphId;
-use wgpu::util::DeviceExt;
-
 use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
 use wgame_texture::TextureResources;
+use wgpu::util::DeviceExt;
 
-pub use self::{library::TextLibrary, texture::FontTexture};
+use crate::FontTexture;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextResources {

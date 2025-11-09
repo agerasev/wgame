@@ -1,36 +1,32 @@
 use std::ops::Deref;
 use wgame_texture::{Texture, TextureAtlas};
 
-use crate::{FontAtlas, Text, TextLibrary};
+use crate::{FontAtlas, Text, TextState};
 
 #[derive(Clone)]
 pub struct FontTexture {
-    pub(crate) library: TextLibrary,
-    font: FontAtlas,
+    pub(crate) library: TextState,
+    atlas: FontAtlas,
     texture: Texture<u8>,
 }
 
 impl Deref for FontTexture {
     type Target = FontAtlas;
     fn deref(&self) -> &Self::Target {
-        &self.font
+        &self.atlas
     }
 }
 
 impl FontTexture {
-    pub fn new(
-        library: &TextLibrary,
-        font_atlas: FontAtlas,
-        texture_atlas: &TextureAtlas<u8>,
-    ) -> Self {
-        if font_atlas.atlas.borrow().image().atlas() != texture_atlas.atlas() {
+    pub fn new(state: &TextState, font: &FontAtlas, texture: &TextureAtlas<u8>) -> Self {
+        assert_eq!(&**state, &texture.state());
+        if font.atlas.borrow().image().atlas() != texture.atlas() {
             panic!("Font atlas and texture atlas are built upon different atlases");
         }
-        let texture =
-            Texture::from_image(&library, font_atlas.image(), wgpu::TextureFormat::R8Uint);
+        let texture = Texture::from_image(&state, font.image(), wgpu::TextureFormat::R8Uint);
         Self {
-            library: library.clone(),
-            font: font_atlas,
+            library: state.clone(),
+            atlas: font.clone(),
             texture,
         }
     }

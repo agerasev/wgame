@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 
 use anyhow::Result;
-use smallvec::SmallVec;
 
 use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
+use wgame_texture::TextureResources;
 use wgpu::util::DeviceExt;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -17,7 +17,8 @@ pub struct VertexBuffers {
 pub struct ShapeResources {
     pub order: i64,
     pub vertices: VertexBuffers,
-    pub uniforms: SmallVec<[wgpu::BindGroup; 2]>,
+    pub texture: TextureResources,
+    pub uniforms: Option<wgpu::BindGroup>,
     pub pipeline: wgpu::RenderPipeline,
     pub device: wgpu::Device,
 }
@@ -61,14 +62,22 @@ impl Resources for ShapeResources {
     }
 }
 
+impl ShapeResources {
+    fn uniforms(&self) -> impl IntoIterator<Item = wgpu::BindGroup> {
+        [self.texture.bind_group().clone()]
+            .into_iter()
+            .chain(self.uniforms.clone())
+    }
+}
+
 impl Renderer for ShapeRenderer {
     fn draw(&self, pass: &mut wgpu::RenderPass<'_>) -> Result<()> {
         log::trace!("Rendering {} instances", self.instance_count);
 
         pass.push_debug_group("prepare");
         pass.set_pipeline(&self.resources.pipeline);
-        for (i, bind_group) in self.resources.uniforms.iter().enumerate() {
-            pass.set_bind_group(i as u32, bind_group, &[]);
+        for (i, bind_group) in self.resources.uniforms().into_iter().enumerate() {
+            pass.set_bind_group(i as u32, &bind_group, &[]);
         }
         pass.set_vertex_buffer(0, self.resources.vertices.vertex_buffer.slice(..));
         if let Some(index_buffer) = &self.resources.vertices.index_buffer {

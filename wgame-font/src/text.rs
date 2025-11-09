@@ -6,8 +6,8 @@ use swash::{GlyphId, shape::ShapeContext};
 use wgame_gfx::{Context, Instance, Resources};
 
 use crate::{
-    GlyphInstance,
-    render::{FontTexture, TextInstance, TextResources},
+    FontTexture,
+    render::{GlyphInstance, TextInstance, TextResources},
 };
 
 thread_local! {
