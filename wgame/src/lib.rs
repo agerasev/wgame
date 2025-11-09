@@ -13,9 +13,10 @@ use alloc::rc::Rc;
 pub use wgame_app as app;
 pub use wgame_gfx as gfx;
 pub use wgame_macros::{app, window};
+pub use wgame_texture as texture;
 
-#[cfg(feature = "text")]
-pub use wgame_font as text;
+#[cfg(feature = "font")]
+pub use wgame_font as font;
 #[cfg(feature = "fs")]
 pub use wgame_fs as fs;
 #[cfg(feature = "image")]

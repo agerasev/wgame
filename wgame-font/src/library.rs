@@ -4,7 +4,7 @@ use glam::Vec4;
 use wgame_texture::{TextureAtlas, TextureLibrary, TextureState};
 use wgpu::util::DeviceExt;
 
-use crate::{FontAtlas, FontTexture};
+use crate::{Font, FontAtlas, FontTexture};
 
 #[derive(Clone)]
 pub struct TextState {
@@ -140,7 +140,9 @@ impl TextLibrary {
         }
     }
 
-    pub fn texture(&self, font: &FontAtlas) -> FontTexture {
-        FontTexture::new(&self.state, &font, &self.default_atlas)
+    pub fn texture(&self, font: &Font, size: f32) -> FontTexture {
+        let atlas = self.default_atlas.atlas();
+        let font_atlas = FontAtlas::new(&atlas, font, size);
+        FontTexture::new(&self.state, &font_atlas, &self.default_atlas)
     }
 }

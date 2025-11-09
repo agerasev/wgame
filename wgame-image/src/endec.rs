@@ -45,15 +45,23 @@ impl TryFrom<image::DynamicImage> for Image<Rgba<f16>> {
 }
 
 impl Image<Rgba<f16>> {
-    pub fn decode(bytes: &[u8], encoding: Option<impl Into<ImageFormat>>) -> Result<Self> {
+    fn decode_inner(bytes: &[u8], encoding: Option<ImageFormat>) -> Result<Self> {
         let mut reader = ImageReader::new(Cursor::new(bytes));
         match encoding {
             None => reader = reader.with_guessed_format()?,
-            Some(enc) => reader.set_format(enc.into()),
+            Some(enc) => reader.set_format(enc),
         }
 
         let image = reader.decode()?;
         Self::try_from(image)
+    }
+
+    pub fn decode(bytes: &[u8], encoding: impl Into<ImageFormat>) -> Result<Self> {
+        Self::decode_inner(bytes, Some(encoding.into()))
+    }
+
+    pub fn decode_auto(bytes: &[u8]) -> Result<Self> {
+        Self::decode_inner(bytes, None)
     }
 }
 

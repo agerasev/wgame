@@ -47,7 +47,7 @@ impl TextureLibrary {
         texture
     }
 
-    pub fn gradient<T: Color, const N: usize>(self, colors: [T; N]) -> Texture {
+    pub fn gradient<T: Color, const N: usize>(&self, colors: [T; N]) -> Texture {
         self.texture(&Image::with_data(
             (N as u32, 1),
             colors.map(|c| c.to_rgba()),
@@ -55,11 +55,11 @@ impl TextureLibrary {
     }
 
     pub fn gradient2<T: Color, const M: usize, const N: usize>(
-        self,
+        &self,
         colors: [[T; M]; N],
     ) -> Texture {
         self.texture(&Image::with_data(
-            (N as u32, 1),
+            (M as u32, N as u32),
             colors
                 .into_iter()
                 .flatten()

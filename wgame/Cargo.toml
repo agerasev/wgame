@@ -30,6 +30,7 @@ utils = ["dep:wgame-utils"]
 [dependencies]
 wgame-app.workspace = true
 wgame-gfx.workspace = true
+wgame-texture.workspace = true
 wgame-shapes = { workspace = true, optional = true }
 wgame-fs = { workspace = true, optional = true }
 wgame-image = { workspace = true, optional = true }

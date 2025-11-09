@@ -1,4 +1,3 @@
-use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 
@@ -19,7 +18,7 @@ pub struct PolygonLibrary {
 }
 
 impl PolygonLibrary {
-    pub fn new(state: &ShapesState) -> Result<Self> {
+    pub fn new(state: &ShapesState) -> Self {
         let quad_vertices = state
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -79,15 +78,16 @@ impl PolygonLibrary {
                     usage: wgpu::BufferUsages::INDEX,
                 });
 
-        let pipeline = create_pipeline(state, &Default::default())?;
+        let pipeline =
+            create_pipeline(state, &Default::default()).expect("Failed to create polygon pipeline");
 
-        Ok(Self {
+        Self {
             quad_vertices,
             quad_indices,
             hexagon_vertices,
             hexagon_indices,
             pipeline,
-        })
+        }
     }
 }
 

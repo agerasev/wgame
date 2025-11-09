@@ -15,7 +15,6 @@ mod renderer;
 mod shader;
 mod shape;
 
-use anyhow::Result;
 use core::ops::Deref;
 use wgame_gfx::{
     Graphics,
@@ -68,16 +67,16 @@ impl Deref for ShapesLibrary {
 }
 
 impl ShapesLibrary {
-    pub fn new(state: &Graphics, texture: &TextureLibrary) -> Result<Self> {
+    pub fn new(state: &Graphics, texture: &TextureLibrary) -> Self {
         assert_eq!(state, &**texture.state());
         let state = ShapesState {
             texture: texture.state().clone(),
         };
-        Ok(Self {
-            polygon: PolygonLibrary::new(&state)?,
-            circle: CircleLibrary::new(&state)?,
+        Self {
+            polygon: PolygonLibrary::new(&state),
+            circle: CircleLibrary::new(&state),
             white_texture: texture.texture(&Image::with_color((1, 1), color::WHITE.to_rgba())),
             state,
-        })
+        }
     }
 }

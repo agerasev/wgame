@@ -7,10 +7,11 @@ use crate::gfx::Graphics;
 #[derive(Clone)]
 pub struct Library {
     state: Graphics,
+    pub texture: crate::texture::TextureLibrary,
     #[cfg(feature = "shapes")]
     pub shapes: crate::shapes::ShapesLibrary,
-    #[cfg(feature = "text")]
-    pub text: crate::text::TextLibrary,
+    #[cfg(feature = "font")]
+    pub text: crate::font::TextLibrary,
 }
 
 impl Deref for Library {
@@ -22,12 +23,15 @@ impl Deref for Library {
 
 impl Library {
     pub fn new(state: &Graphics) -> Result<Self> {
+        let state = state.clone();
+        let texture = crate::texture::TextureLibrary::new(&state);
         Ok(Self {
-            state: state.clone(),
             #[cfg(feature = "shapes")]
-            shapes: crate::shapes::ShapesLibrary::new(state)?,
-            #[cfg(feature = "text")]
-            text: crate::text::TextLibrary::new(state)?,
+            shapes: crate::shapes::ShapesLibrary::new(&state, &texture),
+            #[cfg(feature = "font")]
+            text: crate::font::TextLibrary::new(&texture),
+            texture,
+            state,
         })
     }
 }

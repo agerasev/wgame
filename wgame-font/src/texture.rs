@@ -18,15 +18,19 @@ impl Deref for FontTexture {
 }
 
 impl FontTexture {
-    pub fn new(state: &TextState, font: &FontAtlas, texture: &TextureAtlas<u8>) -> Self {
-        assert_eq!(&**state, &texture.state());
-        if font.atlas.borrow().image().atlas() != texture.atlas() {
+    pub fn new(
+        state: &TextState,
+        font_atlas: &FontAtlas,
+        texture_atlas: &TextureAtlas<u8>,
+    ) -> Self {
+        assert_eq!(&**state, &texture_atlas.state());
+        if font_atlas.atlas.borrow().image().atlas() != texture_atlas.atlas() {
             panic!("Font atlas and texture atlas are built upon different atlases");
         }
-        let texture = Texture::from_image(&state, font.image(), wgpu::TextureFormat::R8Uint);
+        let texture = Texture::new(texture_atlas, font_atlas.image());
         Self {
             library: state.clone(),
-            atlas: font.clone(),
+            atlas: font_atlas.clone(),
             texture,
         }
     }

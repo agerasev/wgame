@@ -197,11 +197,7 @@ impl<T: Texel> TextureAtlas<T> {
 
     pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> Texture<T> {
         let image = self.inner.borrow().src.allocate(size);
-        Texture {
-            atlas: self.inner.clone(),
-            image,
-            xform: Affine2::IDENTITY,
-        }
+        Texture::new(&self, image)
     }
 
     pub fn atlas(&self) -> Atlas<T> {
@@ -210,6 +206,14 @@ impl<T: Texel> TextureAtlas<T> {
 }
 
 impl<T: Texel> Texture<T> {
+    pub fn new(atlas: &TextureAtlas<T>, image: AtlasImage<T>) -> Self {
+        Self {
+            atlas: atlas.inner.clone(),
+            image,
+            xform: Affine2::IDENTITY,
+        }
+    }
+
     pub fn atlas(&self) -> TextureAtlas<T> {
         TextureAtlas {
             inner: self.atlas.clone(),
@@ -243,19 +247,6 @@ impl<T: Texel> Texture<T> {
     pub fn resources(&self) -> TextureResources<T> {
         TextureResources {
             atlas: self.atlas.clone(),
-        }
-    }
-
-    pub fn from_image(
-        state: &TextureState,
-        image: AtlasImage<T>,
-        format: wgpu::TextureFormat,
-    ) -> Self {
-        let atlas = TextureAtlas::new(state, image.atlas(), format);
-        Self {
-            atlas: atlas.inner.clone(),
-            image,
-            xform: Affine2::IDENTITY,
         }
     }
 }

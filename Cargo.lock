@@ -2459,6 +2459,7 @@ dependencies = [
  "wgame-image",
  "wgame-macros",
  "wgame-shapes",
+ "wgame-texture",
  "wgame-utils",
  "wgpu",
  "winit",

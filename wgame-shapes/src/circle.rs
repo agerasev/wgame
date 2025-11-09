@@ -1,6 +1,5 @@
 use alloc::string::ToString;
 
-use anyhow::Result;
 use glam::{Affine2, Mat2, Vec2};
 use wgame_macros::{Attributes, StoreBytes};
 
@@ -22,7 +21,7 @@ pub struct CircleLibrary {
 }
 
 impl CircleLibrary {
-    pub fn new(state: &ShapesState) -> Result<Self> {
+    pub fn new(state: &ShapesState) -> Self {
         let pipeline = create_pipeline(
             state,
             &ShaderConfig {
@@ -37,9 +36,10 @@ impl CircleLibrary {
                 instances: CircleAttrs::attributes().with_prefix("custom"),
                 ..Default::default()
             },
-        )?;
+        )
+        .expect("Failed to create circle pipeline");
 
-        Ok(Self { pipeline })
+        Self { pipeline }
     }
 }
 
