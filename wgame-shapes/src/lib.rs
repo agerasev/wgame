@@ -5,7 +5,6 @@ extern crate alloc;
 
 pub mod attributes;
 pub mod binding;
-pub mod bytes;
 mod circle;
 mod instance;
 mod pipeline;

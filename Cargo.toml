@@ -41,6 +41,7 @@ euclid = { version = "0.22.11", default-features = false }
 image = { version = "0.25.6", default-features = false }
 hashbrown = { version = "0.15.5", features = ["core", "alloc"] }
 smallvec = "1.15.1"
+derivative = { version = "2.2.0", features = ["use_core"] }
 thiserror = { version = "2.0.16", default-features = false }
 anyhow = "1.0.99"
 log = "0.4.27"

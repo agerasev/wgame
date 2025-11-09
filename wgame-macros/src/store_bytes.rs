@@ -12,7 +12,7 @@ pub fn derive(input: TokenStream) -> Result<TokenStream> {
     {
         attr.meta.require_list()?.tokens.clone()
     } else {
-        quote! { wgame::shapes::bytes }
+        quote! { wgame::gfx::bytes }
     };
 
     let trait_ = quote! { #mod_::StoreBytes };
@@ -20,14 +20,11 @@ pub fn derive(input: TokenStream) -> Result<TokenStream> {
 
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
-    let mut total_size = quote! { 0 };
     let mut store_code = quote! {};
     match input.data {
         Data::Struct(data) => {
             for (i, field) in data.fields.into_iter().enumerate() {
                 let ty = field.ty;
-                total_size = quote! { #total_size + <#ty as #trait_>::SIZE };
-
                 let expr = match field.ident {
                     Some(ident) => quote! { self.#ident },
                     None => quote! { self.#i },
@@ -48,9 +45,7 @@ pub fn derive(input: TokenStream) -> Result<TokenStream> {
 
     Ok(quote! {
         impl #impl_generics #trait_ for #ident #ty_generics #where_clause {
-            const SIZE: usize = #total_size;
-
-            fn store_bytes<D: #mod_::BytesSink>(&self, dst: &mut D) {
+            fn store_bytes(&self, dst: &mut #mod_::BytesSink) {
                 #store_code
             }
         }

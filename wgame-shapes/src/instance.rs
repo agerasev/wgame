@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use half::f16;
 use rgb::{ComponentMap, Rgba};
 
@@ -6,7 +8,7 @@ use wgame_gfx::{
     types::{Color, color},
 };
 
-use crate::{Shape, Texture, bytes::StoreBytes, primitive::InstanceData, renderer::ShapeResources};
+use crate::{Shape, Texture, primitive::InstanceData, renderer::ShapeResources};
 
 #[derive(Clone)]
 pub struct Textured<T: Shape> {
@@ -33,7 +35,7 @@ impl<T: Shape> Textured<T> {
 }
 
 impl<T: Shape> Instance for Textured<T> {
-    type Resources = ShapeResources;
+    type Resources = ShapeResources<T::Attributes>;
 
     fn get_resources(&self) -> Self::Resources {
         ShapeResources {
@@ -43,17 +45,16 @@ impl<T: Shape> Instance for Textured<T> {
             uniforms: self.shape.uniforms(),
             pipeline: self.shape.pipeline(),
             device: self.shape.state().device().clone(),
+            _ghost: PhantomData,
         }
     }
 
     fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
-        InstanceData {
+        storage.instances.push(InstanceData {
             xform: ctx.view * self.shape.xform(),
-            tex_xform: self.texture.coord_xform(),
+            tex_xform: self.texture.clone(),
             color: self.color.map(|x| x.to_f32()),
             custom: self.shape.attributes(),
-        }
-        .store_bytes(&mut storage.data);
-        storage.count += 1;
+        });
     }
 }

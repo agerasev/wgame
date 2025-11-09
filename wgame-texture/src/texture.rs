@@ -10,6 +10,7 @@ use euclid::default::{Point2D, Rect, Size2D};
 use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::Rgba;
+use wgame_gfx::bytes::{BytesSink, StoreBytes};
 use wgame_image::{
     Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, atlas::Tracker,
 };
@@ -309,5 +310,11 @@ impl<T: Texel> Hash for TextureResources<T> {
 impl<T: Texel> Debug for TextureResources<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Texture atlas at {:?}", self.atlas.as_ptr())
+    }
+}
+
+impl<T: Texel> StoreBytes for Texture<T> {
+    fn store_bytes(&self, dst: &mut BytesSink) {
+        self.coord_xform().store_bytes(dst);
     }
 }

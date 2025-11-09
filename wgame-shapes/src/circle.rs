@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
-#[bytes_mod(crate::bytes)]
+#[bytes_mod(wgame_gfx::bytes)]
 #[attributes_mod(crate::attributes)]
 pub struct CircleAttrs {
     inner_radius: f32,

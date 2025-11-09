@@ -1,11 +1,10 @@
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
+use wgame_gfx::{StoreBytes, types::Position};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::types::Position;
-
 use crate::{
-    Shape, ShapeExt, ShapesLibrary, ShapesState, bytes::StoreBytes, pipeline::create_pipeline,
-    primitive::VertexData, renderer::VertexBuffers,
+    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline, primitive::VertexData,
+    renderer::VertexBuffers,
 };
 
 #[derive(Clone)]
