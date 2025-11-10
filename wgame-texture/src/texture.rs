@@ -6,13 +6,14 @@ use core::{
     hash::{Hash, Hasher},
     ops::Deref,
 };
-use euclid::default::{Point2D, Rect, Size2D};
+use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
 use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::Rgba;
 use wgame_gfx::bytes::{BytesSink, StoreBytes};
 use wgame_image::{
-    Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, atlas::Tracker,
+    Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, ImageSliceMut,
+    ImageWriteMut, atlas::Tracker,
 };
 
 use crate::{TextureState, texel::Texel};
@@ -197,6 +198,7 @@ impl<T: Texel> TextureAtlas<T> {
     }
 
     pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> Texture<T> {
+        let size = size.into() + Size2D::new(2, 2);
         let image = self.inner.borrow().src.allocate(size);
         Texture::new(&self, image)
     }
@@ -225,9 +227,136 @@ impl<T: Texel> Texture<T> {
         &self.image
     }
 
+    pub fn size(&self) -> Size2D<u32> {
+        self.image.size() - Size2D::new(2, 2)
+    }
+
+    pub fn with<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(ImageSlice<T>) -> R,
+    {
+        self.image.with(|img| {
+            let rect = Rect {
+                origin: Point2D::new(1, 1),
+                size: img.size() - Size2D::new(2, 2),
+            };
+            f(img.slice(rect))
+        })
+    }
+
+    pub fn update<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(ImageSliceMut<T>) -> R,
+    {
+        self.update_part(f, Rect::from_size(self.size()))
+    }
+
+    pub fn update_part<F, R>(&self, f: F, rect: Rect<u32>) -> R
+    where
+        F: FnOnce(ImageSliceMut<T>) -> R,
+    {
+        let size = self.size();
+        let box_ = rect.to_box2d();
+        assert!(box_.max.x <= size.width && box_.max.y <= size.height);
+        let inner_rect = Rect {
+            origin: rect.origin + Vector2D::new(1, 1),
+            size: rect.size,
+        };
+        let outer_box = Box2D {
+            min: Point2D::new(
+                if box_.min.x < 1 { 0 } else { box_.min.x + 1 },
+                if box_.min.y < 1 { 0 } else { box_.min.y + 1 },
+            ),
+            max: Point2D::new(
+                if box_.max.x >= size.width {
+                    size.width + 2
+                } else {
+                    box_.max.x + 1
+                },
+                if box_.max.y >= size.height {
+                    size.height + 2
+                } else {
+                    box_.max.y + 1
+                },
+            ),
+        };
+
+        self.image.update_part(
+            |mut img| {
+                // Update inner image
+                let r = f(img.slice_mut(inner_rect));
+
+                // Update borders if needed
+                if box_.min.x < 1 {
+                    img.copy_within(
+                        Rect {
+                            origin: Point2D::new(1, 1),
+                            size: Size2D::new(1, rect.size.height),
+                        },
+                        Point2D::new(0, 1),
+                    );
+                }
+                if box_.min.y < 1 {
+                    img.copy_within(
+                        Rect {
+                            origin: Point2D::new(1, 1),
+                            size: Size2D::new(rect.size.width, 1),
+                        },
+                        Point2D::new(1, 0),
+                    );
+                }
+                if box_.max.x >= size.width {
+                    img.copy_within(
+                        Rect {
+                            origin: Point2D::new(rect.size.width, 1),
+                            size: Size2D::new(1, rect.size.height),
+                        },
+                        Point2D::new(rect.size.width + 1, 1),
+                    );
+                }
+                if box_.max.y >= size.height {
+                    img.copy_within(
+                        Rect {
+                            origin: Point2D::new(1, rect.size.height),
+                            size: Size2D::new(rect.size.width, 1),
+                        },
+                        Point2D::new(1, rect.size.height + 1),
+                    );
+                }
+                // Update corners is needed
+                if box_.min.x < 1 && box_.min.y < 1 {
+                    *img.get_mut(Point2D::new(0, 0)) = *img.get(Point2D::new(1, 1));
+                }
+                if box_.min.x < 1 && box_.max.y >= size.height {
+                    *img.get_mut(Point2D::new(0, rect.size.height + 1)) =
+                        *img.get(Point2D::new(1, rect.size.height));
+                }
+                if box_.max.x >= size.width && box_.min.y < 1 {
+                    *img.get_mut(Point2D::new(rect.size.width + 1, 0)) =
+                        *img.get(Point2D::new(rect.size.width, 1));
+                }
+                if box_.max.x >= size.width && box_.max.y >= size.height {
+                    *img.get_mut(Point2D::new(rect.size.width + 1, rect.size.height + 1)) =
+                        *img.get(Point2D::new(rect.size.width, rect.size.height));
+                }
+
+                r
+            },
+            outer_box.to_rect(),
+        )
+    }
+
+    pub fn resize(&self, new_size: impl Into<Size2D<u32>>) {
+        self.image.resize(new_size.into() + Size2D::new(2, 2));
+    }
+
     pub fn coord_xform(&self) -> Affine2 {
         let atlas_size = self.atlas.borrow().src.size();
-        let item_rect = self.image.rect();
+        let Rect { origin, size } = self.image.rect();
+        let item_rect = Rect {
+            origin: Point2D::new(origin.x + 1, origin.y + 1),
+            size: Size2D::new(size.width.saturating_sub(2), size.width.saturating_sub(2)),
+        };
         let item_xform = Affine2::from_translation(Vec2::new(
             item_rect.origin.x as f32 / atlas_size.width as f32,
             item_rect.origin.y as f32 / atlas_size.height as f32,

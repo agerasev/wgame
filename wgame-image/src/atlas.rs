@@ -204,7 +204,6 @@ impl<P: Pixel> Atlas<P> {
     }
 
     pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> AtlasImage<P> {
-        // TODO: Reserve 1px border
         let size = size.into();
         let id = self.inner.borrow_mut().alloc_item(size, None);
         let item = Rc::new(RefCell::new(AtlasItem {

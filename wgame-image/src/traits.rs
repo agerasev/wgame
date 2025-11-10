@@ -112,14 +112,14 @@ pub trait ImageReadExt: ImageRead {
         }
     }
 
-    fn get(&self, i: u32, j: u32) -> &Self::Pixel {
+    fn get(&self, point: Point2D<u32>) -> &Self::Pixel {
         let size = self.size();
         let stride = self.stride();
         assert!(
-            i < size.width && j < size.height,
-            "({i}, {j}) is out of bounds {size:?}"
+            point.x < size.width && point.y < size.height,
+            "{point:?} is out of bounds {size:?}"
         );
-        &self.data()[i as usize + stride as usize * j as usize]
+        &self.data()[point.x as usize + stride as usize * point.y as usize]
     }
 
     fn rows(&self) -> impl ExactSizeIterator<Item = (u32, &[Self::Pixel])> {
