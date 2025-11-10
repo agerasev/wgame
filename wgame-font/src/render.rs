@@ -63,6 +63,7 @@ impl Resources for TextResources {
     }
     fn make_renderer(&self, storage: &Self::Storage) -> Result<Self::Renderer> {
         let mut bytes = Vec::new();
+        let mut instance_count = 0;
         for text in &storage.instances {
             for glyph in &text.glyphs {
                 let rect = text.texture.glyph_rect(glyph.id).unwrap();
@@ -74,6 +75,7 @@ impl Resources for TextResources {
                     rect.size.height as f32,
                 ]));
                 bytes.extend_from_slice(bytemuck::cast_slice(&[text.color]));
+                instance_count += 1;
             }
         }
         let instance_buffer = self
@@ -87,7 +89,7 @@ impl Resources for TextResources {
         Ok(TextRenderer {
             resources: self.clone(),
             instance_buffer,
-            instance_count: storage.instances.len() as u32,
+            instance_count,
         })
     }
 }

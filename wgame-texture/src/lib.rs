@@ -8,6 +8,7 @@ mod texel;
 mod texture;
 
 use alloc::vec::Vec;
+use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::Rgba;
 use wgame_gfx::{Graphics, types::Color};
@@ -59,13 +60,17 @@ impl TextureLibrary {
         &self,
         colors: [[T; M]; N],
     ) -> Texture {
-        self.texture(&Image::with_data(
-            (M as u32, N as u32),
-            colors
-                .into_iter()
-                .flatten()
-                .map(|c| c.to_rgba())
-                .collect::<Vec<_>>(),
-        ))
+        let colors = colors
+            .into_iter()
+            .flatten()
+            .map(|c| c.to_rgba())
+            .collect::<Vec<_>>();
+        let pix_size = Vec2::new(M as f32, N as f32).recip();
+        self.texture(&Image::with_data((M as u32, N as u32), colors))
+            .transform_coord(Affine2::from_scale_angle_translation(
+                1.0 - pix_size,
+                0.0,
+                0.5 * pix_size,
+            ))
     }
 }

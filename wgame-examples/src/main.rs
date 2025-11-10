@@ -12,8 +12,6 @@ use std::io::Write;
 
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
-#[cfg(feature = "dump")]
-use wgame::image::ImageReadExt;
 use wgame::{
     Library, Result, Window,
     app::time::Instant,
@@ -24,6 +22,8 @@ use wgame::{
     shapes::ShapeExt,
     utils::FrameCounter,
 };
+#[cfg(feature = "dump")]
+use wgame::{font::FontTexture, image::ImageReadExt};
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
 async fn main(mut window: Window<'_>) -> Result<()> {
@@ -80,6 +80,14 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             window_size = (width, height);
             let raster = font_raster.insert(gfx.text.texture(&font, height as f32 / 10.0));
             text = Some(raster.text("Hello, World!"));
+
+            #[cfg(feature = "dump")]
+            std::fs::File::create("dump/font_atlas.png")?.write_all(
+                &FontTexture::texture(&raster)
+                    .atlas()
+                    .inner()
+                    .with_data(|img| img.slice((.., ..)).encode("png"))?,
+            )?;
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));

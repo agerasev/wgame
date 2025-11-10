@@ -228,14 +228,14 @@ impl<T: Texel> Texture<T> {
     pub fn coord_xform(&self) -> Affine2 {
         let atlas_size = self.atlas.borrow().src.size();
         let item_rect = self.image.rect();
-        let item_xform = Affine2::from_scale(Vec2::new(
-            item_rect.size.width as f32 / atlas_size.width as f32,
-            item_rect.size.height as f32 / atlas_size.height as f32,
-        )) * Affine2::from_translation(Vec2::new(
+        let item_xform = Affine2::from_translation(Vec2::new(
             item_rect.origin.x as f32 / atlas_size.width as f32,
             item_rect.origin.y as f32 / atlas_size.height as f32,
+        )) * Affine2::from_scale(Vec2::new(
+            item_rect.size.width as f32 / atlas_size.width as f32,
+            item_rect.size.height as f32 / atlas_size.height as f32,
         ));
-        self.xform * item_xform
+        item_xform * self.xform
     }
 
     pub fn transform_coord(self, xform: Affine2) -> Self {
