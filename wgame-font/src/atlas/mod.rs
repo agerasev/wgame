@@ -1,7 +1,6 @@
 mod inner;
 
-use core::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use euclid::default::{Rect, Size2D};
 use swash::{GlyphId, scale::ScaleContext};

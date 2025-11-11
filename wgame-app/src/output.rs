@@ -1,7 +1,7 @@
-use alloc::rc::Rc;
-use core::{
+use std::{
     cell::Cell,
     pin::Pin,
+    rc::Rc,
     task::{Context, Poll, Waker},
 };
 

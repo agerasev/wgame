@@ -1,5 +1,6 @@
-use euclid::default::{Box2D, Point2D, Rect, Size2D};
 use std::ops::{Bound, Range, RangeBounds};
+
+use euclid::default::{Box2D, Point2D, Rect, Size2D};
 
 use crate::{Image, ImageSlice, ImageSliceMut, Pixel};
 

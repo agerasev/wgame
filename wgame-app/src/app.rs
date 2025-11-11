@@ -1,9 +1,9 @@
-use alloc::{
+use std::{
+    cell::RefCell,
     rc::{Rc, Weak},
-    vec::Vec,
+    task::Poll,
+    thread_local,
 };
-use core::{cell::RefCell, task::Poll};
-use std::thread_local;
 
 use hashbrown::hash_map::{Entry, HashMap};
 use winit::{

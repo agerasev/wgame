@@ -1,10 +1,5 @@
 #![forbid(unsafe_code)]
 
-extern crate alloc;
-
-#[cfg(feature = "std")]
-extern crate std;
-
 pub mod atlas;
 #[cfg(feature = "image")]
 mod endec;

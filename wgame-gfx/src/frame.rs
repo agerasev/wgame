@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use anyhow::{Context as _, Result};
 use glam::Mat4;
 use rgb::{ComponentMap, Rgba};

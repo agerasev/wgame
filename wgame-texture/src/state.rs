@@ -1,4 +1,5 @@
-use core::ops::Deref;
+use std::ops::Deref;
+
 use wgame_gfx::Graphics;
 
 /// Shared state

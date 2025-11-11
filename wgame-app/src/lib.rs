@@ -1,9 +1,7 @@
 #![forbid(unsafe_code)]
-#![no_std]
 
-extern crate alloc;
-#[cfg(not(feature = "web"))]
-extern crate std;
+#[cfg(all(feature = "std", feature = "web"))]
+compile_error!("`std` and `web` enabled at once");
 
 mod app;
 mod executor;
@@ -19,11 +17,9 @@ pub use crate::{
     window::Window,
     windowed_task::{WindowError, WindowedTask, create_windowed_task},
 };
-
 pub use winit::{dpi::PhysicalSize as Size, window::WindowAttributes};
 
-use alloc::rc::Rc;
-use core::{cell::RefCell, fmt::Debug};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 pub trait MainResult {
     fn try_unwrap(self);

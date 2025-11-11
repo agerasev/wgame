@@ -1,8 +1,9 @@
-use alloc::{boxed::Box, rc::Rc, sync::Arc, vec::Vec};
-use core::{
+use std::{
     cell::RefCell,
     future::Future,
     pin::Pin,
+    rc::Rc,
+    sync::Arc,
     task::{Context, Poll, Waker},
 };
 
@@ -13,10 +14,10 @@ use hashbrown::{
 };
 use winit::event_loop::EventLoopProxy;
 
+use crate::app::UserEvent;
+
 type FutureObj = Pin<Box<dyn Future<Output = ()>>>;
 type Terminator = Box<dyn FnOnce()>;
-
-use crate::app::UserEvent;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
 pub struct TaskId(u64);

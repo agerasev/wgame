@@ -1,15 +1,11 @@
 #![forbid(unsafe_code)]
-#![no_std]
-
-extern crate alloc;
 
 mod config;
 mod library;
 mod window;
 
-use core::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
-use alloc::rc::Rc;
 pub use wgame_app as app;
 pub use wgame_gfx as gfx;
 pub use wgame_macros::{app, window};

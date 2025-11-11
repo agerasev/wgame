@@ -1,11 +1,13 @@
-use alloc::{collections::vec_deque::VecDeque, rc::Rc};
-use core::{
+use std::{
     cell::{RefCell, RefMut},
     cmp::Ordering,
+    collections::vec_deque::VecDeque,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
     ops::Deref,
+    rc::Rc,
 };
+
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
 use glam::{Affine2, Vec2};
 use half::f16;

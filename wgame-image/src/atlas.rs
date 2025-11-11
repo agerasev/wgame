@@ -1,5 +1,8 @@
-use alloc::rc::{Rc, Weak};
-use core::cell::{Cell, RefCell};
+use std::{
+    cell::{Cell, RefCell},
+    rc::{Rc, Weak},
+};
+
 use euclid::default::{Point2D, Rect, Size2D};
 use guillotiere::{Allocation, AtlasAllocator};
 use hashbrown::HashMap;

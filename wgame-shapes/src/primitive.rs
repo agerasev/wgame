@@ -1,5 +1,4 @@
 use glam::{Mat4, Vec2, Vec4};
-
 use rgb::Rgba;
 use wgame_macros::{Attributes, StoreBytes};
 use wgame_texture::Texture;

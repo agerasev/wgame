@@ -1,4 +1,5 @@
 use std::ops::Deref;
+
 use wgame_texture::{Texture, TextureAtlas};
 
 use crate::{FontAtlas, Text, TextState};

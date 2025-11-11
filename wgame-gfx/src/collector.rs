@@ -1,5 +1,3 @@
-use alloc::boxed::Box;
-
 use anyhow::Result;
 use hashbrown::{HashMap, hash_map::Entry};
 

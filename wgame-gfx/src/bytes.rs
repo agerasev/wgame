@@ -1,5 +1,5 @@
-use alloc::vec::Vec;
-use core::marker::PhantomData;
+use std::marker::PhantomData;
+
 use half::f16;
 
 #[derive(Default, Clone)]

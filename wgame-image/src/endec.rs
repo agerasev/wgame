@@ -1,9 +1,10 @@
+use std::{fmt::Debug, io::Cursor};
+
 use anyhow::{Error, Result, anyhow};
 use euclid::default::Size2D;
 use half::f16;
 use image::{DynamicImage, GrayImage, ImageFormat, ImageReader, Rgba32FImage};
 use rgb::{ComponentMap, Rgba};
-use std::{fmt::Debug, io::Cursor};
 
 use crate::{Image, ImageBase, ImageReadExt, ImageSlice};
 

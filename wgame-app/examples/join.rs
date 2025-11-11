@@ -1,4 +1,4 @@
-use core::time::Duration;
+use std::time::Duration;
 
 use wgame_app::{app_main, sleep, spawn};
 

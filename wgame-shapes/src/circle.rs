@@ -1,5 +1,3 @@
-use alloc::string::ToString;
-
 use glam::{Affine2, Mat2, Vec2};
 use wgame_macros::{Attributes, StoreBytes};
 

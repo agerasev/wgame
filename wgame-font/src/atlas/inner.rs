@@ -1,6 +1,7 @@
+use std::collections::BTreeMap;
+
 use etagere::{AllocId, Allocation, AtlasAllocator};
 use euclid::default::{Rect, Size2D};
-use std::collections::BTreeMap;
 use swash::{
     GlyphId,
     scale::{Render, Scaler, Source, StrikeWith},

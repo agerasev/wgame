@@ -1,13 +1,9 @@
 #![forbid(unsafe_code)]
-#![no_std]
-
-extern crate alloc;
 
 mod state;
 mod texel;
 mod texture;
 
-use alloc::vec::Vec;
 use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::Rgba;

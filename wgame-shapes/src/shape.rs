@@ -1,5 +1,4 @@
 use glam::Mat4;
-
 use wgame_gfx::{
     modifiers::Transformed,
     types::{Color, Transform},

@@ -1,14 +1,11 @@
-#![no_std]
+#![forbid(unsafe_code)]
 
 #[cfg(feature = "dump")]
-extern crate std;
-
-use core::{
+use std::io::Write;
+use std::{
     f32::consts::{FRAC_PI_3, PI, SQRT_2},
     time::Duration,
 };
-#[cfg(feature = "dump")]
-use std::io::Write;
 
 use glam::{Affine2, Vec2};
 use rgb::Rgb;

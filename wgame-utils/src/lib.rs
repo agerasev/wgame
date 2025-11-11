@@ -1,10 +1,7 @@
 #![forbid(unsafe_code)]
-#![no_std]
 
-#[cfg(feature = "std")]
-extern crate std;
+use std::{ops::Deref, time::Duration};
 
-use core::{ops::Deref, time::Duration};
 #[cfg(feature = "std")]
 use std::time::Instant;
 #[cfg(feature = "web")]

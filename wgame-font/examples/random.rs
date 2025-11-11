@@ -1,5 +1,3 @@
-extern crate std;
-
 use rand::{
     Rng, SeedableRng,
     distr::{Bernoulli, Uniform},

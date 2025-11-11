@@ -1,20 +1,18 @@
-use alloc::{
-    collections::{BinaryHeap, binary_heap::PeekMut},
-    rc::Rc,
-};
-use core::{
+use std::{
     cell::Cell,
     cmp::{Ordering, Reverse},
+    collections::{BinaryHeap, binary_heap::PeekMut},
     pin::Pin,
+    rc::Rc,
     task::{Context, Poll, Waker},
 };
 
-#[cfg(not(feature = "web"))]
+use winit::event_loop::ControlFlow;
+
+#[cfg(feature = "std")]
 pub use std::time::Instant;
 #[cfg(feature = "web")]
 pub use web_time::Instant;
-
-use winit::event_loop::ControlFlow;
 
 #[derive(Clone)]
 pub struct Timer {

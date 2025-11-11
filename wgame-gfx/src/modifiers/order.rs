@@ -1,4 +1,4 @@
-use core::hash::Hash;
+use std::hash::Hash;
 
 use anyhow::Result;
 

@@ -1,11 +1,11 @@
-use alloc::rc::Rc;
-use core::{
+use std::{
     cell::{RefCell, RefMut},
     pin::Pin,
+    rc::Rc,
     task::{Context, Poll},
 };
-use futures::{FutureExt, future::FusedFuture};
 
+use futures::{FutureExt, future::FusedFuture};
 use thiserror::Error;
 use winit::{error::OsError, window::WindowAttributes};
 

@@ -6,9 +6,7 @@ license.workspace = true
 
 [features]
 default = ["png"]
-std = []
-image = ["std"]
-png = ["dep:image", "image/png"]
+png = ["image/png"]
 
 [dependencies]
 bytemuck.workspace = true

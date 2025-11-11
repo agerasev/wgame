@@ -1,5 +1,3 @@
-extern crate std;
-
 use std::{
     fs::File,
     io::{Read, Write},
