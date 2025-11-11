@@ -5,15 +5,11 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-wgame-gfx.workspace = true
 wgame-image.workspace = true
-wgame-texture.workspace = true
-wgpu.workspace = true
 glam.workspace = true
 rgb.workspace = true
 euclid.workspace = true
 hashbrown.workspace = true
-bytemuck.workspace = true
 anyhow.workspace = true
 swash = { version = "0.2.6", default-features = false, features = [
     "libm",

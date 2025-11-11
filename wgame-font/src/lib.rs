@@ -1,17 +1,9 @@
 #![forbid(unsafe_code)]
 
 mod atlas;
-mod library;
-mod render;
-mod text;
-mod texture;
 
-pub use self::{
-    atlas::FontAtlas,
-    library::{TextLibrary, TextState},
-    text::Text,
-    texture::FontTexture,
-};
+pub use self::atlas::{FontAtlas, GlyphImageInfo};
+pub use swash;
 
 use std::rc::Rc;
 

@@ -1,18 +1,18 @@
 [package]
-name = "wgame-texture"
+name = "wgame-gfx-font"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-wgame-gfx.workspace = true
+wgame-font.workspace = true
 wgame-image.workspace = true
+wgame-gfx.workspace = true
+wgame-gfx-texture.workspace = true
 wgpu.workspace = true
-anyhow.workspace = true
-log.workspace = true
-bytemuck.workspace = true
-euclid.workspace = true
 glam.workspace = true
 rgb.workspace = true
-half.workspace = true
+euclid.workspace = true
 hashbrown.workspace = true
+bytemuck.workspace = true
+anyhow.workspace = true

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use etagere::{AllocId, Allocation, AtlasAllocator};
+use etagere::{Allocation, AtlasAllocator};
 use euclid::default::{Rect, Size2D};
 use swash::{
     GlyphId,
@@ -10,13 +10,12 @@ use swash::{
 use wgame_image::{AtlasImage, Image, prelude::*};
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct GlyphImageInfo {
-    pub _alloc_id: AllocId,
+pub struct GlyphImageInfo {
     pub location: Rect<u32>,
     pub placement: Placement,
 }
 
-pub(crate) struct InnerAtlas {
+pub(super) struct InnerAtlas {
     allocator: AtlasAllocator,
     mapping: BTreeMap<GlyphId, Option<GlyphImageInfo>>,
     image: AtlasImage<u8>,
@@ -77,7 +76,6 @@ impl InnerAtlas {
             new_mapping.insert(
                 glyph_id,
                 Some(GlyphImageInfo {
-                    _alloc_id: alloc.id,
                     location: new_rect,
                     ..info
                 }),
@@ -134,7 +132,6 @@ impl InnerAtlas {
                 self.image
                     .update_part(|mut dst| dst.copy_from(&image), rect);
                 Some(GlyphImageInfo {
-                    _alloc_id: alloc.id,
                     location: rect,
                     placement,
                 })

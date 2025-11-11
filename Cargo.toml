@@ -3,8 +3,8 @@ members = [
     "wgame",
     "wgame-app",
     "wgame-gfx",
-    "wgame-shapes",
-    "wgame-texture",
+    "wgame-gfx-shapes",
+    "wgame-gfx-texture",
     "wgame-fs",
     "wgame-image",
     "wgame-font",
@@ -21,13 +21,14 @@ license = "MIT"
 
 [workspace.dependencies]
 wgame = { version = "0.1.0", path = "wgame", default-features = false }
+wgame-fs = { version = "0.1.0", path = "wgame-fs" }
+wgame-font = { version = "0.1.0", path = "wgame-font" }
+wgame-image = { version = "0.1.0", path = "wgame-image" }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
-wgame-shapes = { version = "0.1.0", path = "wgame-shapes" }
-wgame-texture = { version = "0.1.0", path = "wgame-texture" }
-wgame-fs = { version = "0.1.0", path = "wgame-fs" }
-wgame-image = { version = "0.1.0", path = "wgame-image" }
-wgame-font = { version = "0.1.0", path = "wgame-font" }
+wgame-gfx-font = { version = "0.1.0", path = "wgame-gfx-font" }
+wgame-gfx-shapes = { version = "0.1.0", path = "wgame-gfx-shapes" }
+wgame-gfx-texture = { version = "0.1.0", path = "wgame-gfx-texture" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }

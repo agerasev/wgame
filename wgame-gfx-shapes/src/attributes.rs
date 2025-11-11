@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, mem::replace};
 
 use wgame_gfx::StoreBytes;
-use wgame_texture::{Texel, Texture};
+use wgame_gfx_texture::{Texel, Texture};
 
 use anyhow::Result;
 use half::f16;

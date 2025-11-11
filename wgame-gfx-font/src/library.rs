@@ -1,7 +1,7 @@
 use std::{borrow::Cow, ops::Deref};
 
 use glam::Vec4;
-use wgame_texture::{TextureAtlas, TextureLibrary, TextureState};
+use wgame_gfx_texture::{TextureAtlas, TextureLibrary, TextureState};
 use wgpu::util::DeviceExt;
 
 use crate::{Font, FontAtlas, FontTexture};

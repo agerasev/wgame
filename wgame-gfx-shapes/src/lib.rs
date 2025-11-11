@@ -16,8 +16,8 @@ use wgame_gfx::{
     Graphics,
     types::{Color, color},
 };
+use wgame_gfx_texture::{Texture, TextureLibrary, TextureState};
 use wgame_image::Image;
-use wgame_texture::{Texture, TextureLibrary, TextureState};
 
 use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
 

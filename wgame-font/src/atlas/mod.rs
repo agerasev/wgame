@@ -6,9 +6,10 @@ use euclid::default::{Rect, Size2D};
 use swash::{GlyphId, scale::ScaleContext};
 use wgame_image::{Atlas, AtlasImage};
 
+use self::inner::InnerAtlas;
 use crate::Font;
 
-pub(crate) use self::inner::{GlyphImageInfo, InnerAtlas};
+pub use self::inner::GlyphImageInfo;
 
 thread_local! {
     static CONTEXT: RefCell<ScaleContext> = Default::default();
@@ -18,7 +19,7 @@ thread_local! {
 pub struct FontAtlas {
     font: Font,
     size: f32,
-    pub(crate) atlas: Rc<RefCell<InnerAtlas>>,
+    atlas: Rc<RefCell<InnerAtlas>>,
 }
 
 impl FontAtlas {
@@ -52,7 +53,7 @@ impl FontAtlas {
             }
         });
     }
-    pub(crate) fn glyph_info(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
+    pub fn glyph_info(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
         self.atlas.borrow().glyph_info(glyph_id)
     }
     pub fn glyph_rect(&self, glyph_id: GlyphId) -> Option<Rect<u32>> {

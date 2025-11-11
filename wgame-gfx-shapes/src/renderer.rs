@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use anyhow::Result;
 use derivative::Derivative;
 use wgame_gfx::{BytesSink, Renderer, Resources, StoreBytes, utils::AnyOrder};
-use wgame_texture::TextureResources;
+use wgame_gfx_texture::TextureResources;
 use wgpu::util::DeviceExt;
 
 use crate::{attributes::Attributes, primitive::InstanceData};
