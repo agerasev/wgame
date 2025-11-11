@@ -1,34 +1,36 @@
-mod mapping;
+mod inner;
 
 use core::cell::RefCell;
 use std::rc::Rc;
 
-use image::GrayImage;
+use euclid::default::{Rect, Size2D};
 use swash::{GlyphId, scale::ScaleContext};
+use wgame_image::{Atlas, AtlasImage};
 
 use crate::Font;
 
-pub use self::mapping::FontAtlas;
+pub(crate) use self::inner::{GlyphImageInfo, InnerAtlas};
 
 thread_local! {
     static CONTEXT: RefCell<ScaleContext> = Default::default();
 }
 
 #[derive(Clone)]
-pub struct FontRaster {
+pub struct FontAtlas {
     font: Font,
     size: f32,
-    pub(crate) atlas: Rc<RefCell<FontAtlas>>,
+    pub(crate) atlas: Rc<RefCell<InnerAtlas>>,
 }
 
-impl FontRaster {
-    pub fn new(font: &Font, size: f32) -> Self {
+impl FontAtlas {
+    pub fn new(atlas: &Atlas<u8>, font: &Font, size: f32) -> Self {
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();
+        let image = atlas.allocate(Size2D::new(init_dim, init_dim));
         Self {
             font: font.clone(),
             size,
-            atlas: Rc::new(RefCell::new(FontAtlas::new(init_dim))),
+            atlas: Rc::new(RefCell::new(InnerAtlas::new(image))),
         }
     }
 
@@ -36,7 +38,7 @@ impl FontRaster {
         let font_ref = self.font.as_ref();
         self.add_glyphs(codepoints.into_iter().map(|c| font_ref.charmap().map(c)));
     }
-    pub(crate) fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
+    pub fn add_glyphs(&self, glyphs: impl IntoIterator<Item = GlyphId>) {
         let mut atlas = self.atlas.borrow_mut();
 
         CONTEXT.with_borrow_mut(|context| {
@@ -51,6 +53,22 @@ impl FontRaster {
             }
         });
     }
+    pub(crate) fn glyph_info(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
+        self.atlas.borrow().glyph_info(glyph_id)
+    }
+    pub fn glyph_rect(&self, glyph_id: GlyphId) -> Option<Rect<u32>> {
+        let atlas = self.atlas.borrow();
+        let atlas_rect = atlas.image().rect();
+        if let Some(info) = atlas.glyph_info(glyph_id) {
+            let glyph_rect = info.location;
+            Some(Rect {
+                origin: atlas_rect.origin + glyph_rect.origin.to_vector(),
+                size: glyph_rect.size,
+            })
+        } else {
+            None
+        }
+    }
 
     pub fn font(&self) -> &Font {
         &self.font
@@ -58,7 +76,7 @@ impl FontRaster {
     pub fn size(&self) -> f32 {
         self.size
     }
-    pub fn image(&self) -> GrayImage {
+    pub fn image(&self) -> AtlasImage<u8> {
         self.atlas.borrow().image().clone()
     }
     pub fn atlas_svg(&self) -> Vec<u8> {

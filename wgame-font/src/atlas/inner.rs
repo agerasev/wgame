@@ -1,33 +1,33 @@
 use etagere::{AllocId, Allocation, AtlasAllocator};
-use image::{GenericImage, GenericImageView, GrayImage, math::Rect};
+use euclid::default::{Rect, Size2D};
 use std::collections::BTreeMap;
 use swash::{
     GlyphId,
     scale::{Render, Scaler, Source, StrikeWith},
     zeno::Placement,
 };
+use wgame_image::{AtlasImage, Image, prelude::*};
 
 #[derive(Clone, Copy, Debug)]
-pub struct GlyphImageInfo {
+pub(crate) struct GlyphImageInfo {
     pub _alloc_id: AllocId,
-    pub location: Rect,
+    pub location: Rect<u32>,
     pub placement: Placement,
-    pub texture_synced: bool,
 }
 
-pub struct FontAtlas {
+pub(crate) struct InnerAtlas {
     allocator: AtlasAllocator,
     mapping: BTreeMap<GlyphId, Option<GlyphImageInfo>>,
-    image: GrayImage,
+    image: AtlasImage<u8>,
     render: Render<'static>,
 }
 
-impl FontAtlas {
-    pub fn new(init_dim: u32) -> Self {
+impl InnerAtlas {
+    pub fn new(image: AtlasImage<u8>) -> Self {
         Self {
-            allocator: AtlasAllocator::new((init_dim as i32, init_dim as i32).into()),
+            allocator: AtlasAllocator::new(image.size().cast()),
             mapping: BTreeMap::default(),
-            image: GrayImage::new(init_dim, init_dim),
+            image,
             render: Render::new(&[
                 Source::ColorOutline(0),
                 Source::ColorBitmap(StrikeWith::BestFit),
@@ -36,18 +36,18 @@ impl FontAtlas {
         }
     }
 
-    fn grow(&mut self, prev_size: Option<(i32, i32)>) -> Result<(), (i32, i32)> {
+    fn grow(&mut self, prev_size: Option<Size2D<i32>>) -> Result<(), Size2D<i32>> {
         let new_size = {
-            let (width, height) = prev_size.unwrap_or_else(|| self.allocator.size().into());
-            if width < height {
-                (width * 2, height)
+            let size = prev_size.unwrap_or_else(|| self.allocator.size());
+            if size.width < size.height {
+                Size2D::new(size.width.checked_mul(2).unwrap(), size.height)
             } else {
-                (width, height * 2)
+                Size2D::new(size.width, size.height.checked_mul(2).unwrap())
             }
         };
 
-        let mut new_allocator = AtlasAllocator::new(new_size.into());
-        let mut new_image = GrayImage::new(new_size.0 as u32, new_size.1 as u32);
+        let mut new_allocator = AtlasAllocator::new(new_size);
+        let mut new_image = Image::new(new_size.cast());
 
         let mut new_mapping = BTreeMap::new();
         for (glyph_id, maybe_info) in self.mapping.iter().map(|(k, v)| (*k, *v)) {
@@ -58,40 +58,34 @@ impl FontAtlas {
                     continue;
                 }
             };
-            let rect = info.location;
+            let old_rect = info.location;
             let alloc = new_allocator
-                .allocate((rect.width as i32, rect.height as i32).into())
+                .allocate(old_rect.size.cast())
                 .ok_or(new_size)?;
             assert!(
-                (rect.width <= alloc.rectangle.width() as u32)
-                    && (rect.height <= alloc.rectangle.height() as u32),
+                (old_rect.width() <= alloc.rectangle.width() as u32)
+                    && (old_rect.height() <= alloc.rectangle.height() as u32),
             );
             let new_rect = Rect {
-                x: alloc.rectangle.min.x as u32,
-                y: alloc.rectangle.min.y as u32,
-                ..rect
+                origin: alloc.rectangle.min.cast::<u32>(),
+                ..old_rect
             };
-            new_image
-                .copy_from(
-                    &*self.image.view(rect.x, rect.y, rect.width, rect.height),
-                    new_rect.x,
-                    new_rect.y,
-                )
-                .expect("Error copying glyphs from one image to another");
+            self.image
+                .with(|src| new_image.slice_mut(new_rect).copy_from(src.slice(old_rect)));
 
             new_mapping.insert(
                 glyph_id,
                 Some(GlyphImageInfo {
                     _alloc_id: alloc.id,
                     location: new_rect,
-                    texture_synced: false,
                     ..info
                 }),
             );
         }
         self.mapping = new_mapping;
         self.allocator = new_allocator;
-        self.image = new_image;
+        self.image.resize(new_size.cast());
+        self.image.update(|mut dst| dst.copy_from(new_image));
         Ok(())
     }
 
@@ -122,8 +116,7 @@ impl FontAtlas {
 
         let (image, placement) = match self.render.render(scaler, glyph_id) {
             Some(img) => (
-                GrayImage::from_vec(img.placement.width, img.placement.height, img.data)
-                    .expect("Cannot convert glyph image"),
+                Image::with_data((img.placement.width, img.placement.height), img.data),
                 img.placement,
             ),
             None => {
@@ -134,19 +127,15 @@ impl FontAtlas {
         let info = match self.alloc_space(placement.width, placement.height) {
             Some(alloc) => {
                 let rect = Rect {
-                    x: alloc.rectangle.min.x as u32,
-                    y: alloc.rectangle.min.y as u32,
-                    width: placement.width,
-                    height: placement.height,
+                    origin: alloc.rectangle.min.cast(),
+                    size: Size2D::new(placement.width, placement.height),
                 };
                 self.image
-                    .copy_from(&image, rect.x, rect.y)
-                    .expect("Error copying glyph image");
+                    .update_part(|mut dst| dst.copy_from(&image), rect);
                 Some(GlyphImageInfo {
                     _alloc_id: alloc.id,
                     location: rect,
                     placement,
-                    texture_synced: false,
                 })
             }
             None => None,
@@ -154,18 +143,11 @@ impl FontAtlas {
         assert!(self.mapping.insert(glyph_id, info).is_none());
     }
 
-    pub fn get_glyph(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
+    pub fn glyph_info(&self, glyph_id: GlyphId) -> Option<GlyphImageInfo> {
         self.mapping.get(&glyph_id).and_then(|x| *x)
     }
 
-    pub fn sync_glyphs(&mut self) -> impl Iterator<Item = (&GlyphId, &GlyphImageInfo)> {
-        self.mapping
-            .iter()
-            .filter_map(|(k, v)| v.as_ref().map(|v| (k, v)))
-            .filter(|(_k, v)| !v.texture_synced)
-    }
-
-    pub fn image(&self) -> &GrayImage {
+    pub fn image(&self) -> &AtlasImage<u8> {
         &self.image
     }
 

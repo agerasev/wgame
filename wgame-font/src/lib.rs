@@ -1,14 +1,16 @@
 #![forbid(unsafe_code)]
 
-mod raster;
-pub mod render;
+mod atlas;
+mod library;
+mod render;
 mod text;
+mod texture;
 
-pub(crate) use self::render::GlyphInstance;
 pub use self::{
-    raster::FontRaster,
-    render::{FontTexture, TextLibrary},
+    atlas::FontAtlas,
+    library::{TextLibrary, TextState},
     text::Text,
+    texture::FontTexture,
 };
 
 use std::rc::Rc;
@@ -42,9 +44,5 @@ impl Font {
             offset: self.offset,
             key: self.key,
         }
-    }
-
-    pub fn rasterize(&self, size: f32) -> FontRaster {
-        FontRaster::new(self, size)
     }
 }

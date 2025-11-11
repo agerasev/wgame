@@ -1,44 +1,41 @@
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-
 use half::f16;
 
-pub trait BytesSink {
-    fn push_bytes(&mut self, data: &[u8]);
+#[derive(Default, Clone)]
+pub struct BytesSink {
+    data: Vec<u8>,
 }
 
-impl BytesSink for Vec<u8> {
-    fn push_bytes(&mut self, data: &[u8]) {
-        self.extend_from_slice(data);
+impl BytesSink {
+    pub fn push_bytes(&mut self, data: &[u8]) {
+        self.data.extend_from_slice(data);
+    }
+    pub fn into_data(self) -> Vec<u8> {
+        self.data
     }
 }
 
 pub trait StoreBytes {
-    const SIZE: usize;
-
-    fn store_bytes<D: BytesSink>(&self, dst: &mut D);
+    fn store_bytes(&self, dst: &mut BytesSink);
 
     fn to_bytes(&self) -> Vec<u8> {
-        let mut dst = Vec::new();
+        let mut dst = BytesSink::default();
         self.store_bytes(&mut dst);
-        dst
+        dst.data
     }
 }
 
 impl<T> StoreBytes for PhantomData<T> {
-    const SIZE: usize = 0;
-    fn store_bytes<D: BytesSink>(&self, _: &mut D) {}
+    fn store_bytes(&self, _: &mut BytesSink) {}
 }
 
 impl StoreBytes for () {
-    const SIZE: usize = 0;
-    fn store_bytes<D: BytesSink>(&self, _: &mut D) {}
+    fn store_bytes(&self, _: &mut BytesSink) {}
 }
 
 impl<T: StoreBytes, const N: usize> StoreBytes for [T; N] {
-    const SIZE: usize = T::SIZE * N;
-
-    fn store_bytes<D: BytesSink>(&self, dst: &mut D) {
+    fn store_bytes(&self, dst: &mut BytesSink) {
         for item in self {
             item.store_bytes(dst);
         }
@@ -48,9 +45,7 @@ impl<T: StoreBytes, const N: usize> StoreBytes for [T; N] {
 macro_rules! impl_store_pod {
     ($type:ty) => {
         impl StoreBytes for $type {
-            const SIZE: usize = size_of::<$type>();
-
-            fn store_bytes<D: BytesSink>(&self, dst: &mut D) {
+            fn store_bytes(&self, dst: &mut BytesSink) {
                 dst.push_bytes(bytemuck::bytes_of(self));
             }
         }
@@ -69,9 +64,7 @@ impl_store_pod!(f32);
 impl_store_pod!(f16);
 
 impl StoreBytes for glam::Affine2 {
-    const SIZE: usize = size_of::<glam::Mat2>() + size_of::<glam::Vec2>();
-
-    fn store_bytes<D: BytesSink>(&self, dst: &mut D) {
+    fn store_bytes(&self, dst: &mut BytesSink) {
         dst.push_bytes(bytemuck::bytes_of(&self.matrix2));
         dst.push_bytes(bytemuck::bytes_of(&self.translation));
     }

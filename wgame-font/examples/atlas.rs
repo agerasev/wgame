@@ -5,7 +5,8 @@ use std::{
     io::{Read, Write},
 };
 
-use wgame_text::{Font, FontRaster};
+use wgame_font::{Font, FontAtlas};
+use wgame_image::{Atlas, Encoding};
 
 fn main() {
     let mut contents = Vec::new();
@@ -14,10 +15,13 @@ fn main() {
         .read_to_end(&mut contents)
         .unwrap();
     let font = Font::new(contents, 0).unwrap();
-    let atlas = FontRaster::new(&font, 64.0);
+    let atlas = FontAtlas::new(&Atlas::default(), &font, 64.0);
     atlas.add_chars("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890".chars());
 
-    atlas.image().save("output/atlas.png").unwrap();
+    atlas.image().with(|img| {
+        let mut file = File::create("output/atlas.png").unwrap();
+        file.write_all(&img.encode(Encoding::Png).unwrap()).unwrap();
+    });
     File::create("output/atlas.svg")
         .unwrap()
         .write_all(&atlas.atlas_svg())

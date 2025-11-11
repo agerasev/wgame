@@ -4,9 +4,10 @@ members = [
     "wgame-app",
     "wgame-gfx",
     "wgame-shapes",
+    "wgame-texture",
     "wgame-fs",
-    "wgame-img",
-    "wgame-text",
+    "wgame-image",
+    "wgame-font",
     "wgame-utils",
     "wgame-macros",
     "wgame-examples",
@@ -23,9 +24,10 @@ wgame = { version = "0.1.0", path = "wgame", default-features = false }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-shapes = { version = "0.1.0", path = "wgame-shapes" }
+wgame-texture = { version = "0.1.0", path = "wgame-texture" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
-wgame-img = { version = "0.1.0", path = "wgame-img" }
-wgame-text = { version = "0.1.0", path = "wgame-text" }
+wgame-image = { version = "0.1.0", path = "wgame-image" }
+wgame-font = { version = "0.1.0", path = "wgame-font" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
@@ -35,9 +37,11 @@ bytemuck = "1.23.2"
 glam = { version = "0.30.5", features = ["bytemuck"] }
 rgb = { version = "0.8.52", default-features = false, features = ["bytemuck"] }
 half = { version = "2.6.0", default-features = false, features = ["bytemuck"] }
+euclid = { version = "0.22.11", default-features = false }
 image = { version = "0.25.6", default-features = false }
 hashbrown = { version = "0.15.5", features = ["core", "alloc"] }
 smallvec = "1.15.1"
+derivative = { version = "2.2.0", features = ["use_core"] }
 thiserror = { version = "2.0.16", default-features = false }
 anyhow = "1.0.99"
 log = "0.4.27"

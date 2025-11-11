@@ -5,12 +5,14 @@ use alloc::{
     vec::Vec,
 };
 use core::{marker::PhantomData, mem::replace};
+use wgame_gfx::StoreBytes;
+use wgame_texture::{Texel, Texture};
 
 use anyhow::Result;
 use half::f16;
 use serde::Serialize;
 
-use crate::{binding::BindingInfo, binding_type, bytes::StoreBytes};
+use crate::{binding::BindingInfo, binding_type};
 
 #[derive(Clone, Default, Debug, Serialize)]
 pub struct AttributeList(pub Vec<BindingInfo>);
@@ -64,11 +66,11 @@ impl AttributeList {
     }
 }
 
-pub trait Attributes: StoreBytes {
+pub trait Attributes: StoreBytes + 'static {
     fn attributes() -> AttributeList;
 }
 
-impl<T> Attributes for PhantomData<T> {
+impl<T: 'static> Attributes for PhantomData<T> {
     fn attributes() -> AttributeList {
         AttributeList::default()
     }
@@ -125,5 +127,11 @@ impl Attributes for glam::Affine2 {
                 ty: binding_type!(F32, 2),
             },
         ])
+    }
+}
+
+impl<T: Texel> Attributes for Texture<T> {
+    fn attributes() -> AttributeList {
+        <glam::Affine2 as Attributes>::attributes()
     }
 }

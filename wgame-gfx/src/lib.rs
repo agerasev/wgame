@@ -3,26 +3,28 @@
 
 extern crate alloc;
 
+pub mod bytes;
 mod collector;
 mod context;
 mod frame;
 mod instance;
 pub mod modifiers;
 pub mod renderer;
+mod state;
 pub mod types;
 pub mod utils;
 
 pub use self::{
+    bytes::{BytesSink, StoreBytes},
     collector::Collector,
     context::Context,
     frame::Frame,
     instance::{Instance, InstanceExt, Resources},
     renderer::Renderer,
+    state::Graphics,
 };
 pub use anyhow::Error;
 pub use wgpu::PresentMode;
-
-use alloc::rc::Rc;
 
 use anyhow::{Context as _, Result};
 
@@ -37,16 +39,6 @@ impl Default for Config {
             present_mode: wgpu::PresentMode::AutoVsync,
         }
     }
-}
-
-#[derive(Clone)]
-pub struct Graphics(Rc<InnerState>);
-
-struct InnerState {
-    adapter: wgpu::Adapter,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    format: wgpu::TextureFormat,
 }
 
 pub struct Surface<'a> {
@@ -94,12 +86,12 @@ impl<'a> Surface<'a> {
         let this = Self {
             config,
             surface,
-            state: Graphics(Rc::new(InnerState {
+            state: Graphics {
                 adapter,
                 device,
                 queue,
                 format,
-            })),
+            },
             size: Default::default(),
         };
 
@@ -114,7 +106,7 @@ impl<'a> Surface<'a> {
         }
         let surface_config = self
             .surface
-            .get_default_config(&self.state.0.adapter, size.0, size.1)
+            .get_default_config(&self.state.adapter, size.0, size.1)
             .unwrap();
         self.surface.configure(
             self.state.device(),
@@ -139,17 +131,5 @@ impl<'a> Surface<'a> {
 
     pub fn state(&self) -> &Graphics {
         &self.state
-    }
-}
-
-impl Graphics {
-    pub fn device(&self) -> &wgpu::Device {
-        &self.0.device
-    }
-    pub fn queue(&self) -> &wgpu::Queue {
-        &self.0.queue
-    }
-    pub fn format(&self) -> wgpu::TextureFormat {
-        self.0.format
     }
 }

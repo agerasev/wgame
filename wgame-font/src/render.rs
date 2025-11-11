@@ -1,19 +1,17 @@
-mod library;
-mod texture;
-
 use anyhow::Result;
 use glam::{Mat4, Vec4};
+use swash::GlyphId;
+use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
+use wgame_texture::TextureResources;
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
-
-pub use self::{library::TextLibrary, texture::FontTexture};
+use crate::FontTexture;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextResources {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    texture: FontTexture,
+    texture: TextureResources<u8>,
     pipeline: wgpu::RenderPipeline,
     device: wgpu::Device,
 }
@@ -27,27 +25,31 @@ impl TextResources {
             vertex_buffer: library.vertex_buffer.clone(),
             index_buffer: library.index_buffer.clone(),
             pipeline,
-            texture: font.clone(),
+            texture: FontTexture::texture(font).resources(),
             device: library.device().clone(),
         }
     }
 }
 
+pub struct TextInstance {
+    pub texture: FontTexture,
+    pub glyphs: Vec<GlyphInstance>,
+    pub color: Vec4,
+}
+
 pub struct GlyphInstance {
     pub xform: Mat4,
-    pub tex_coord: Vec4,
-    pub color: Vec4,
+    pub id: GlyphId,
 }
 
 #[derive(Default)]
 pub struct TextStorage {
-    pub(crate) instances: Vec<GlyphInstance>,
+    pub(crate) instances: Vec<TextInstance>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextRenderer {
     resources: TextResources,
-    bind_group: wgpu::BindGroup,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
 }
@@ -61,10 +63,20 @@ impl Resources for TextResources {
     }
     fn make_renderer(&self, storage: &Self::Storage) -> Result<Self::Renderer> {
         let mut bytes = Vec::new();
-        for instance in &storage.instances {
-            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.xform]));
-            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.tex_coord]));
-            bytes.extend_from_slice(bytemuck::cast_slice(&[instance.color]));
+        let mut instance_count = 0;
+        for text in &storage.instances {
+            for glyph in &text.glyphs {
+                let rect = text.texture.glyph_rect(glyph.id).unwrap();
+                bytes.extend_from_slice(bytemuck::cast_slice(&[glyph.xform]));
+                bytes.extend_from_slice(bytemuck::cast_slice(&[
+                    rect.origin.x as f32,
+                    rect.origin.y as f32,
+                    rect.size.width as f32,
+                    rect.size.height as f32,
+                ]));
+                bytes.extend_from_slice(bytemuck::cast_slice(&[text.color]));
+                instance_count += 1;
+            }
         }
         let instance_buffer = self
             .device
@@ -74,21 +86,10 @@ impl Resources for TextResources {
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
-        let texture_view = self.texture.sync().unwrap();
-        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.pipeline.get_bind_group_layout(0),
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(&texture_view),
-            }],
-            label: None,
-        });
-
         Ok(TextRenderer {
             resources: self.clone(),
-            bind_group,
             instance_buffer,
-            instance_count: storage.instances.len() as u32,
+            instance_count,
         })
     }
 }
@@ -97,7 +98,7 @@ impl Renderer for TextRenderer {
     fn draw(&self, pass: &mut wgpu::RenderPass) -> Result<()> {
         pass.push_debug_group("prepare");
         pass.set_pipeline(&self.resources.pipeline);
-        pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.set_bind_group(0, &self.resources.texture.bind_group(), &[]);
         pass.set_vertex_buffer(0, self.resources.vertex_buffer.slice(..));
         pass.set_index_buffer(
             self.resources.index_buffer.slice(..),

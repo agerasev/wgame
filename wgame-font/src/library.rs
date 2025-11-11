@@ -1,37 +1,35 @@
 use std::{borrow::Cow, ops::Deref};
 
-use anyhow::Result;
 use glam::Vec4;
+use wgame_texture::{TextureAtlas, TextureLibrary, TextureState};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::Graphics;
-
-use crate::{FontRaster, FontTexture};
+use crate::{Font, FontAtlas, FontTexture};
 
 #[derive(Clone)]
-pub struct TextLibrary {
-    pub(crate) state: Graphics,
+pub struct TextState {
+    pub(crate) inner: TextureState,
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
     pub(crate) pipeline: wgpu::RenderPipeline,
 }
 
-impl Deref for TextLibrary {
-    type Target = Graphics;
+impl Deref for TextState {
+    type Target = TextureState;
     fn deref(&self) -> &Self::Target {
-        &self.state
+        &self.inner
     }
 }
 
-impl TextLibrary {
+impl TextState {
     const INSTANCE_COMPONENTS: u32 = 6;
 
-    pub fn new(state: &Graphics) -> Result<Self> {
+    pub fn new(state: &TextureState) -> Self {
         let device = state.device().clone();
         let swapchain_format = state.format();
 
         let shader_source =
-            wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../../shaders/text.wgsl")));
+            wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/text.wgsl")));
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("text_shader"),
             source: shader_source,
@@ -80,19 +78,7 @@ impl TextLibrary {
                 usage: wgpu::BufferUsages::INDEX,
             });
 
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("text_bind_group"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Uint,
-                },
-                count: None,
-            }],
-        });
+        let bind_group_layout = state.bind_group_layout(wgpu::TextureFormat::R8Uint);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -126,15 +112,37 @@ impl TextLibrary {
             cache: None,
         });
 
-        Ok(Self {
-            state: state.clone(),
+        Self {
+            inner: state.clone(),
             vertex_buffer,
             index_buffer,
             pipeline,
-        })
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct TextLibrary {
+    state: TextState,
+    default_atlas: TextureAtlas<u8>,
+}
+
+impl TextLibrary {
+    pub fn new(texture: &TextureLibrary) -> Self {
+        let state = TextState::new(texture.state());
+        Self {
+            default_atlas: TextureAtlas::new(
+                &state,
+                Default::default(),
+                wgpu::TextureFormat::R8Uint,
+            ),
+            state,
+        }
     }
 
-    pub fn font_texture(&self, font_raster: FontRaster) -> FontTexture {
-        FontTexture::new(self, font_raster)
+    pub fn texture(&self, font: &Font, size: f32) -> FontTexture {
+        let atlas = self.default_atlas.inner();
+        let font_atlas = FontAtlas::new(&atlas, font, size);
+        FontTexture::new(&self.state, &font_atlas, &self.default_atlas)
     }
 }

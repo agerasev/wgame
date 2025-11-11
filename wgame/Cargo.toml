@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["desktop", "shapes", "fs", "img", "text", "utils"]
+default = ["desktop", "shapes", "fs", "image", "font", "utils"]
 desktop = [
     "wgame-app/x11",
     "wgame-app/wayland",
@@ -23,17 +23,18 @@ web = [
 ]
 shapes = ["dep:wgame-shapes"]
 fs = ["dep:wgame-fs"]
-img = ["dep:wgame-img"]
-text = ["dep:wgame-text"]
+image = ["dep:wgame-image"]
+font = ["dep:wgame-font"]
 utils = ["dep:wgame-utils"]
 
 [dependencies]
 wgame-app.workspace = true
 wgame-gfx.workspace = true
+wgame-texture.workspace = true
 wgame-shapes = { workspace = true, optional = true }
 wgame-fs = { workspace = true, optional = true }
-wgame-img = { workspace = true, optional = true }
-wgame-text = { workspace = true, optional = true }
+wgame-image = { workspace = true, optional = true }
+wgame-font = { workspace = true, optional = true }
 wgame-utils = { workspace = true, optional = true }
 wgame-macros.workspace = true
 anyhow.workspace = true

@@ -1,12 +1,10 @@
-use anyhow::Result;
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
+use wgame_gfx::{StoreBytes, types::Position};
 use wgpu::util::DeviceExt;
 
-use wgame_gfx::types::Position;
-
 use crate::{
-    ShapeLibrary, LibraryState, Shape, ShapeExt, bytes::StoreBytes, pipeline::create_pipeline,
-    primitive::VertexData, renderer::VertexBuffers,
+    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline, primitive::VertexData,
+    renderer::VertexBuffers,
 };
 
 #[derive(Clone)]
@@ -19,7 +17,7 @@ pub struct PolygonLibrary {
 }
 
 impl PolygonLibrary {
-    pub fn new(state: &LibraryState) -> Result<Self> {
+    pub fn new(state: &ShapesState) -> Self {
         let quad_vertices = state
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -79,20 +77,21 @@ impl PolygonLibrary {
                     usage: wgpu::BufferUsages::INDEX,
                 });
 
-        let pipeline = create_pipeline(state, &Default::default())?;
+        let pipeline =
+            create_pipeline(state, &Default::default()).expect("Failed to create polygon pipeline");
 
-        Ok(Self {
+        Self {
             quad_vertices,
             quad_indices,
             hexagon_vertices,
             hexagon_indices,
             pipeline,
-        })
+        }
     }
 }
 
 pub struct Polygon<const N: u32> {
-    state: ShapeLibrary,
+    state: ShapesLibrary,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
@@ -101,7 +100,7 @@ pub struct Polygon<const N: u32> {
 impl<const N: u32> Shape for Polygon<N> {
     type Attributes = ();
 
-    fn state(&self) -> &ShapeLibrary {
+    fn state(&self) -> &ShapesLibrary {
         &self.state
     }
 
@@ -120,7 +119,7 @@ impl<const N: u32> Shape for Polygon<N> {
     }
 }
 
-impl ShapeLibrary {
+impl ShapesLibrary {
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<3> {
         let vertices = self
             .state

@@ -3,16 +3,13 @@ use alloc::borrow::Cow;
 use anyhow::Result;
 
 use crate::{
-    LibraryState,
+    ShapesState,
     attributes::Attributes,
     primitive::{InstanceData, VertexData},
     shader::{ShaderConfig, ShaderSource},
 };
 
-pub fn create_pipeline(
-    state: &LibraryState,
-    config: &ShaderConfig,
-) -> Result<wgpu::RenderPipeline> {
+pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgpu::RenderPipeline> {
     let device = state.device();
     let swapchain_format = state.format();
 
@@ -28,7 +25,7 @@ pub fn create_pipeline(
         source: shader_source,
     });
 
-    let bind_group_layout = &state.texture_bind_group_layout;
+    let bind_group_layout = &state.texture().float_bind_group_layout;
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,

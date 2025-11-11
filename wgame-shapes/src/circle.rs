@@ -1,16 +1,15 @@
 use alloc::string::ToString;
 
-use anyhow::Result;
 use glam::{Affine2, Mat2, Vec2};
 use wgame_macros::{Attributes, StoreBytes};
 
 use crate::{
-    ShapeLibrary, LibraryState, Shape, ShapeExt, attributes::Attributes, pipeline::create_pipeline,
+    Shape, ShapeExt, ShapesLibrary, ShapesState, attributes::Attributes, pipeline::create_pipeline,
     renderer::VertexBuffers, shader::ShaderConfig,
 };
 
 #[derive(Clone, Copy, StoreBytes, Attributes)]
-#[bytes_mod(crate::bytes)]
+#[bytes_mod(wgame_gfx::bytes)]
 #[attributes_mod(crate::attributes)]
 pub struct CircleAttrs {
     inner_radius: f32,
@@ -22,7 +21,7 @@ pub struct CircleLibrary {
 }
 
 impl CircleLibrary {
-    pub fn new(state: &LibraryState) -> Result<Self> {
+    pub fn new(state: &ShapesState) -> Self {
         let pipeline = create_pipeline(
             state,
             &ShaderConfig {
@@ -37,14 +36,15 @@ impl CircleLibrary {
                 instances: CircleAttrs::attributes().with_prefix("custom"),
                 ..Default::default()
             },
-        )?;
+        )
+        .expect("Failed to create circle pipeline");
 
-        Ok(Self { pipeline })
+        Self { pipeline }
     }
 }
 
 pub struct Circle {
-    state: ShapeLibrary,
+    state: ShapesLibrary,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
@@ -54,7 +54,7 @@ pub struct Circle {
 impl Shape for Circle {
     type Attributes = CircleAttrs;
 
-    fn state(&self) -> &ShapeLibrary {
+    fn state(&self) -> &ShapesLibrary {
         &self.state
     }
 
@@ -77,7 +77,7 @@ impl Shape for Circle {
     }
 }
 
-impl ShapeLibrary {
+impl ShapesLibrary {
     pub fn unit_ring(&self, inner_radius: f32) -> impl Shape {
         Circle {
             state: self.clone(),
