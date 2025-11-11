@@ -73,6 +73,7 @@ impl<'a> Surface<'a> {
                     .using_resolution(adapter.limits()),
                 memory_hints: wgpu::MemoryHints::Performance,
                 trace: wgpu::Trace::Off,
+                experimental_features: Default::default(),
             })
             .await
             .context("Failed to create device")?;

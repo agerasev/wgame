@@ -32,21 +32,21 @@ wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 winit = { version = "0.30.12", default-features = false, features = ["rwh_06"] }
-wgpu = { version = "26.0.1", default-features = false, features = ["wgsl"] }
-bytemuck = "1.23.2"
-glam = { version = "0.30.5", features = ["bytemuck"] }
+wgpu = { version = "27.0.1", default-features = false, features = ["wgsl"] }
+bytemuck = "1.24.0"
+glam = { version = "0.30.9", features = ["bytemuck"] }
 rgb = { version = "0.8.52", default-features = false, features = ["bytemuck"] }
-half = { version = "2.6.0", default-features = false, features = ["bytemuck"] }
+half = { version = "2.7.1", default-features = false, features = ["bytemuck"] }
 euclid = { version = "0.22.11", default-features = false }
-image = { version = "0.25.6", default-features = false }
-hashbrown = { version = "0.15.5", features = ["core", "alloc"] }
+image = { version = "0.25.8", default-features = false }
+hashbrown = { version = "0.16.0", features = ["core", "alloc"] }
 smallvec = "1.15.1"
 derivative = { version = "2.2.0", features = ["use_core"] }
-thiserror = { version = "2.0.16", default-features = false }
-anyhow = "1.0.99"
-log = "0.4.27"
-wasm-bindgen = "0.2.100"
-wasm-bindgen-futures = "0.4.50"
-web-sys = "0.3.77"
+thiserror = { version = "2.0.17", default-features = false }
+anyhow = "1.0.100"
+log = "0.4.28"
+wasm-bindgen = "0.2.105"
+wasm-bindgen-futures = "0.4.55"
+web-sys = "0.3.82"
 web-time = "1.1.0"
-js-sys = "0.3.77"
+js-sys = "0.3.82"

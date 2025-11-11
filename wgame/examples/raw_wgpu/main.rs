@@ -46,6 +46,7 @@ impl<'a> WgpuState<'a> {
                     .using_resolution(adapter.limits()),
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
                 trace: wgpu::Trace::Off,
+                experimental_features: Default::default(),
             })
             .await
             .expect("Failed to create device");

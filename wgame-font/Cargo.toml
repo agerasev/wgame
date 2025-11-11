@@ -15,7 +15,7 @@ euclid.workspace = true
 hashbrown.workspace = true
 bytemuck.workspace = true
 anyhow.workspace = true
-swash = { version = "0.2.5", default-features = false, features = [
+swash = { version = "0.2.6", default-features = false, features = [
     "libm",
     "render",
     "scale",
