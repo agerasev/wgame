@@ -8,6 +8,7 @@ license.workspace = true
 wgame-font.workspace = true
 wgame-gfx.workspace = true
 wgame-gfx-texture.workspace = true
+wgame-shader.workspace = true
 wgpu.workspace = true
 glam.workspace = true
 bytemuck.workspace = true

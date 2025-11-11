@@ -3,6 +3,7 @@ use glam::{Mat4, Vec4};
 use wgame_font::swash::GlyphId;
 use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
 use wgame_gfx_texture::TextureResources;
+use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
 
 use crate::FontTexture;
@@ -25,7 +26,7 @@ impl TextResources {
             vertex_buffer: library.vertex_buffer.clone(),
             index_buffer: library.index_buffer.clone(),
             pipeline,
-            texture: FontTexture::texture(font).resources(),
+            texture: font.inner().resources(),
             device: library.device().clone(),
         }
     }
@@ -40,6 +41,13 @@ pub struct TextInstance {
 pub struct GlyphInstance {
     pub xform: Mat4,
     pub id: GlyphId,
+}
+
+#[derive(Attribute)]
+struct GlyphAttribute {
+    xform: Mat4,
+    tex_rect: Vec4,
+    color: Vec4,
 }
 
 #[derive(Default)]
@@ -62,19 +70,22 @@ impl Resources for TextResources {
         TextStorage::default()
     }
     fn make_renderer(&self, storage: &Self::Storage) -> Result<Self::Renderer> {
-        let mut bytes = Vec::new();
+        let mut bytes = BytesSink::default();
         let mut instance_count = 0;
         for text in &storage.instances {
             for glyph in &text.glyphs {
                 let rect = text.texture.glyph_rect(glyph.id).unwrap();
-                bytes.extend_from_slice(bytemuck::cast_slice(&[glyph.xform]));
-                bytes.extend_from_slice(bytemuck::cast_slice(&[
-                    rect.origin.x as f32,
-                    rect.origin.y as f32,
-                    rect.size.width as f32,
-                    rect.size.height as f32,
-                ]));
-                bytes.extend_from_slice(bytemuck::cast_slice(&[text.color]));
+                let attr = GlyphAttribute {
+                    xform: glyph.xform,
+                    tex_rect: Vec4::new(
+                        rect.origin.x as f32,
+                        rect.origin.y as f32,
+                        rect.size.width as f32,
+                        rect.size.height as f32,
+                    ),
+                    color: text.color,
+                };
+                attr.store(&mut bytes);
                 instance_count += 1;
             }
         }
@@ -82,7 +93,7 @@ impl Resources for TextResources {
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("instances"),
-                contents: &bytes,
+                contents: bytes.data(),
                 usage: wgpu::BufferUsages::VERTEX,
             });
 

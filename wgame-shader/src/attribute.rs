@@ -13,6 +13,10 @@ impl BytesSink {
     pub fn push_bytes(&mut self, data: &[u8]) {
         self.data.extend_from_slice(data);
     }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
     pub fn into_data(self) -> Vec<u8> {
         self.data
     }

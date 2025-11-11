@@ -40,7 +40,7 @@ impl FontTexture {
         Text::new(self, text)
     }
 
-    pub fn texture(this: &FontTexture) -> &Texture<u8> {
-        &this.texture
+    pub fn inner(&self) -> &Texture<u8> {
+        &self.texture
     }
 }

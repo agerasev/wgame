@@ -2613,6 +2613,7 @@ dependencies = [
  "wgame-font",
  "wgame-gfx",
  "wgame-gfx-texture",
+ "wgame-shader",
  "wgpu",
 ]
 
