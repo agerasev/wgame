@@ -2518,10 +2518,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
- "futures",
  "glam",
  "log",
- "rgb",
  "wgame-app",
  "wgame-fs",
  "wgame-gfx",
@@ -2556,13 +2554,10 @@ dependencies = [
 name = "wgame-examples"
 version = "0.1.0"
 dependencies = [
- "futures",
  "glam",
- "image",
  "log",
  "rgb",
  "wgame",
- "wgame-utils",
 ]
 
 [[package]]
@@ -2572,11 +2567,8 @@ dependencies = [
  "anyhow",
  "etagere",
  "euclid",
- "glam",
- "hashbrown 0.16.0",
  "image",
  "rand",
- "rgb",
  "swash",
  "wgame-image",
 ]
@@ -2605,7 +2597,6 @@ dependencies = [
  "hashbrown 0.16.0",
  "log",
  "rgb",
- "smallvec",
  "wgpu",
 ]
 
@@ -2615,14 +2606,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
- "euclid",
  "glam",
- "hashbrown 0.16.0",
- "rgb",
  "wgame-font",
  "wgame-gfx",
  "wgame-gfx-texture",
- "wgame-image",
  "wgpu",
 ]
 
@@ -2651,13 +2638,10 @@ dependencies = [
 name = "wgame-gfx-texture"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "bytemuck",
  "euclid",
  "glam",
  "half",
- "hashbrown 0.16.0",
- "log",
  "rgb",
  "wgame-gfx",
  "wgame-image",

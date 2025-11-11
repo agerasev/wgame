@@ -6,10 +6,7 @@ license.workspace = true
 
 [dependencies]
 wgame-image.workspace = true
-glam.workspace = true
-rgb.workspace = true
 euclid.workspace = true
-hashbrown.workspace = true
 anyhow.workspace = true
 swash = { version = "0.2.6", default-features = false, features = [
     "libm",

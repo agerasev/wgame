@@ -45,3 +45,6 @@ thiserror.workspace = true
 [dev-dependencies]
 futures = { workspace = true, default-features = true }
 winit = { workspace = true, default-features = true }
+
+[package.metadata.cargo-machete]
+ignored = ["wasm-bindgen"]

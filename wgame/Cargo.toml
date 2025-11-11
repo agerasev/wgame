@@ -41,9 +41,7 @@ anyhow.workspace = true
 log.workspace = true
 
 [dev-dependencies]
-futures = { workspace = true, default-features = true }
 winit = { workspace = true, default-features = true }
 wgpu = { workspace = true, default-features = true }
 bytemuck.workspace = true
 glam.workspace = true
-rgb.workspace = true
