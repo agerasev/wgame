@@ -2,11 +2,12 @@ use std::marker::PhantomData;
 
 use anyhow::Result;
 use derivative::Derivative;
-use wgame_gfx::{BytesSink, Renderer, Resources, StoreBytes, utils::AnyOrder};
+use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
 use wgame_gfx_texture::TextureResources;
+use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
 
-use crate::{attributes::Attributes, primitive::InstanceData};
+use crate::primitive::InstanceData;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct VertexBuffers {
@@ -25,7 +26,7 @@ pub struct VertexBuffers {
     Hash(bound = ""),
     Debug(bound = "")
 )]
-pub struct ShapeResources<T: Attributes> {
+pub struct ShapeResources<T: Attribute> {
     pub order: i64,
     pub vertices: VertexBuffers,
     pub texture: TextureResources,
@@ -37,7 +38,7 @@ pub struct ShapeResources<T: Attributes> {
 
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-pub struct InstanceStorage<T: Attributes> {
+pub struct InstanceStorage<T: Attribute> {
     pub instances: Vec<InstanceData<T>>,
 }
 
@@ -51,14 +52,14 @@ pub struct InstanceStorage<T: Attributes> {
     Hash(bound = ""),
     Debug(bound = "")
 )]
-pub struct ShapeRenderer<T: Attributes> {
+pub struct ShapeRenderer<T: Attribute> {
     pub resources: ShapeResources<T>,
     pub instance_buffer: wgpu::Buffer,
     pub instance_count: u32,
 }
-impl<T: Attributes> AnyOrder for ShapeRenderer<T> {}
+impl<T: Attribute> AnyOrder for ShapeRenderer<T> {}
 
-impl<T: Attributes> Resources for ShapeResources<T> {
+impl<T: Attribute> Resources for ShapeResources<T> {
     type Storage = InstanceStorage<T>;
     type Renderer = ShapeRenderer<T>;
 
@@ -70,7 +71,7 @@ impl<T: Attributes> Resources for ShapeResources<T> {
         let instance_count = storage.instances.len() as u32;
         let mut buffer = BytesSink::default();
         for instance in &storage.instances {
-            instance.store_bytes(&mut buffer);
+            instance.store(&mut buffer);
         }
         let buffer_data = buffer.into_data();
         let instance_buffer = self
@@ -89,7 +90,7 @@ impl<T: Attributes> Resources for ShapeResources<T> {
     }
 }
 
-impl<T: Attributes> ShapeResources<T> {
+impl<T: Attribute> ShapeResources<T> {
     fn uniforms(&self) -> impl IntoIterator<Item = wgpu::BindGroup> {
         [self.texture.bind_group().clone()]
             .into_iter()
@@ -97,7 +98,7 @@ impl<T: Attributes> ShapeResources<T> {
     }
 }
 
-impl<T: Attributes> Renderer for ShapeRenderer<T> {
+impl<T: Attribute> Renderer for ShapeRenderer<T> {
     fn draw(&self, pass: &mut wgpu::RenderPass<'_>) -> Result<()> {
         log::trace!("Rendering {} instances", self.instance_count);
 

@@ -1,5 +1,6 @@
 use std::{
     fmt::{self, Display},
+    mem::replace,
     ops::RangeInclusive,
 };
 
@@ -7,8 +8,95 @@ use anyhow::{Result, bail};
 use serde::Serialize;
 use smallvec::SmallVec;
 
+#[derive(Clone, Default, Debug, Serialize)]
+pub struct BindingList(SmallVec<[Binding; 2]>);
+
+impl FromIterator<Binding> for BindingList {
+    fn from_iter<T: IntoIterator<Item = Binding>>(iter: T) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
+impl IntoIterator for BindingList {
+    type Item = Binding;
+    type IntoIter = <SmallVec<[Binding; 2]> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a BindingList {
+    type Item = &'a Binding;
+    type IntoIter = <&'a SmallVec<[Binding; 2]> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl BindingList {
+    pub fn iter(&self) -> impl Iterator<Item = &Binding> + '_ {
+        self.into_iter()
+    }
+
+    pub fn push(&mut self, item: Binding) {
+        self.0.push(item);
+    }
+
+    pub fn chain(mut self, other: Self) -> Self {
+        self.0.extend(other.0);
+        Self(self.0)
+    }
+
+    pub fn with_prefix(mut self, prefix: &str) -> Self {
+        for Binding { name, .. } in self.0.iter_mut() {
+            *name = if name.is_empty() {
+                prefix.to_string()
+            } else {
+                format!("{prefix}_{name}")
+            };
+        }
+        self
+    }
+
+    pub fn size(&self) -> u64 {
+        self.0.iter().map(|Binding { ty, .. }| ty.size()).sum()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    pub fn count(&self) -> u32 {
+        self.len() as u32
+    }
+
+    pub fn layout(&self, start_location: u32) -> Result<Vec<wgpu::VertexAttribute>> {
+        self.0
+            .iter()
+            .scan(
+                (start_location, 0),
+                |(index, offset), Binding { name, ty }| {
+                    Some(Ok(wgpu::VertexAttribute {
+                        shader_location: replace(index, *index + 1),
+                        offset: replace(offset, *offset + ty.size()),
+                        format: match ty.to_attribute() {
+                            Ok(a) => a,
+                            Err(e) => {
+                                return Some(Err(e.context(format!(
+                                    "Error getting attribute '{name}' of type {ty:?}",
+                                ))));
+                            }
+                        },
+                    }))
+                },
+            )
+            .collect()
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
-pub struct BindingInfo {
+pub struct Binding {
     pub name: String,
     pub ty: BindingType,
 }
@@ -173,7 +261,6 @@ impl From<ScalarType> for String {
     }
 }
 
-#[macro_export]
 macro_rules! binding_type {
     ($item:ident) => {
         $crate::binding::BindingType {
@@ -194,5 +281,4 @@ macro_rules! binding_type {
         }
     };
 }
-
-pub use binding_type;
+pub(crate) use binding_type;

@@ -12,11 +12,11 @@ use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
 use glam::{Affine2, Vec2};
 use half::f16;
 use rgb::Rgba;
-use wgame_gfx::bytes::{BytesSink, StoreBytes};
 use wgame_image::{
     Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, ImageSliceMut,
     ImageWriteMut, atlas::Tracker,
 };
+use wgame_shader::{Attribute, BindingList, BytesSink};
 
 use crate::{TextureState, texel::Texel};
 
@@ -381,6 +381,10 @@ impl<T: Texel> Texture<T> {
             atlas: self.atlas.clone(),
         }
     }
+
+    pub fn attribute(&self) -> TextureAttribute<T> {
+        TextureAttribute(self.clone())
+    }
 }
 
 impl<T: Texel> Deref for Texture<T> {
@@ -444,8 +448,17 @@ impl<T: Texel> Debug for TextureResources<T> {
     }
 }
 
-impl<T: Texel> StoreBytes for Texture<T> {
-    fn store_bytes(&self, dst: &mut BytesSink) {
-        self.coord_xform().store_bytes(dst);
+#[derive(Clone)]
+pub struct TextureAttribute<T: Texel = Rgba<f16>>(Texture<T>);
+
+impl<T: Texel> Attribute for TextureAttribute<T> {
+    fn bindings() -> BindingList {
+        <glam::Affine2 as Attribute>::bindings()
+    }
+
+    const SIZE: usize = <glam::Affine2 as Attribute>::SIZE;
+
+    fn store(&self, dst: &mut BytesSink) {
+        self.0.coord_xform().store(dst);
     }
 }

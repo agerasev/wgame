@@ -1,14 +1,11 @@
 use glam::{Affine2, Mat2, Vec2};
-use wgame_macros::{Attributes, StoreBytes};
+use wgame_shader::{Attribute, ShaderConfig};
 
 use crate::{
-    Shape, ShapeExt, ShapesLibrary, ShapesState, attributes::Attributes, pipeline::create_pipeline,
-    renderer::VertexBuffers, shader::ShaderConfig,
+    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline, renderer::VertexBuffers,
 };
 
-#[derive(Clone, Copy, StoreBytes, Attributes)]
-#[bytes_mod(wgame_gfx::bytes)]
-#[attributes_mod(crate::attributes)]
+#[derive(Clone, Copy, Attribute)]
 pub struct CircleAttrs {
     inner_radius: f32,
 }
@@ -31,7 +28,7 @@ impl CircleLibrary {
                     }
                 "
                 .to_string(),
-                instances: CircleAttrs::attributes().with_prefix("custom"),
+                instances: CircleAttrs::bindings().with_prefix("custom"),
                 ..Default::default()
             },
         )
@@ -50,7 +47,7 @@ pub struct Circle {
 }
 
 impl Shape for Circle {
-    type Attributes = CircleAttrs;
+    type Attribute = CircleAttrs;
 
     fn state(&self) -> &ShapesLibrary {
         &self.state
@@ -64,7 +61,7 @@ impl Shape for Circle {
         }
     }
 
-    fn attributes(&self) -> Self::Attributes {
+    fn attribute(&self) -> Self::Attribute {
         CircleAttrs {
             inner_radius: self.inner_radius,
         }

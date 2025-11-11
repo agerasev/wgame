@@ -1,12 +1,11 @@
 use std::borrow::Cow;
 
 use anyhow::Result;
+use wgame_shader::{Attribute, ShaderConfig, ShaderSource};
 
 use crate::{
     ShapesState,
-    attributes::Attributes,
     primitive::{InstanceData, VertexData},
-    shader::{ShaderConfig, ShaderSource},
 };
 
 pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgpu::RenderPipeline> {
@@ -33,8 +32,8 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
         push_constant_ranges: &[],
     });
 
-    let vertex_attributes = VertexData::attributes();
-    let instance_attributes = InstanceData::<()>::attributes().chain(config.instances.clone());
+    let vertex_attributes = VertexData::bindings();
+    let instance_attributes = InstanceData::<()>::bindings().chain(config.instances.clone());
     let vertex_buffers = [
         wgpu::VertexBufferLayout {
             array_stride: vertex_attributes.size(),

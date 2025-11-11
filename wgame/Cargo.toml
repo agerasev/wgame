@@ -35,6 +35,7 @@ wgame-gfx-shapes = { workspace = true, optional = true }
 wgame-gfx-font = { workspace = true, optional = true }
 wgame-fs = { workspace = true, optional = true }
 wgame-image = { workspace = true, optional = true }
+wgame-shader.workspace = true
 wgame-utils = { workspace = true, optional = true }
 wgame-macros.workspace = true
 anyhow.workspace = true

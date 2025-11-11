@@ -10,6 +10,10 @@ pub use wgame_app as app;
 pub use wgame_gfx as gfx;
 pub use wgame_gfx_texture as texture;
 pub use wgame_macros::{app, window};
+pub mod shader {
+    pub use wgame_shader::AttributeGlobal as Attribute;
+    pub use wgame_shader::*;
+}
 
 #[cfg(feature = "fs")]
 pub use wgame_fs as fs;

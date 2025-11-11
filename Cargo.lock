@@ -2054,6 +2054,9 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "smithay-client-toolkit"
@@ -2528,6 +2531,7 @@ dependencies = [
  "wgame-gfx-texture",
  "wgame-image",
  "wgame-macros",
+ "wgame-shader",
  "wgame-utils",
  "wgpu",
  "winit",
@@ -2591,7 +2595,6 @@ name = "wgame-gfx"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bytemuck",
  "glam",
  "half",
  "hashbrown 0.16.0",
@@ -2623,14 +2626,11 @@ dependencies = [
  "glam",
  "half",
  "log",
- "minijinja",
  "rgb",
- "serde",
- "smallvec",
  "wgame-gfx",
  "wgame-gfx-texture",
  "wgame-image",
- "wgame-macros",
+ "wgame-shader",
  "wgpu",
 ]
 
@@ -2645,6 +2645,7 @@ dependencies = [
  "rgb",
  "wgame-gfx",
  "wgame-image",
+ "wgame-shader",
  "wgpu",
 ]
 
@@ -2665,6 +2666,32 @@ dependencies = [
 
 [[package]]
 name = "wgame-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
+
+[[package]]
+name = "wgame-shader"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "glam",
+ "half",
+ "log",
+ "minijinja",
+ "rgb",
+ "serde",
+ "smallvec",
+ "wgame-shader-macros",
+ "wgpu",
+]
+
+[[package]]
+name = "wgame-shader-macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

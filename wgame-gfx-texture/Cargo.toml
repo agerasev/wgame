@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 wgame-gfx.workspace = true
 wgame-image.workspace = true
+wgame-shader.workspace = true
 wgpu.workspace = true
 bytemuck.workspace = true
 euclid.workspace = true

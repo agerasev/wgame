@@ -1,14 +1,11 @@
 [package]
-name = "wgame-gfx-shapes"
+name = "wgame-shader"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-wgame-gfx.workspace = true
-wgame-image.workspace = true
-wgame-gfx-texture.workspace = true
-wgame-shader.workspace = true
+wgame-shader-macros.workspace = true
 wgpu.workspace = true
 anyhow.workspace = true
 log.workspace = true
@@ -16,4 +13,6 @@ bytemuck.workspace = true
 glam.workspace = true
 rgb.workspace = true
 half.workspace = true
-derivative.workspace = true
+smallvec = { workspace = true, features = ["serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
+minijinja = { version = "2.12.0", features = ["loader"] }

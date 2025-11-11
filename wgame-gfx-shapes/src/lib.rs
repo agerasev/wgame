@@ -1,14 +1,11 @@
 #![forbid(unsafe_code)]
 
-pub mod attributes;
-pub mod binding;
 mod circle;
 mod instance;
 mod pipeline;
 mod polygon;
 pub mod primitive;
 mod renderer;
-mod shader;
 mod shape;
 
 use core::ops::Deref;

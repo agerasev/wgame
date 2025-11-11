@@ -1,5 +1,6 @@
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
-use wgame_gfx::{StoreBytes, types::Position};
+use wgame_gfx::types::Position;
+use wgame_shader::Attribute;
 use wgpu::util::DeviceExt;
 
 use crate::{
@@ -98,7 +99,7 @@ pub struct Polygon<const N: u32> {
 }
 
 impl<const N: u32> Shape for Polygon<N> {
-    type Attributes = ();
+    type Attribute = ();
 
     fn state(&self) -> &ShapesLibrary {
         &self.state
@@ -112,7 +113,7 @@ impl<const N: u32> Shape for Polygon<N> {
         }
     }
 
-    fn attributes(&self) -> Self::Attributes {}
+    fn attribute(&self) -> Self::Attribute {}
 
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.pipeline.clone()

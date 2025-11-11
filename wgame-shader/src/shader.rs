@@ -2,13 +2,13 @@ use anyhow::Result;
 use minijinja::{Environment, UndefinedBehavior, Value, value::ValueKind};
 use serde::Serialize;
 
-use crate::{attributes::AttributeList, binding::BindingInfo};
+use crate::binding::{Binding, BindingList};
 
 #[derive(Clone, Default, Debug, Serialize)]
 pub struct ShaderConfig {
     pub fragment_modifier: String,
-    pub instances: AttributeList,
-    pub uniforms: Vec<BindingInfo>,
+    pub instances: BindingList,
+    pub uniforms: Vec<Binding>,
 }
 
 #[derive(Clone, Debug)]

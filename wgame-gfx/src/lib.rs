@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 
-pub mod bytes;
 mod collector;
 mod context;
 mod frame;
@@ -12,7 +11,6 @@ pub mod types;
 pub mod utils;
 
 pub use self::{
-    bytes::{BytesSink, StoreBytes},
     collector::Collector,
     context::Context,
     frame::Frame,

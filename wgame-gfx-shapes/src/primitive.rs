@@ -1,13 +1,9 @@
 use glam::{Mat4, Vec2, Vec4};
 use rgb::Rgba;
-use wgame_gfx_texture::Texture;
-use wgame_macros::{Attributes, StoreBytes};
+use wgame_gfx_texture::TextureAttribute;
+use wgame_shader::Attribute;
 
-use crate::attributes::Attributes;
-
-#[derive(Clone, Copy, StoreBytes, Attributes)]
-#[bytes_mod(wgame_gfx::bytes)]
-#[attributes_mod(crate::attributes)]
+#[derive(Clone, Copy, Attribute)]
 pub struct VertexData {
     pub pos: Vec4,
     pub local_coord: Vec2,
@@ -19,12 +15,10 @@ impl VertexData {
     }
 }
 
-#[derive(Clone, StoreBytes, Attributes)]
-#[bytes_mod(wgame_gfx::bytes)]
-#[attributes_mod(crate::attributes)]
-pub struct InstanceData<T: Attributes = ()> {
+#[derive(Clone, Attribute)]
+pub struct InstanceData<T: Attribute = ()> {
     pub xform: Mat4,
-    pub tex_xform: Texture,
+    pub tex_xform: TextureAttribute,
     pub color: Rgba<f32>,
     pub custom: T,
 }

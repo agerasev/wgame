@@ -3,11 +3,12 @@ use wgame_gfx::{
     modifiers::Transformed,
     types::{Color, Transform},
 };
+use wgame_shader::Attribute;
 
-use crate::{ShapesLibrary, Texture, Textured, attributes::Attributes, renderer::VertexBuffers};
+use crate::{ShapesLibrary, Texture, Textured, renderer::VertexBuffers};
 
 pub trait Shape {
-    type Attributes: Attributes;
+    type Attribute: Attribute;
 
     fn state(&self) -> &ShapesLibrary;
 
@@ -18,12 +19,12 @@ pub trait Shape {
     fn xform(&self) -> Mat4 {
         Mat4::IDENTITY
     }
-    fn attributes(&self) -> Self::Attributes;
+    fn attribute(&self) -> Self::Attribute;
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
 impl<T: Shape> Shape for &T {
-    type Attributes = T::Attributes;
+    type Attribute = T::Attribute;
 
     fn state(&self) -> &ShapesLibrary {
         T::state(self)
@@ -37,8 +38,8 @@ impl<T: Shape> Shape for &T {
     fn xform(&self) -> Mat4 {
         T::xform(self)
     }
-    fn attributes(&self) -> Self::Attributes {
-        T::attributes(self)
+    fn attribute(&self) -> Self::Attribute {
+        T::attribute(self)
     }
     fn pipeline(&self) -> wgpu::RenderPipeline {
         T::pipeline(self)
@@ -65,7 +66,7 @@ pub trait ShapeExt: Shape + Sized {
 impl<T: Shape> ShapeExt for T {}
 
 impl<T: Shape> Shape for Transformed<T> {
-    type Attributes = T::Attributes;
+    type Attribute = T::Attribute;
 
     fn state(&self) -> &ShapesLibrary {
         self.inner.state()
@@ -79,8 +80,8 @@ impl<T: Shape> Shape for Transformed<T> {
     fn xform(&self) -> Mat4 {
         self.xform * self.inner.xform()
     }
-    fn attributes(&self) -> Self::Attributes {
-        self.inner.attributes()
+    fn attribute(&self) -> Self::Attribute {
+        self.inner.attribute()
     }
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.inner.pipeline()

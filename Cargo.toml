@@ -9,6 +9,8 @@ members = [
     "wgame-fs",
     "wgame-font",
     "wgame-image",
+    "wgame-shader",
+    "wgame-shader-macros",
     "wgame-utils",
     "wgame-macros",
     "wgame-examples",
@@ -30,6 +32,8 @@ wgame-gfx-font = { version = "0.1.0", path = "wgame-gfx-font" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
 wgame-font = { version = "0.1.0", path = "wgame-font" }
 wgame-image = { version = "0.1.0", path = "wgame-image" }
+wgame-shader = { version = "0.1.0", path = "wgame-shader" }
+wgame-shader-macros = { version = "0.1.0", path = "wgame-shader-macros" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
@@ -52,3 +56,6 @@ wasm-bindgen-futures = "0.4.55"
 web-sys = "0.3.82"
 web-time = "1.1.0"
 js-sys = "0.3.82"
+proc-macro2 = "1.0.103"
+syn = { version = "2.0.110", features = ["full"] }
+quote = "1.0.42"
