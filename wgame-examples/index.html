@@ -1,38 +1,40 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-    <style type="text/css">
-      body {
-        margin: 0;
-        padding: 0;
-        background: #000000;
-        font-family: sans-serif;
-        width: 100%;
-        height: 100%;
-      }
 
-      #content {
-        /* This allows the flexbox to grow to max size, this is needed for WebGPU */
-        flex: 1 1 100%;
-        /* This forces CSS to ignore the width/height of the canvas, this is needed for WebGL */
-        contain: size;
-      }
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000000;
+      font-family: sans-serif;
+      width: 100%;
+      height: 100%;
+    }
 
-      .main-canvas {
-        margin: 0;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
-    <link data-trunk rel="rust" />
-    <link data-trunk rel="copy-dir" href="assets" />
-  </head>
+    #content {
+      /* This allows the flexbox to grow to max size, this is needed for WebGPU */
+      flex: 1 1 100%;
+      /* This forces CSS to ignore the width/height of the canvas, this is needed for WebGL */
+      contain: size;
+    }
 
-  <body>
-    <div id="content">
-      <canvas class="main-canvas" id="canvas"></canvas>
-    </div>
-  </body>
+    .main-canvas {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <link data-trunk rel="rust" data-bin="shapes" />
+  <link data-trunk rel="copy-dir" href="assets" />
+</head>
+
+<body>
+  <div id="content">
+    <canvas class="main-canvas" id="canvas"></canvas>
+  </div>
+</body>
+
 </html>

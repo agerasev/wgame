@@ -1,5 +1,5 @@
 use anyhow::{Context as _, Result};
-use glam::Mat4;
+use glam::{Mat4, Vec2};
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
@@ -13,6 +13,7 @@ pub struct Frame<'a, 'b> {
     view: wgpu::TextureView,
     render_passes: Collector,
     clear_color: Option<wgpu::Color>,
+    aspect_ratio: f32,
     ctx: Context,
 }
 
@@ -25,11 +26,11 @@ impl<'a, 'b> Frame<'a, 'b> {
         let view = surface
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+        let aspect_ratio = {
+            let (width, height) = owner.size();
+            width as f32 / height as f32
+        };
         let ctx = {
-            let aspect_ratio = {
-                let (width, height) = owner.size();
-                width as f32 / height as f32
-            };
             let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
             Context {
                 view,
@@ -43,8 +44,13 @@ impl<'a, 'b> Frame<'a, 'b> {
             view,
             render_passes: Collector::default(),
             clear_color: Some(wgpu::Color::BLACK),
+            aspect_ratio,
             ctx,
         })
+    }
+
+    pub fn viewport_size(&self) -> Vec2 {
+        Vec2::new(self.aspect_ratio, 1.0)
     }
 
     /// Set clear color

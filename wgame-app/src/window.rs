@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    mem,
+    mem::{self, replace},
     pin::Pin,
     rc::Rc,
     task::{Context, Poll, Waker},
@@ -21,7 +21,8 @@ use crate::runtime::{Runtime, Task};
 pub(crate) struct WindowState {
     handler: EventHandler,
     waker: Option<Waker>,
-    resized: Option<PhysicalSize<u32>>,
+    size: PhysicalSize<u32>,
+    resized: bool,
     close_requested: bool,
     redraw_requested: bool,
     terminated: bool,
@@ -38,7 +39,8 @@ impl WindowState {
                 self.redraw_requested = true;
             }
             WindowEvent::Resized(size) => {
-                self.resized = Some(*size);
+                self.size = *size;
+                self.resized = true;
             }
             _ => {
                 wake = false;
@@ -166,7 +168,8 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
             } else {
                 Poll::Ready(Some(Redraw {
                     handle: owner.handle,
-                    resized: state.resized.take(),
+                    size: state.size,
+                    resized: replace(&mut state.resized, false),
                 }))
             }
         } else {
@@ -183,12 +186,21 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
 
 pub struct Redraw<'b> {
     handle: &'b WindowHandle,
-    resized: Option<PhysicalSize<u32>>,
+    size: PhysicalSize<u32>,
+    resized: bool,
 }
 
 impl Redraw<'_> {
+    pub fn size(&self) -> (u32, u32) {
+        self.size.into()
+    }
+
     pub fn resized(&self) -> Option<(u32, u32)> {
-        self.resized.as_ref().copied().map(|s| s.into())
+        if self.resized {
+            Some(self.size())
+        } else {
+            None
+        }
     }
 
     pub fn pre_present(&mut self) {

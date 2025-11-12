@@ -3,7 +3,7 @@
 ## Desktop
 
 ```sh
-cargo run
+cargo run --bin shapes
 ```
 
 ## Web

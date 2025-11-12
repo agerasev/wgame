@@ -95,6 +95,10 @@ impl Drop for Frame<'_, '_> {
 }
 
 impl Frame<'_, '_> {
+    pub fn size(&self) -> (u32, u32) {
+        self.app.size()
+    }
+
     pub fn resized(&self) -> Option<(u32, u32)> {
         self.app.resized()
     }
