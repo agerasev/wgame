@@ -1,5 +1,5 @@
 use crate::{
-    Camera, Collector, Instance,
+    Camera, Collector,
     modifiers::{Colored, Transformed},
     types::{Color, Transform},
 };
@@ -14,10 +14,10 @@ impl<T: Object> Object for &'_ T {
     }
 }
 
-impl<T: Instance> Object for Option<T> {
+impl<T: Object> Object for Option<T> {
     fn collect_into(&self, camera: &Camera, collector: &mut Collector) {
-        if let Some(instance) = self {
-            collector.push(camera, instance)
+        if let Some(object) = self {
+            collector.push(camera, object)
         }
     }
 }

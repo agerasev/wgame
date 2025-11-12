@@ -89,40 +89,42 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
+        let mut camera = frame.with_unit_camera();
+
         let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
 
-        frame.push(triangle.transform(Affine2::from_scale_angle_translation(
+        camera.add(triangle.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(-2.0 * scale, scale),
         )));
-        frame.push(quad.transform(Affine2::from_scale_angle_translation(
+        camera.add(quad.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(0.0, scale),
         )));
-        frame.push(hexagon.transform(Affine2::from_scale_angle_translation(
+        camera.add(hexagon.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(2.0 * scale, scale),
         )));
-        frame.push(circle.transform(Affine2::from_scale_angle_translation(
+        camera.add(circle.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             10.0 * angle,
             Vec2::new(-2.0 * scale, -scale),
         )));
-        frame.push(ring0.transform(Affine2::from_scale_angle_translation(
+        camera.add(ring0.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             10.0 * angle,
             Vec2::new(0.0 * scale, -scale),
         )));
-        frame.push(ring1.transform(Affine2::from_scale_angle_translation(
+        camera.add(ring1.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             10.0 * angle,
             Vec2::new(2.0 * scale, -scale),
         )));
         if let Some(text) = &text {
-            frame.push(text.transform(Affine2::from_scale_angle_translation(
+            camera.add(text.transform(Affine2::from_scale_angle_translation(
                 Vec2::splat(1.0 / window_size.1 as f32),
                 0.0,
                 Vec2::new(0.4, 0.3),

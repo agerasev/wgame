@@ -61,6 +61,6 @@ impl<T: Shape> Instance for Textured<T> {
 
 impl<T: Shape> Object for Textured<T> {
     fn collect_into(&self, camera: &Camera, collector: &mut wgame_gfx::Collector) {
-        collector.push(camera, self);
+        collector.push_instance(camera, self);
     }
 }

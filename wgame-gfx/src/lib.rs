@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
-mod collector;
 mod camera;
+mod collector;
 mod frame;
 mod instance;
 pub mod modifiers;
@@ -13,8 +13,8 @@ pub mod types;
 pub mod utils;
 
 pub use self::{
-    collector::Collector,
     camera::Camera,
+    collector::{Collector, CollectorWithCamera},
     frame::Frame,
     instance::{Instance, InstanceExt},
     object::{Object, ObjectExt},

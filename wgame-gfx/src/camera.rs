@@ -17,6 +17,7 @@ impl Camera {
             ..self.clone()
         }
     }
+
     pub fn color(&self, color: impl Color) -> Self {
         let x = self.color;
         let y = color.to_rgba();

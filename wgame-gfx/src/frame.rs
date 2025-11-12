@@ -1,9 +1,9 @@
 use anyhow::{Context as _, Result};
-use glam::{Mat4, Vec2};
+use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
-    Camera, Collector, Object, Surface,
+    Camera, Collector, CollectorWithCamera, Surface,
     types::{Color, color},
 };
 
@@ -11,10 +11,8 @@ pub struct Frame<'a, 'b> {
     owner: &'b mut Surface<'a>,
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
-    render_passes: Collector,
+    collector: Collector,
     clear_color: Option<wgpu::Color>,
-    aspect_ratio: f32,
-    camera: Camera,
 }
 
 impl<'a, 'b> Frame<'a, 'b> {
@@ -26,31 +24,14 @@ impl<'a, 'b> Frame<'a, 'b> {
         let view = surface
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let aspect_ratio = {
-            let (width, height) = owner.size();
-            width as f32 / height as f32
-        };
-        let camera = {
-            let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
-            Camera {
-                view,
-                color: color::WHITE.to_rgba(),
-            }
-        };
 
         Ok(Frame {
             owner,
             surface,
             view,
-            render_passes: Collector::default(),
+            collector: Collector::default(),
             clear_color: Some(wgpu::Color::BLACK),
-            aspect_ratio,
-            camera,
         })
-    }
-
-    pub fn viewport_size(&self) -> Vec2 {
-        Vec2::new(self.aspect_ratio, 1.0)
     }
 
     /// Set clear color
@@ -61,8 +42,31 @@ impl<'a, 'b> Frame<'a, 'b> {
         };
     }
 
-    pub fn push<T: Object>(&mut self, object: T) {
-        object.collect_into(&self.camera, &mut self.render_passes);
+    pub fn collector(&mut self) -> &mut Collector {
+        &mut self.collector
+    }
+    pub fn with_physical_camera(&mut self) -> CollectorWithCamera<'_> {
+        let (width, height) = self.owner.size();
+        CollectorWithCamera {
+            collector: &mut self.collector,
+            camera: Camera {
+                view: Mat4::orthographic_lh(0.0, width as f32, height as f32, 0.0, -1.0, 1.0),
+                color: color::WHITE.to_rgba(),
+            },
+        }
+    }
+    pub fn with_unit_camera(&mut self) -> CollectorWithCamera<'_> {
+        let aspect_ratio = {
+            let (width, height) = self.owner.size();
+            width as f32 / height as f32
+        };
+        CollectorWithCamera {
+            collector: &mut self.collector,
+            camera: Camera {
+                view: Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0),
+                color: color::WHITE.to_rgba(),
+            },
+        }
     }
 
     pub fn render(&mut self) -> Result<usize> {
@@ -87,7 +91,7 @@ impl<'a, 'b> Frame<'a, 'b> {
             });
         }
 
-        let mut renderers: Vec<_> = self.render_passes.renderers().collect::<Result<_>>()?;
+        let mut renderers: Vec<_> = self.collector.renderers().collect::<Result<_>>()?;
         renderers.sort_by(|a, b| a.order().cmp(&b.order()).then_with(|| a.cmp(b)));
         let n_passes = renderers.len();
         for renderer in renderers {
@@ -105,7 +109,7 @@ impl<'a, 'b> Frame<'a, 'b> {
             });
             renderer.draw(&mut pass)?;
         }
-        self.render_passes = Collector::default();
+        self.collector = Collector::default();
         self.owner.state.queue().submit(Some(encoder.finish()));
 
         Ok(n_passes)

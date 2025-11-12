@@ -97,6 +97,6 @@ impl Instance for Text {
 
 impl Object for Text {
     fn collect_into(&self, camera: &Camera, collector: &mut wgame_gfx::Collector) {
-        collector.push(camera, self);
+        collector.push_instance(camera, self);
     }
 }
