@@ -4,7 +4,7 @@ use half::f16;
 use rgb::{ComponentMap, Rgba};
 
 use wgame_gfx::{
-    Context, Instance, Resource,
+    Context, Instance, Object, Resource,
     types::{Color, color},
 };
 
@@ -56,5 +56,11 @@ impl<T: Shape> Instance for Textured<T> {
             color: self.color.map(|x| x.to_f32()),
             custom: self.shape.attribute(),
         });
+    }
+}
+
+impl<T: Shape> Object for Textured<T> {
+    fn collect_into(&self, ctx: &Context, collector: &mut wgame_gfx::Collector) {
+        collector.push(ctx, self);
     }
 }

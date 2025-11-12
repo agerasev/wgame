@@ -5,7 +5,9 @@ mod context;
 mod frame;
 mod instance;
 pub mod modifiers;
+mod object;
 pub mod renderer;
+mod resource;
 mod state;
 pub mod types;
 pub mod utils;
@@ -14,8 +16,10 @@ pub use self::{
     collector::Collector,
     context::Context,
     frame::Frame,
-    instance::{Instance, InstanceExt, Resource},
+    instance::{Instance, InstanceExt},
+    object::{Object, ObjectExt},
     renderer::Renderer,
+    resource::Resource,
     state::Graphics,
 };
 pub use anyhow::Error;

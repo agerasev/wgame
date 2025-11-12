@@ -16,7 +16,7 @@ use wgame::{
     app::time::Instant,
     font::Font,
     fs::read_bytes,
-    gfx::{InstanceExt, types::color},
+    gfx::{ObjectExt, types::color},
     image::Image,
     shapes::ShapeExt,
     utils::FrameCounter,
@@ -76,7 +76,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         if let Some((width, height)) = frame.resized() {
             window_size = (width, height);
             let raster = font_raster.insert(gfx.text.texture(&font, height as f32 / 10.0));
-            text = Some(raster.text("Hello, World!"));
+            text = raster.text("Hello, World!");
 
             #[cfg(feature = "dump")]
             std::fs::File::create("dump/font_atlas.png")?.write_all(

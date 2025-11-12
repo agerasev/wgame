@@ -8,7 +8,7 @@ use wgame::{
     Event, Library, Result, Window,
     font::Font,
     fs::read_bytes,
-    gfx::{InstanceExt, types::color},
+    gfx::{ObjectExt, types::color},
     shapes::ShapeExt,
     utils::FrameCounter,
 };
@@ -19,7 +19,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
 
     let font = Font::new(read_bytes("assets/free-sans-bold.ttf").await?, 0)?;
     let mut font_atlas = None;
-    let mut text = "0,0".to_string();
+    let mut text = String::new();
 
     let ring = gfx.shapes.ring(Vec2::ZERO, 0.8, 0.4).texture(
         gfx.texture

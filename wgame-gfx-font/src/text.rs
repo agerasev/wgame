@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use glam::{Mat4, Quat, Vec3, Vec4};
 use wgame_font::swash::{GlyphId, shape::ShapeContext};
-use wgame_gfx::{Context, Instance, Resource};
+use wgame_gfx::{Context, Instance, Object, Resource};
 
 use crate::{
     FontTexture,
@@ -24,7 +24,7 @@ pub struct Text {
 }
 
 impl Text {
-    pub fn new(font: &FontTexture, text: &str) -> Self {
+    pub fn new(font: &FontTexture, text: &str) -> Option<Self> {
         let glyphs = CONTEXT.with_borrow_mut(|context| {
             let mut shaper = context
                 .builder(font.font().as_ref())
@@ -45,9 +45,13 @@ impl Text {
             glyphs
         });
         font.add_glyphs(glyphs.iter().map(|g| g.id));
-        Self {
-            font: font.clone(),
-            glyphs,
+        if !glyphs.is_empty() {
+            Some(Self {
+                font: font.clone(),
+                glyphs,
+            })
+        } else {
+            None
         }
     }
 }
@@ -88,5 +92,11 @@ impl Instance for Text {
             glyphs,
             color: Vec4::ONE,
         });
+    }
+}
+
+impl Object for Text {
+    fn collect_into(&self, ctx: &Context, collector: &mut wgame_gfx::Collector) {
+        collector.push(ctx, self);
     }
 }

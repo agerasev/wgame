@@ -3,7 +3,7 @@ use glam::{Mat4, Vec2};
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
-    Collector, Context, Instance, Surface,
+    Collector, Context, Object, Surface,
     types::{Color, color},
 };
 
@@ -61,8 +61,8 @@ impl<'a, 'b> Frame<'a, 'b> {
         };
     }
 
-    pub fn push<T: Instance>(&mut self, instance: T) {
-        self.render_passes.push_any(&self.ctx, instance);
+    pub fn push<T: Object>(&mut self, object: T) {
+        object.collect_into(&self.ctx, &mut self.render_passes);
     }
 
     pub fn render(&mut self) -> Result<usize> {
