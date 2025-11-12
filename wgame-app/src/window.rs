@@ -6,6 +6,7 @@ use std::{
     task::{Context, Poll, Waker},
 };
 
+use wgame_app_input::{EventHandler, Input};
 use winit::{
     dpi::PhysicalSize,
     error::OsError,
@@ -18,34 +19,41 @@ use crate::runtime::{Runtime, Task};
 
 #[derive(Default)]
 pub(crate) struct WindowState {
-    pub waker: Option<Waker>,
-    pub resized: Option<PhysicalSize<u32>>,
-    pub redraw_requested: bool,
-    pub close_requested: bool,
-    pub terminated: bool,
+    handler: EventHandler,
+    waker: Option<Waker>,
+    resized: Option<PhysicalSize<u32>>,
+    close_requested: bool,
+    redraw_requested: bool,
+    terminated: bool,
 }
 
 impl WindowState {
     pub fn push_event(&mut self, event: WindowEvent) {
-        let mut wake = false;
-        match event {
+        let mut wake = true;
+        match &event {
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
-                wake = true;
             }
             WindowEvent::RedrawRequested => {
                 self.redraw_requested = true;
-                wake = true;
             }
             WindowEvent::Resized(size) => {
-                self.resized = Some(size);
-                wake = true;
+                self.resized = Some(*size);
             }
-            _ => (),
+            _ => {
+                wake = false;
+            }
         }
         if wake && let Some(waker) = self.waker.take() {
             waker.wake()
         }
+
+        self.handler.push(event);
+    }
+
+    pub fn terminate(&mut self) {
+        self.terminated = true;
+        self.handler.terminate();
     }
 }
 
@@ -114,12 +122,22 @@ impl<'a> Window<'a> {
         self.handle
     }
 
+    pub fn input(&self) -> Input {
+        self.state.borrow_mut().handler.input()
+    }
+
     pub fn request_redraw(&mut self) -> WaitRedraw<'a, '_> {
         self.handle.request_redraw();
         WaitRedraw { owner: self }
     }
 }
 
+/// Future to wait for window to be ready for redrawing.
+///
+/// Returns redraw handle [`Redraw`] or `None` if window requested to be closed.
+///
+/// If you want to ignore close request you can continue to poll this future.
+/// Or you can safely drop it and [`request_redraw`](`Window::request_redraw`) again.
 pub struct WaitRedraw<'a, 'b> {
     owner: &'b mut Window<'a>,
 }
@@ -136,6 +154,7 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
         }
 
         if state.close_requested {
+            state.close_requested = false;
             return Poll::Ready(None);
         }
 

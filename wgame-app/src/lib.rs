@@ -17,7 +17,11 @@ pub use crate::{
     window::Window,
     windowed_task::{WindowError, WindowedTask, create_windowed_task},
 };
+pub use wgame_app_input::{Event, Input};
 pub use winit::{dpi::PhysicalSize as Size, window::WindowAttributes};
+pub mod input {
+    pub use wgame_app_input::{Event, Input, types::*};
+}
 
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 

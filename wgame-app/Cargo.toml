@@ -23,6 +23,7 @@ web = [
 ]
 
 [dependencies]
+wgame-app-input.workspace = true
 futures.workspace = true
 winit.workspace = true
 hashbrown.workspace = true

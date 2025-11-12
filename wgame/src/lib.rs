@@ -27,7 +27,7 @@ pub use wgame_image as image;
 pub use wgame_utils as utils;
 
 pub use anyhow::{Error, Result};
-pub use app::{Runtime, sleep, spawn};
+pub use app::{Event, Input, Runtime, input, sleep, spawn};
 
 pub use crate::{config::*, library::*, window::*};
 

@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use anyhow::Result;
 
 use crate::{
-    app::{self, Runtime},
+    app::{self, Input, Runtime},
     config::WindowConfig,
     gfx,
 };
@@ -43,6 +43,10 @@ impl<'a> Window<'a> {
         let mut gfx = gfx::Surface::new(gfx_cfg, app.raw()).await?;
         gfx.resize(app.size());
         Ok(Self { app, gfx })
+    }
+
+    pub fn input(&self) -> Input {
+        self.app.input()
     }
 
     pub async fn next_frame(&mut self) -> Result<Option<Frame<'a, '_>>> {

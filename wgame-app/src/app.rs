@@ -54,7 +54,7 @@ impl AppState {
     pub fn remove_window(&mut self, id: WindowId) {
         if let Some((_task, window)) = self.windows.remove(&id) {
             if let Some(state) = window.upgrade() {
-                state.borrow_mut().terminated = true;
+                state.borrow_mut().terminate();
             }
         } else {
             log::warn!("Cannot remove window from resumed: {id:?} not found");

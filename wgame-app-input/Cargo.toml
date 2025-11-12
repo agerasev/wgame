@@ -1,0 +1,10 @@
+[package]
+name = "wgame-app-input"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+futures.workspace = true
+winit.workspace = true
+log.workspace = true

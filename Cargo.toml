@@ -2,6 +2,7 @@
 members = [
     "wgame",
     "wgame-app",
+    "wgame-app-input",
     "wgame-gfx",
     "wgame-gfx-texture",
     "wgame-gfx-shapes",
@@ -25,6 +26,7 @@ license = "MIT"
 [workspace.dependencies]
 wgame = { version = "0.1.0", path = "wgame", default-features = false }
 wgame-app = { version = "0.1.0", path = "wgame-app" }
+wgame-app-input = { version = "0.1.0", path = "wgame-app-input" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-gfx-texture = { version = "0.1.0", path = "wgame-gfx-texture" }
 wgame-gfx-shapes = { version = "0.1.0", path = "wgame-gfx-shapes" }

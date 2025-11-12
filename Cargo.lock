@@ -2551,6 +2551,16 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "web-time",
+ "wgame-app-input",
+ "winit",
+]
+
+[[package]]
+name = "wgame-app-input"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "log",
  "winit",
 ]
 
