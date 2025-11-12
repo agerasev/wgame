@@ -1,10 +1,10 @@
-use crate::{Context, Resource, modifiers::Ordered};
+use crate::{Camera, Resource, modifiers::Ordered};
 
 /// Single instance to draw.
 pub trait Instance {
     type Resource: Resource;
     fn resource(&self) -> Self::Resource;
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage);
+    fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage);
 }
 
 pub trait InstanceExt: Instance + Sized {

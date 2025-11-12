@@ -1,6 +1,6 @@
 use glam::Mat4;
 
-use crate::{Context, Object, types::Transform};
+use crate::{Camera, Object, types::Transform};
 
 #[derive(Clone, Debug)]
 pub struct Transformed<T> {
@@ -18,8 +18,8 @@ impl<T> Transformed<T> {
 }
 
 impl<T: Object> Object for Transformed<T> {
-    fn collect_into(&self, ctx: &Context, collector: &mut crate::Collector) {
+    fn collect_into(&self, camera: &Camera, collector: &mut crate::Collector) {
         self.inner
-            .collect_into(&ctx.transform(self.xform), collector);
+            .collect_into(&camera.transform(self.xform), collector);
     }
 }

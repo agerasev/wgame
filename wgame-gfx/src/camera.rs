@@ -5,12 +5,12 @@ use rgb::Rgba;
 use crate::types::{Color, Transform};
 
 #[derive(Clone, Debug)]
-pub struct Context {
+pub struct Camera {
     pub view: Mat4,
     pub color: Rgba<f16>,
 }
 
-impl Context {
+impl Camera {
     pub fn transform(&self, xform: impl Transform) -> Self {
         Self {
             view: self.view * xform.to_mat4(),

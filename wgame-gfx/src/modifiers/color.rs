@@ -1,7 +1,7 @@
 use half::f16;
 use rgb::Rgba;
 
-use crate::{Context, Object, types::Color};
+use crate::{Camera, Object, types::Color};
 
 #[derive(Clone, Debug)]
 pub struct Colored<T> {
@@ -19,7 +19,8 @@ impl<T> Colored<T> {
 }
 
 impl<T: Object> Object for Colored<T> {
-    fn collect_into(&self, ctx: &Context, collector: &mut crate::Collector) {
-        self.inner.collect_into(&ctx.color(self.color), collector);
+    fn collect_into(&self, camera: &Camera, collector: &mut crate::Collector) {
+        self.inner
+            .collect_into(&camera.color(self.color), collector);
     }
 }

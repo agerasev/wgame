@@ -3,7 +3,7 @@ use glam::{Mat4, Vec2};
 use rgb::{ComponentMap, Rgba};
 
 use crate::{
-    Collector, Context, Object, Surface,
+    Camera, Collector, Object, Surface,
     types::{Color, color},
 };
 
@@ -14,7 +14,7 @@ pub struct Frame<'a, 'b> {
     render_passes: Collector,
     clear_color: Option<wgpu::Color>,
     aspect_ratio: f32,
-    ctx: Context,
+    camera: Camera,
 }
 
 impl<'a, 'b> Frame<'a, 'b> {
@@ -30,9 +30,9 @@ impl<'a, 'b> Frame<'a, 'b> {
             let (width, height) = owner.size();
             width as f32 / height as f32
         };
-        let ctx = {
+        let camera = {
             let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
-            Context {
+            Camera {
                 view,
                 color: color::WHITE.to_rgba(),
             }
@@ -45,7 +45,7 @@ impl<'a, 'b> Frame<'a, 'b> {
             render_passes: Collector::default(),
             clear_color: Some(wgpu::Color::BLACK),
             aspect_ratio,
-            ctx,
+            camera,
         })
     }
 
@@ -62,7 +62,7 @@ impl<'a, 'b> Frame<'a, 'b> {
     }
 
     pub fn push<T: Object>(&mut self, object: T) {
-        object.collect_into(&self.ctx, &mut self.render_passes);
+        object.collect_into(&self.camera, &mut self.render_passes);
     }
 
     pub fn render(&mut self) -> Result<usize> {

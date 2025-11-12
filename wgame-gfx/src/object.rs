@@ -1,29 +1,29 @@
 use crate::{
-    Collector, Context, Instance,
+    Camera, Collector, Instance,
     modifiers::{Colored, Transformed},
     types::{Color, Transform},
 };
 
 pub trait Object {
-    fn collect_into(&self, ctx: &Context, collector: &mut Collector);
+    fn collect_into(&self, camera: &Camera, collector: &mut Collector);
 }
 
 impl<T: Object> Object for &'_ T {
-    fn collect_into(&self, ctx: &Context, collector: &mut Collector) {
-        (*self).collect_into(ctx, collector);
+    fn collect_into(&self, camera: &Camera, collector: &mut Collector) {
+        (*self).collect_into(camera, collector);
     }
 }
 
 impl<T: Instance> Object for Option<T> {
-    fn collect_into(&self, ctx: &Context, collector: &mut Collector) {
+    fn collect_into(&self, camera: &Camera, collector: &mut Collector) {
         if let Some(instance) = self {
-            collector.push(ctx, instance)
+            collector.push(camera, instance)
         }
     }
 }
 
 impl Object for () {
-    fn collect_into(&self, _: &Context, _: &mut Collector) {}
+    fn collect_into(&self, _: &Camera, _: &mut Collector) {}
 }
 
 pub trait ObjectExt: Object + Sized {

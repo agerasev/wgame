@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use anyhow::Result;
 
-use crate::{Context, Instance, Renderer, Resource, utils::AnyOrder};
+use crate::{Camera, Instance, Renderer, Resource, utils::AnyOrder};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Ordered<T> {
@@ -22,8 +22,8 @@ impl<T: Instance> Instance for Ordered<T> {
     fn resource(&self) -> Self::Resource {
         Ordered::new(self.inner.resource(), self.order)
     }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage) {
-        self.inner.store(ctx, storage);
+    fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage) {
+        self.inner.store(camera, storage);
     }
 }
 

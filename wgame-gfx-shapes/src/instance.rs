@@ -4,7 +4,7 @@ use half::f16;
 use rgb::{ComponentMap, Rgba};
 
 use wgame_gfx::{
-    Context, Instance, Object, Resource,
+    Camera, Instance, Object, Resource,
     types::{Color, color},
 };
 
@@ -49,9 +49,9 @@ impl<T: Shape> Instance for Textured<T> {
         }
     }
 
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage) {
+    fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage) {
         storage.instances.push(InstanceData {
-            xform: ctx.view * self.shape.xform(),
+            xform: camera.view * self.shape.xform(),
             tex_xform: self.texture.attribute(),
             color: self.color.map(|x| x.to_f32()),
             custom: self.shape.attribute(),
@@ -60,7 +60,7 @@ impl<T: Shape> Instance for Textured<T> {
 }
 
 impl<T: Shape> Object for Textured<T> {
-    fn collect_into(&self, ctx: &Context, collector: &mut wgame_gfx::Collector) {
-        collector.push(ctx, self);
+    fn collect_into(&self, camera: &Camera, collector: &mut wgame_gfx::Collector) {
+        collector.push(camera, self);
     }
 }

@@ -3,7 +3,7 @@ use std::{any::Any, rc::Rc};
 use anyhow::Result;
 use hashbrown::{HashMap, hash_map::EntryRef};
 
-use crate::{Context, Instance, Renderer, Resource, resource::AnyResource};
+use crate::{Camera, Instance, Renderer, Resource, resource::AnyResource};
 
 #[derive(Default)]
 pub struct Collector {
@@ -11,10 +11,10 @@ pub struct Collector {
 }
 
 impl Collector {
-    pub fn push<T: Instance>(&mut self, ctx: &Context, instance: &T) {
+    pub fn push<T: Instance>(&mut self, camera: &Camera, instance: &T) {
         let resource = instance.resource();
         let instances = self.get_or_init_storage(resource);
-        instance.store(ctx, instances);
+        instance.store(camera, instances);
     }
 
     fn get_or_init_storage<R: Resource>(&mut self, resource: R) -> &mut R::Storage {

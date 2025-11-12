@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 
 use crate::{
-    Context, Instance, Resource,
+    Camera, Instance, Resource,
     utils::{AnyKey, AnyOrder},
 };
 
@@ -55,7 +55,7 @@ impl<T: Renderer + Clone + Ord + Hash> Instance for RendererInstance<T> {
     fn resource(&self) -> Self::Resource {
         RendererResource(self.0.clone())
     }
-    fn store(&self, _ctx: &Context, _storage: &mut <Self::Resource as Resource>::Storage) {}
+    fn store(&self, _camera: &Camera, _storage: &mut <Self::Resource as Resource>::Storage) {}
 }
 
 impl<T: Renderer + Clone + Ord + Hash> Resource for RendererResource<T> {

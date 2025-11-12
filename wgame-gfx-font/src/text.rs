@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use glam::{Mat4, Quat, Vec3, Vec4};
 use wgame_font::swash::{GlyphId, shape::ShapeContext};
-use wgame_gfx::{Context, Instance, Object, Resource};
+use wgame_gfx::{Camera, Instance, Object, Resource};
 
 use crate::{
     FontTexture,
@@ -62,7 +62,7 @@ impl Instance for Text {
     fn resource(&self) -> Self::Resource {
         TextResource::new(&self.font)
     }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage) {
+    fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage) {
         let mut glyphs = Vec::with_capacity(self.glyphs.len());
         for glyph in &self.glyphs {
             let glyph_image = match self.font.glyph_info(glyph.id) {
@@ -70,7 +70,7 @@ impl Instance for Text {
                 None => continue,
             };
             glyphs.push(GlyphInstance {
-                xform: ctx.view
+                xform: camera.view
                     * Mat4::from_scale_rotation_translation(
                         Vec3::new(
                             glyph_image.placement.width as f32,
@@ -96,7 +96,7 @@ impl Instance for Text {
 }
 
 impl Object for Text {
-    fn collect_into(&self, ctx: &Context, collector: &mut wgame_gfx::Collector) {
-        collector.push(ctx, self);
+    fn collect_into(&self, camera: &Camera, collector: &mut wgame_gfx::Collector) {
+        collector.push(camera, self);
     }
 }
