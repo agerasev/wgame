@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 
 use crate::{
-    Context, Instance, Resources,
+    Context, Instance, Resource,
     utils::{AnyKey, AnyOrder},
 };
 
@@ -47,18 +47,18 @@ impl Renderer for Box<dyn Renderer> {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RendererInstance<R: Renderer + Clone + Ord + Hash>(pub R);
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RendererResources<R: Renderer + Clone + Ord + Hash>(pub R);
+pub struct RendererResource<R: Renderer + Clone + Ord + Hash>(pub R);
 
 impl<T: Renderer + Clone + Ord + Hash> Instance for RendererInstance<T> {
-    type Resources = RendererResources<T>;
+    type Resource = RendererResource<T>;
 
-    fn get_resources(&self) -> Self::Resources {
-        RendererResources(self.0.clone())
+    fn resource(&self) -> Self::Resource {
+        RendererResource(self.0.clone())
     }
-    fn store(&self, _ctx: &Context, _storage: &mut <Self::Resources as Resources>::Storage) {}
+    fn store(&self, _ctx: &Context, _storage: &mut <Self::Resource as Resource>::Storage) {}
 }
 
-impl<T: Renderer + Clone + Ord + Hash> Resources for RendererResources<T> {
+impl<T: Renderer + Clone + Ord + Hash> Resource for RendererResource<T> {
     type Renderer = T;
     type Storage = ();
 

@@ -14,7 +14,7 @@ pub use self::{
     collector::Collector,
     context::Context,
     frame::Frame,
-    instance::{Instance, InstanceExt, Resources},
+    instance::{Instance, InstanceExt, Resource},
     renderer::Renderer,
     state::Graphics,
 };

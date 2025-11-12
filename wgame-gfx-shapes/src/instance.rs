@@ -4,11 +4,11 @@ use half::f16;
 use rgb::{ComponentMap, Rgba};
 
 use wgame_gfx::{
-    Context, Instance, Resources,
+    Context, Instance, Resource,
     types::{Color, color},
 };
 
-use crate::{Shape, Texture, primitive::InstanceData, renderer::ShapeResources};
+use crate::{Shape, Texture, primitive::InstanceData, renderer::ShapeResource};
 
 #[derive(Clone)]
 pub struct Textured<T: Shape> {
@@ -35,13 +35,13 @@ impl<T: Shape> Textured<T> {
 }
 
 impl<T: Shape> Instance for Textured<T> {
-    type Resources = ShapeResources<T::Attribute>;
+    type Resource = ShapeResource<T::Attribute>;
 
-    fn get_resources(&self) -> Self::Resources {
-        ShapeResources {
+    fn resource(&self) -> Self::Resource {
+        ShapeResource {
             order: 0,
             vertices: self.shape.vertices(),
-            texture: self.texture.resources(),
+            texture: self.texture.resource(),
             uniforms: self.shape.uniforms(),
             pipeline: self.shape.pipeline(),
             device: self.shape.state().device().clone(),
@@ -49,7 +49,7 @@ impl<T: Shape> Instance for Textured<T> {
         }
     }
 
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage) {
         storage.instances.push(InstanceData {
             xform: ctx.view * self.shape.xform(),
             tex_xform: self.texture.attribute(),

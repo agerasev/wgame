@@ -1,6 +1,6 @@
 use glam::Mat4;
 
-use crate::{Context, Instance, Resources, types::Transform};
+use crate::{Context, Instance, Resource, types::Transform};
 
 #[derive(Clone, Debug)]
 pub struct Transformed<T> {
@@ -18,12 +18,12 @@ impl<T> Transformed<T> {
 }
 
 impl<T: Instance> Instance for Transformed<T> {
-    type Resources = T::Resources;
+    type Resource = T::Resource;
 
-    fn get_resources(&self) -> Self::Resources {
-        self.inner.get_resources()
+    fn resource(&self) -> Self::Resource {
+        self.inner.resource()
     }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage) {
         self.inner.store(&ctx.transform(self.xform), storage);
     }
 }

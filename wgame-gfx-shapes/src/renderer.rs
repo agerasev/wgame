@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use anyhow::Result;
 use derivative::Derivative;
-use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
-use wgame_gfx_texture::TextureResources;
+use wgame_gfx::{Renderer, Resource, utils::AnyOrder};
+use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
 
@@ -26,10 +26,10 @@ pub struct VertexBuffers {
     Hash(bound = ""),
     Debug(bound = "")
 )]
-pub struct ShapeResources<T: Attribute> {
+pub struct ShapeResource<T: Attribute> {
     pub order: i64,
     pub vertices: VertexBuffers,
-    pub texture: TextureResources,
+    pub texture: TextureResource,
     pub uniforms: Option<wgpu::BindGroup>,
     pub pipeline: wgpu::RenderPipeline,
     pub device: wgpu::Device,
@@ -53,13 +53,13 @@ pub struct InstanceStorage<T: Attribute> {
     Debug(bound = "")
 )]
 pub struct ShapeRenderer<T: Attribute> {
-    pub resources: ShapeResources<T>,
+    pub resource: ShapeResource<T>,
     pub instance_buffer: wgpu::Buffer,
     pub instance_count: u32,
 }
 impl<T: Attribute> AnyOrder for ShapeRenderer<T> {}
 
-impl<T: Attribute> Resources for ShapeResources<T> {
+impl<T: Attribute> Resource for ShapeResource<T> {
     type Storage = InstanceStorage<T>;
     type Renderer = ShapeRenderer<T>;
 
@@ -83,14 +83,14 @@ impl<T: Attribute> Resources for ShapeResources<T> {
             });
 
         Ok(ShapeRenderer {
-            resources: self.clone(),
+            resource: self.clone(),
             instance_buffer,
             instance_count,
         })
     }
 }
 
-impl<T: Attribute> ShapeResources<T> {
+impl<T: Attribute> ShapeResource<T> {
     fn uniforms(&self) -> impl IntoIterator<Item = wgpu::BindGroup> {
         [self.texture.bind_group().clone()]
             .into_iter()
@@ -103,22 +103,22 @@ impl<T: Attribute> Renderer for ShapeRenderer<T> {
         log::trace!("Rendering {} instances", self.instance_count);
 
         pass.push_debug_group("prepare");
-        pass.set_pipeline(&self.resources.pipeline);
-        for (i, bind_group) in self.resources.uniforms().into_iter().enumerate() {
+        pass.set_pipeline(&self.resource.pipeline);
+        for (i, bind_group) in self.resource.uniforms().into_iter().enumerate() {
             pass.set_bind_group(i as u32, &bind_group, &[]);
         }
-        pass.set_vertex_buffer(0, self.resources.vertices.vertex_buffer.slice(..));
-        if let Some(index_buffer) = &self.resources.vertices.index_buffer {
+        pass.set_vertex_buffer(0, self.resource.vertices.vertex_buffer.slice(..));
+        if let Some(index_buffer) = &self.resource.vertices.index_buffer {
             pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
         }
         pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
         pass.pop_debug_group();
 
         pass.insert_debug_marker("draw");
-        if self.resources.vertices.index_buffer.is_some() {
-            pass.draw_indexed(0..self.resources.vertices.count, 0, 0..self.instance_count);
+        if self.resource.vertices.index_buffer.is_some() {
+            pass.draw_indexed(0..self.resource.vertices.count, 0, 0..self.instance_count);
         } else {
-            pass.draw(0..self.resources.vertices.count, 0..self.instance_count);
+            pass.draw(0..self.resource.vertices.count, 0..self.instance_count);
         }
 
         Ok(())

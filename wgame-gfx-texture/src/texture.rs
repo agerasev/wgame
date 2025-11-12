@@ -376,8 +376,8 @@ impl<T: Texel> Texture<T> {
         }
     }
 
-    pub fn resources(&self) -> TextureResources<T> {
-        TextureResources {
+    pub fn resource(&self) -> TextureResource<T> {
+        TextureResource {
             atlas: self.atlas.clone(),
         }
     }
@@ -396,11 +396,11 @@ impl<T: Texel> Deref for Texture<T> {
 }
 
 #[derive(Clone)]
-pub struct TextureResources<T: Texel = Rgba<f16>> {
+pub struct TextureResource<T: Texel = Rgba<f16>> {
     atlas: Rc<RefCell<InnerAtlas<T>>>,
 }
 
-impl<T: Texel> TextureResources<T> {
+impl<T: Texel> TextureResource<T> {
     fn get_instance(&self) -> RefMut<'_, TextureInstance> {
         let mut atlas = self.atlas.borrow_mut();
         atlas.sync();
@@ -418,31 +418,31 @@ impl<T: Texel> TextureResources<T> {
     }
 }
 
-impl<T: Texel> PartialOrd for TextureResources<T> {
+impl<T: Texel> PartialOrd for TextureResource<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
-impl<T: Texel> Ord for TextureResources<T> {
+impl<T: Texel> Ord for TextureResource<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.atlas.as_ptr().cmp(&other.atlas.as_ptr())
     }
 }
 
-impl<T: Texel> PartialEq for TextureResources<T> {
+impl<T: Texel> PartialEq for TextureResource<T> {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.atlas, &other.atlas)
     }
 }
-impl<T: Texel> Eq for TextureResources<T> {}
+impl<T: Texel> Eq for TextureResource<T> {}
 
-impl<T: Texel> Hash for TextureResources<T> {
+impl<T: Texel> Hash for TextureResource<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.atlas.as_ptr().hash(state);
     }
 }
 
-impl<T: Texel> Debug for TextureResources<T> {
+impl<T: Texel> Debug for TextureResource<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Texture atlas at {:?}", self.atlas.as_ptr())
     }

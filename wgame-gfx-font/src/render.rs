@@ -1,23 +1,23 @@
 use anyhow::Result;
 use glam::{Mat4, Vec4};
 use wgame_font::swash::GlyphId;
-use wgame_gfx::{Renderer, Resources, utils::AnyOrder};
-use wgame_gfx_texture::TextureResources;
+use wgame_gfx::{Renderer, Resource, utils::AnyOrder};
+use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
 
 use crate::FontTexture;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TextResources {
+pub struct TextResource {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    texture: TextureResources<u8>,
+    texture: TextureResource<u8>,
     pipeline: wgpu::RenderPipeline,
     device: wgpu::Device,
 }
 
-impl TextResources {
+impl TextResource {
     pub fn new(font: &FontTexture) -> Self {
         let library = &font.library;
         let pipeline = library.pipeline.clone();
@@ -26,7 +26,7 @@ impl TextResources {
             vertex_buffer: library.vertex_buffer.clone(),
             index_buffer: library.index_buffer.clone(),
             pipeline,
-            texture: font.inner().resources(),
+            texture: font.inner().resource(),
             device: library.device().clone(),
         }
     }
@@ -57,12 +57,12 @@ pub struct TextStorage {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextRenderer {
-    resources: TextResources,
+    resource: TextResource,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
 }
 
-impl Resources for TextResources {
+impl Resource for TextResource {
     type Storage = TextStorage;
     type Renderer = TextRenderer;
 
@@ -98,7 +98,7 @@ impl Resources for TextResources {
             });
 
         Ok(TextRenderer {
-            resources: self.clone(),
+            resource: self.clone(),
             instance_buffer,
             instance_count,
         })
@@ -108,11 +108,11 @@ impl Resources for TextResources {
 impl Renderer for TextRenderer {
     fn draw(&self, pass: &mut wgpu::RenderPass) -> Result<()> {
         pass.push_debug_group("prepare");
-        pass.set_pipeline(&self.resources.pipeline);
-        pass.set_bind_group(0, &self.resources.texture.bind_group(), &[]);
-        pass.set_vertex_buffer(0, self.resources.vertex_buffer.slice(..));
+        pass.set_pipeline(&self.resource.pipeline);
+        pass.set_bind_group(0, &self.resource.texture.bind_group(), &[]);
+        pass.set_vertex_buffer(0, self.resource.vertex_buffer.slice(..));
         pass.set_index_buffer(
-            self.resources.index_buffer.slice(..),
+            self.resource.index_buffer.slice(..),
             wgpu::IndexFormat::Uint32,
         );
         pass.set_vertex_buffer(1, self.instance_buffer.slice(..));

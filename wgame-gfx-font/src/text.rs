@@ -2,11 +2,11 @@ use std::cell::RefCell;
 
 use glam::{Mat4, Quat, Vec3, Vec4};
 use wgame_font::swash::{GlyphId, shape::ShapeContext};
-use wgame_gfx::{Context, Instance, Resources};
+use wgame_gfx::{Context, Instance, Resource};
 
 use crate::{
     FontTexture,
-    render::{GlyphInstance, TextInstance, TextResources},
+    render::{GlyphInstance, TextInstance, TextResource},
 };
 
 thread_local! {
@@ -53,12 +53,12 @@ impl Text {
 }
 
 impl Instance for Text {
-    type Resources = TextResources;
+    type Resource = TextResource;
 
-    fn get_resources(&self) -> Self::Resources {
-        TextResources::new(&self.font)
+    fn resource(&self) -> Self::Resource {
+        TextResource::new(&self.font)
     }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage) {
         let mut glyphs = Vec::with_capacity(self.glyphs.len());
         for glyph in &self.glyphs {
             let glyph_image = match self.font.glyph_info(glyph.id) {

@@ -1,7 +1,7 @@
 use half::f16;
 use rgb::Rgba;
 
-use crate::{Context, Instance, Resources, types::Color};
+use crate::{Context, Instance, Resource, types::Color};
 
 #[derive(Clone, Debug)]
 pub struct Colored<T> {
@@ -19,12 +19,12 @@ impl<T> Colored<T> {
 }
 
 impl<T: Instance> Instance for Colored<T> {
-    type Resources = T::Resources;
+    type Resource = T::Resource;
 
-    fn get_resources(&self) -> Self::Resources {
-        self.inner.get_resources()
+    fn resource(&self) -> Self::Resource {
+        self.inner.resource()
     }
-    fn store(&self, ctx: &Context, storage: &mut <Self::Resources as Resources>::Storage) {
+    fn store(&self, ctx: &Context, storage: &mut <Self::Resource as Resource>::Storage) {
         self.inner.store(&ctx.color(self.color), storage);
     }
 }

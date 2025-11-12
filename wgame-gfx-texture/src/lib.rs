@@ -13,7 +13,7 @@ use wgame_image::{Image, ImageBase, ImageWriteMut};
 pub use self::{
     state::TextureState,
     texel::Texel,
-    texture::{Texture, TextureAtlas, TextureAttribute, TextureResources},
+    texture::{Texture, TextureAtlas, TextureAttribute, TextureResource},
 };
 
 #[derive(Clone)]
