@@ -1,5 +1,6 @@
 use core::marker::PhantomData;
 
+use glam::{Mat4, Vec3};
 use half::f16;
 use rgb::{ComponentMap, Rgba};
 
@@ -51,7 +52,9 @@ impl<T: Shape> Instance for Textured<T> {
 
     fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage) {
         storage.instances.push(InstanceData {
-            xform: camera.view * self.shape.xform(),
+            xform: camera.view
+                * Mat4::from_scale(Vec3::new(1.0, if camera.y_flip { -1.0 } else { 1.0 }, 1.0))
+                * self.shape.xform(),
             tex_xform: self.texture.attribute(),
             color: self.color.map(|x| x.to_f32()),
             custom: self.shape.attribute(),

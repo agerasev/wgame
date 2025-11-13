@@ -24,10 +24,10 @@ impl PolygonLibrary {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_vertices"),
                 contents: &[
-                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
-                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
-                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
-                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
+                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
+                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
+                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
+                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
                 ]
                 .to_bytes(),
                 usage: wgpu::BufferUsages::VERTEX,
@@ -47,23 +47,23 @@ impl PolygonLibrary {
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("quad_vertices"),
                     contents: &[
-                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
+                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
                         VertexData::new(
                             Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.25),
+                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.75),
                         ),
                         VertexData::new(
                             Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.75),
+                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.25),
                         ),
-                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
+                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
                         VertexData::new(
                             Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.75),
+                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
                         ),
                         VertexData::new(
                             Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
+                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.75),
                         ),
                     ]
                     .to_bytes(),

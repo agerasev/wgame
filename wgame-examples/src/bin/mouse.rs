@@ -47,11 +47,10 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         camera.add(
             font_atlas
                 .text(&text)
-                .transform(Affine2::from_scale_angle_translation(
-                    Vec2::new(1.0, -1.0),
-                    0.0,
-                    Vec2::new(width as f32 / 2.0, height as f32 / 2.0),
-                )),
+                .transform(Affine2::from_translation(Vec2::new(
+                    width as f32 / 2.0,
+                    height as f32 / 2.0,
+                ))),
         );
 
         camera.add(ring.transform(

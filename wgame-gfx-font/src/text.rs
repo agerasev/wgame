@@ -71,6 +71,7 @@ impl Instance for Text {
             };
             glyphs.push(GlyphInstance {
                 xform: camera.view
+                    * Mat4::from_scale(Vec3::new(1.0, if camera.y_flip { -1.0 } else { 1.0 }, 1.0))
                     * Mat4::from_scale_rotation_translation(
                         Vec3::new(
                             glyph_image.placement.width as f32,
