@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::{Camera, Instance, Resource, utils::Order};
+use crate::{Camera, Instance, Resource};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Ordered<T> {
@@ -34,9 +34,7 @@ impl<T: Resource> Resource for Ordered<T> {
     fn render(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass<'_>) {
         self.inner.render(storage, pass);
     }
-}
 
-impl<T: Resource> Order for Ordered<T> {
     fn order(&self) -> i64 {
         self.order
     }

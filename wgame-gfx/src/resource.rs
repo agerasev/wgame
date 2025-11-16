@@ -5,12 +5,12 @@ use std::{
     rc::Rc,
 };
 
-use crate::utils::{AnyKey, Order};
+use crate::utils::AnyKey;
 
 /// Shared resource required to draw an instance.
 ///
 /// Equality of the instances' resource means that they can be draw in single render pass.
-pub trait Resource: Any + Order + Ord + Hash + Clone + Sized {
+pub trait Resource: Any + Ord + Hash + Clone + Sized {
     type Storage: Any;
 
     fn new_storage(&self) -> Self::Storage;
@@ -22,12 +22,17 @@ pub trait Resource: Any + Order + Ord + Hash + Clone + Sized {
     fn into_any(self) -> Rc<dyn AnyResource> {
         Rc::new(self)
     }
+
+    fn order(&self) -> i64 {
+        0
+    }
 }
 
-pub trait AnyResource: AnyKey + Order {
+pub trait AnyResource: AnyKey {
     fn clone_dyn(&self) -> Rc<dyn AnyResource>;
     fn new_dyn_storage(&self) -> Box<dyn Any>;
     fn render_dyn(&self, storage: &dyn Any, pass: &mut wgpu::RenderPass<'_>);
+    fn order_dyn(&self) -> i64;
 }
 
 impl<R: Resource> AnyResource for R {
@@ -46,6 +51,10 @@ impl<R: Resource> AnyResource for R {
                 .expect("Error downcasting storage"),
             pass,
         );
+    }
+
+    fn order_dyn(&self) -> i64 {
+        self.order()
     }
 }
 
@@ -90,11 +99,9 @@ impl Resource for Rc<dyn AnyResource> {
     {
         self
     }
-}
 
-impl Order for Rc<dyn AnyResource> {
     fn order(&self) -> i64 {
-        (**self).order()
+        (**self).order_dyn()
     }
 }
 

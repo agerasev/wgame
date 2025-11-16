@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use derivative::Derivative;
-use wgame_gfx::{Resource, utils::Order};
+use wgame_gfx::Resource;
 use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
@@ -40,8 +40,6 @@ pub struct ShapeResource<T: Attribute> {
 pub struct InstanceStorage<T: Attribute> {
     pub instances: Vec<InstanceData<T>>,
 }
-
-impl<T: Attribute> Order for ShapeResource<T> {}
 
 impl<T: Attribute> Resource for ShapeResource<T> {
     type Storage = InstanceStorage<T>;

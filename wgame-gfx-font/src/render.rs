@@ -1,6 +1,6 @@
 use glam::{Mat4, Vec4};
 use wgame_font::swash::GlyphId;
-use wgame_gfx::{Resource, utils::Order};
+use wgame_gfx::Resource;
 use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
@@ -99,9 +99,7 @@ impl Resource for TextResource {
         pass.insert_debug_marker("draw");
         pass.draw_indexed(0..6, 0, 0..instance_count);
     }
-}
 
-impl Order for TextResource {
     fn order(&self) -> i64 {
         // Text is rendered over other shapes by default
         1 << 16

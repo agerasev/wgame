@@ -46,15 +46,3 @@ impl Hash for dyn AnyKey {
         self.hash_dyn(state);
     }
 }
-
-pub trait Order {
-    fn order(&self) -> i64 {
-        0
-    }
-}
-
-impl<T: Order + ?Sized> Order for Box<T> {
-    fn order(&self) -> i64 {
-        (**self).order()
-    }
-}
