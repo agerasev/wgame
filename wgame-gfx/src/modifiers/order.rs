@@ -1,8 +1,6 @@
 use std::hash::Hash;
 
-use anyhow::Result;
-
-use crate::{Camera, Instance, Renderer, Resource, utils::AnyOrder};
+use crate::{Camera, Instance, Resource, utils::Order};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Ordered<T> {
@@ -28,27 +26,17 @@ impl<T: Instance> Instance for Ordered<T> {
 }
 
 impl<T: Resource> Resource for Ordered<T> {
-    type Renderer = Ordered<T::Renderer>;
     type Storage = T::Storage;
 
     fn new_storage(&self) -> Self::Storage {
         self.inner.new_storage()
     }
-    fn make_renderer(&self, instances: &Self::Storage) -> Result<Self::Renderer> {
-        Ok(Ordered::new(
-            self.inner.make_renderer(instances)?,
-            self.order,
-        ))
+    fn render(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass<'_>) {
+        self.inner.render(storage, pass);
     }
 }
 
-impl<T: Renderer + Ord + Hash> Renderer for Ordered<T> {
-    fn draw(&self, pass: &mut wgpu::RenderPass<'_>) -> Result<()> {
-        self.inner.draw(pass)
-    }
-}
-
-impl<T: Renderer> AnyOrder for Ordered<T> {
+impl<T: Resource> Order for Ordered<T> {
     fn order(&self) -> i64 {
         self.order
     }

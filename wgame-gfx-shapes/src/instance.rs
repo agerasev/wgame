@@ -5,7 +5,7 @@ use half::f16;
 use rgb::{ComponentMap, Rgba};
 
 use wgame_gfx::{
-    Camera, Instance, Object, Resource,
+    Camera, Instance, InstanceVisitor, Object, Resource,
     types::{Color, color},
 };
 
@@ -63,7 +63,7 @@ impl<T: Shape> Instance for Textured<T> {
 }
 
 impl<T: Shape> Object for Textured<T> {
-    fn collect_into(&self, camera: &Camera, collector: &mut wgame_gfx::Collector) {
-        collector.push_instance(camera, self);
+    fn visit_instances<V: InstanceVisitor>(&self, camera: &Camera, visitor: &mut V) {
+        visitor.visit(camera, self);
     }
 }

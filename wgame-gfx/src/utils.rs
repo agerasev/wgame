@@ -47,13 +47,13 @@ impl Hash for dyn AnyKey {
     }
 }
 
-pub trait AnyOrder {
+pub trait Order {
     fn order(&self) -> i64 {
         0
     }
 }
 
-impl<T: AnyOrder + ?Sized> AnyOrder for Box<T> {
+impl<T: Order + ?Sized> Order for Box<T> {
     fn order(&self) -> i64 {
         (**self).order()
     }

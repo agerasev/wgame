@@ -1,29 +1,33 @@
 use crate::{
-    Camera, Collector,
+    Camera, Instance,
     modifiers::{Colored, Transformed},
     types::{Color, Transform},
 };
 
+pub trait InstanceVisitor {
+    fn visit<T: Instance>(&mut self, camera: &Camera, instance: T);
+}
+
 pub trait Object {
-    fn collect_into(&self, camera: &Camera, collector: &mut Collector);
+    fn visit_instances<V: InstanceVisitor>(&self, camera: &Camera, visitor: &mut V);
 }
 
 impl<T: Object> Object for &'_ T {
-    fn collect_into(&self, camera: &Camera, collector: &mut Collector) {
-        (*self).collect_into(camera, collector);
+    fn visit_instances<V: InstanceVisitor>(&self, camera: &Camera, visitor: &mut V) {
+        (*self).visit_instances(camera, visitor);
     }
 }
 
 impl<T: Object> Object for Option<T> {
-    fn collect_into(&self, camera: &Camera, collector: &mut Collector) {
+    fn visit_instances<V: InstanceVisitor>(&self, camera: &Camera, visitor: &mut V) {
         if let Some(object) = self {
-            collector.push(camera, object)
+            object.visit_instances(camera, visitor);
         }
     }
 }
 
 impl Object for () {
-    fn collect_into(&self, _: &Camera, _: &mut Collector) {}
+    fn visit_instances<V: InstanceVisitor>(&self, _: &Camera, _: &mut V) {}
 }
 
 pub trait ObjectExt: Object + Sized {

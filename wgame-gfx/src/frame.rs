@@ -89,10 +89,8 @@ impl<'a, 'b> Frame<'a, 'b> {
             });
         }
 
-        let mut renderers: Vec<_> = self.collector.renderers().collect::<Result<_>>()?;
-        renderers.sort_by(|a, b| a.order().cmp(&b.order()).then_with(|| a.cmp(b)));
-        let n_passes = renderers.len();
-        for renderer in renderers {
+        let mut n_passes = 0;
+        for (resource, storage) in self.collector.items() {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &self.view,
@@ -105,8 +103,10 @@ impl<'a, 'b> Frame<'a, 'b> {
                 })],
                 ..Default::default()
             });
-            renderer.draw(&mut pass)?;
+            resource.render_dyn(storage, &mut pass);
+            n_passes += 1;
         }
+
         self.collector = Collector::default();
         self.owner.state.queue().submit(Some(encoder.finish()));
 

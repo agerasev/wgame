@@ -1,7 +1,6 @@
-use anyhow::Result;
 use glam::{Mat4, Vec4};
 use wgame_font::swash::GlyphId;
-use wgame_gfx::{Renderer, Resource, utils::AnyOrder};
+use wgame_gfx::{Resource, utils::Order};
 use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
@@ -55,21 +54,13 @@ pub struct TextStorage {
     pub(crate) instances: Vec<TextInstance>,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TextRenderer {
-    resource: TextResource,
-    instance_buffer: wgpu::Buffer,
-    instance_count: u32,
-}
-
 impl Resource for TextResource {
     type Storage = TextStorage;
-    type Renderer = TextRenderer;
 
     fn new_storage(&self) -> Self::Storage {
         TextStorage::default()
     }
-    fn make_renderer(&self, storage: &Self::Storage) -> Result<Self::Renderer> {
+    fn render(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass) {
         let mut bytes = BytesSink::default();
         let mut instance_count = 0;
         for text in &storage.instances {
@@ -97,34 +88,20 @@ impl Resource for TextResource {
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
-        Ok(TextRenderer {
-            resource: self.clone(),
-            instance_buffer,
-            instance_count,
-        })
-    }
-}
-
-impl Renderer for TextRenderer {
-    fn draw(&self, pass: &mut wgpu::RenderPass) -> Result<()> {
         pass.push_debug_group("prepare");
-        pass.set_pipeline(&self.resource.pipeline);
-        pass.set_bind_group(0, &self.resource.texture.bind_group(), &[]);
-        pass.set_vertex_buffer(0, self.resource.vertex_buffer.slice(..));
-        pass.set_index_buffer(
-            self.resource.index_buffer.slice(..),
-            wgpu::IndexFormat::Uint32,
-        );
-        pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, &self.texture.bind_group(), &[]);
+        pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+        pass.set_vertex_buffer(1, instance_buffer.slice(..));
         pass.pop_debug_group();
 
         pass.insert_debug_marker("draw");
-        pass.draw_indexed(0..6, 0, 0..self.instance_count);
-
-        Ok(())
+        pass.draw_indexed(0..6, 0, 0..instance_count);
     }
 }
-impl AnyOrder for TextRenderer {
+
+impl Order for TextResource {
     fn order(&self) -> i64 {
         // Text is rendered over other shapes by default
         1 << 16

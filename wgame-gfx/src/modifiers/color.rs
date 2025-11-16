@@ -1,7 +1,7 @@
 use half::f16;
 use rgb::Rgba;
 
-use crate::{Camera, Object, types::Color};
+use crate::{Camera, Object, object::InstanceVisitor, types::Color};
 
 #[derive(Clone, Debug)]
 pub struct Colored<T> {
@@ -19,8 +19,8 @@ impl<T> Colored<T> {
 }
 
 impl<T: Object> Object for Colored<T> {
-    fn collect_into(&self, camera: &Camera, collector: &mut crate::Collector) {
+    fn visit_instances<V: InstanceVisitor>(&self, camera: &Camera, collector: &mut V) {
         self.inner
-            .collect_into(&camera.color(self.color), collector);
+            .visit_instances(&camera.color(self.color), collector);
     }
 }

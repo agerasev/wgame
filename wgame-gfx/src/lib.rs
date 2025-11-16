@@ -6,7 +6,6 @@ mod frame;
 mod instance;
 pub mod modifiers;
 mod object;
-pub mod renderer;
 mod resource;
 mod state;
 pub mod types;
@@ -17,8 +16,7 @@ pub use self::{
     collector::{Collector, CollectorWithCamera},
     frame::Frame,
     instance::{Instance, InstanceExt},
-    object::{Object, ObjectExt},
-    renderer::Renderer,
+    object::{InstanceVisitor, Object, ObjectExt},
     resource::Resource,
     state::Graphics,
 };

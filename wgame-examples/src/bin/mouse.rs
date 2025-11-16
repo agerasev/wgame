@@ -20,7 +20,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let font = Font::new(read_bytes("assets/free-sans-bold.ttf").await?, 0)?;
     let font_size = 32.0;
     let font_atlas = gfx.text.texture(&font, font_size);
-    let mut text = String::new();
+    let mut text = "Move your mouse in the window".to_string();
 
     let ring = gfx.shapes.ring(Vec2::ZERO, 1.0, 0.5).texture(
         gfx.texture
@@ -37,7 +37,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         while let Some(event) = input.try_next() {
             if let Event::CursorMoved { position, .. } = event {
                 mouse_pos = Vec2::new(position.x as f32, position.y as f32);
-                text = format!("{},{}", position.x as i32, position.y as i32);
+                text = format!("Mouse pos: {},{}", position.x as i32, position.y as i32);
             }
         }
 

@@ -5,19 +5,16 @@ use std::{
     rc::Rc,
 };
 
-use anyhow::Result;
-
-use crate::{renderer::Renderer, utils::AnyKey};
+use crate::utils::{AnyKey, Order};
 
 /// Shared resource required to draw an instance.
 ///
 /// Equality of the instances' resource means that they can be draw in single render pass.
-pub trait Resource: Any + Ord + Hash + Clone + Sized {
+pub trait Resource: Any + Order + Ord + Hash + Clone + Sized {
     type Storage: Any;
-    type Renderer: Renderer + Ord + Hash;
 
     fn new_storage(&self) -> Self::Storage;
-    fn make_renderer(&self, instances: &Self::Storage) -> Result<Self::Renderer>;
+    fn render(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass<'_>);
 
     fn as_any(&self) -> &dyn AnyResource {
         self
@@ -27,10 +24,10 @@ pub trait Resource: Any + Ord + Hash + Clone + Sized {
     }
 }
 
-pub trait AnyResource: AnyKey {
+pub trait AnyResource: AnyKey + Order {
     fn clone_dyn(&self) -> Rc<dyn AnyResource>;
     fn new_dyn_storage(&self) -> Box<dyn Any>;
-    fn make_dyn_renderer(&self, instances: &dyn Any) -> Result<Box<dyn Renderer>>;
+    fn render_dyn(&self, storage: &dyn Any, pass: &mut wgpu::RenderPass<'_>);
 }
 
 impl<R: Resource> AnyResource for R {
@@ -42,11 +39,13 @@ impl<R: Resource> AnyResource for R {
         Box::new(self.new_storage())
     }
 
-    fn make_dyn_renderer(&self, instances: &dyn Any) -> Result<Box<dyn Renderer>> {
-        let instances = instances
-            .downcast_ref::<R::Storage>()
-            .expect("Error downcasting storage during draw");
-        Ok(Box::new(self.make_renderer(instances)?))
+    fn render_dyn(&self, storage: &dyn Any, pass: &mut wgpu::RenderPass<'_>) {
+        self.render(
+            storage
+                .downcast_ref::<R::Storage>()
+                .expect("Error downcasting storage"),
+            pass,
+        );
     }
 }
 
@@ -74,13 +73,12 @@ impl Hash for dyn AnyResource {
 
 impl Resource for Rc<dyn AnyResource> {
     type Storage = Box<dyn Any>;
-    type Renderer = Box<dyn Renderer>;
 
     fn new_storage(&self) -> Self::Storage {
         (**self).new_dyn_storage()
     }
-    fn make_renderer(&self, instances: &Self::Storage) -> Result<Self::Renderer> {
-        (**self).make_dyn_renderer(&**instances)
+    fn render(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass<'_>) {
+        (**self).render_dyn(storage, pass);
     }
 
     fn as_any(&self) -> &dyn AnyResource {
@@ -91,6 +89,12 @@ impl Resource for Rc<dyn AnyResource> {
         Self: Sized,
     {
         self
+    }
+}
+
+impl Order for Rc<dyn AnyResource> {
+    fn order(&self) -> i64 {
+        (**self).order()
     }
 }
 
