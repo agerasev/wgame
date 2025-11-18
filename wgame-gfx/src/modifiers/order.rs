@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::{Camera, Instance, Resource};
+use crate::{Instance, Resource};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Ordered<T> {
@@ -16,12 +16,13 @@ impl<T> Ordered<T> {
 
 impl<T: Instance> Instance for Ordered<T> {
     type Resource = Ordered<T::Resource>;
+    type Context = T::Context;
 
     fn resource(&self) -> Self::Resource {
         Ordered::new(self.inner.resource(), self.order)
     }
-    fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage) {
-        self.inner.store(camera, storage);
+    fn store(&self, context: &Self::Context, storage: &mut <Self::Resource as Resource>::Storage) {
+        self.inner.store(context, storage);
     }
 }
 

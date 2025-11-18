@@ -2,12 +2,7 @@ use std::{any::Any, rc::Rc};
 
 use hashbrown::{HashMap, hash_map::EntryRef};
 
-use crate::{
-    Camera, Instance, Object, Resource,
-    object::InstanceVisitor,
-    resource::AnyResource,
-    types::{Color, Transform},
-};
+use crate::{Context, Instance, Object, Resource, object::InstanceVisitor, resource::AnyResource};
 
 #[derive(Default)]
 pub struct Collector {
@@ -15,10 +10,10 @@ pub struct Collector {
 }
 
 impl Collector {
-    pub fn push<T: Instance>(&mut self, camera: &Camera, instance: T) {
+    pub fn push<T: Instance>(&mut self, params: &T::Context, instance: T) {
         let resource = instance.resource();
         let instances = self.get_or_init_storage(resource);
-        instance.store(camera, instances);
+        instance.store(params, instances);
     }
 
     fn get_or_init_storage<R: Resource>(&mut self, resource: R) -> &mut R::Storage {
@@ -37,32 +32,25 @@ impl Collector {
     }
 }
 
-impl InstanceVisitor for Collector {
-    fn visit<T: Instance>(&mut self, camera: &Camera, instance: T) {
-        self.push(camera, instance);
+impl<C: Context> InstanceVisitor<C> for Collector {
+    fn visit<T: Instance<Context = C>>(&mut self, instance: T) {
+        self.push(&C::default(), instance);
     }
 }
 
-pub struct CollectorWithCamera<'a> {
+pub struct CollectorWithContext<'a, C: Context> {
     pub collector: &'a mut Collector,
-    pub camera: Camera,
+    pub context: C,
 }
 
-impl<'a> CollectorWithCamera<'a> {
-    pub fn add<T: Object>(&mut self, object: T) {
-        object.visit_instances(&self.camera, self.collector);
+impl<'a, C: Context> CollectorWithContext<'a, C> {
+    pub fn add<T: Object<Context = C>>(&mut self, object: T) {
+        object.visit_instances(self);
     }
+}
 
-    pub fn transform<'b: 'a>(&'b mut self, xform: impl Transform) -> CollectorWithCamera<'b> {
-        Self {
-            collector: &mut self.collector,
-            camera: self.camera.transform(xform),
-        }
-    }
-    pub fn color<'b: 'a>(&'b mut self, color: impl Color) -> CollectorWithCamera<'b> {
-        Self {
-            collector: &mut self.collector,
-            camera: self.camera.color(color),
-        }
+impl<C: Context> InstanceVisitor<C> for CollectorWithContext<'_, C> {
+    fn visit<T: Instance<Context = C>>(&mut self, instance: T) {
+        self.collector.push(&mut self.context, instance);
     }
 }

@@ -12,14 +12,8 @@ use rgb::Rgb;
 #[cfg(feature = "dump")]
 use wgame::image::ImageReadExt;
 use wgame::{
-    Library, Result, Window,
-    app::time::Instant,
-    font::Font,
-    fs::read_bytes,
-    gfx::{ObjectExt, types::color},
-    image::Image,
-    shapes::ShapeExt,
-    utils::FrameCounter,
+    Library, Result, Window, app::time::Instant, font::Font, fs::read_bytes, gfx::types::color,
+    image::Image, prelude::*, shapes::ShapeExt, utils::FrameCounter,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
@@ -89,42 +83,42 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
-        let mut camera = frame.with_unit_camera();
+        let mut render = frame.with_unit_camera();
 
         let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
 
-        camera.add(triangle.transform(Affine2::from_scale_angle_translation(
+        render.add(triangle.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(-2.0 * scale, scale),
         )));
-        camera.add(quad.transform(Affine2::from_scale_angle_translation(
+        render.add(quad.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(0.0, scale),
         )));
-        camera.add(hexagon.transform(Affine2::from_scale_angle_translation(
+        render.add(hexagon.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(2.0 * scale, scale),
         )));
-        camera.add(circle.transform(Affine2::from_scale_angle_translation(
+        render.add(circle.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             10.0 * angle,
             Vec2::new(-2.0 * scale, -scale),
         )));
-        camera.add(ring0.transform(Affine2::from_scale_angle_translation(
+        render.add(ring0.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             10.0 * angle,
             Vec2::new(0.0 * scale, -scale),
         )));
-        camera.add(ring1.transform(Affine2::from_scale_angle_translation(
+        render.add(ring1.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             10.0 * angle,
             Vec2::new(2.0 * scale, -scale),
         )));
         if let Some(text) = &text {
-            camera.add(text.transform(Affine2::from_scale_angle_translation(
+            render.add(text.transform(Affine2::from_scale_angle_translation(
                 Vec2::splat(1.0 / window_size.1 as f32),
                 0.0,
                 Vec2::new(0.4, 0.3),

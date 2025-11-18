@@ -50,7 +50,7 @@ pub trait ShapeExt: Shape + Sized {
     fn transform<T: Transform>(self, xform: T) -> Transformed<Self> {
         Transformed {
             inner: self,
-            xform: xform.to_mat4(),
+            matrix: xform.to_mat4(),
         }
     }
 
@@ -78,7 +78,7 @@ impl<T: Shape> Shape for Transformed<T> {
         self.inner.uniforms()
     }
     fn xform(&self) -> Mat4 {
-        self.xform * self.inner.xform()
+        self.matrix * self.inner.xform()
     }
     fn attribute(&self) -> Self::Attribute {
         self.inner.attribute()

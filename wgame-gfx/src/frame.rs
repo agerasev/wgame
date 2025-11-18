@@ -2,7 +2,7 @@ use anyhow::{Context as _, Result};
 use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
-use crate::{Camera, Collector, CollectorWithCamera, Surface, types::Color};
+use crate::{Camera, Collector, CollectorWithContext, Surface, types::Color};
 
 pub struct Frame<'a, 'b> {
     owner: &'b mut Surface<'a>,
@@ -42,25 +42,25 @@ impl<'a, 'b> Frame<'a, 'b> {
     pub fn collector(&mut self) -> &mut Collector {
         &mut self.collector
     }
-    pub fn with_physical_camera(&mut self) -> CollectorWithCamera<'_> {
+    pub fn with_physical_camera(&mut self) -> CollectorWithContext<'_, Camera> {
         let (width, height) = self.owner.size();
-        CollectorWithCamera {
+        CollectorWithContext {
             collector: &mut self.collector,
-            camera: Camera {
+            context: Camera {
                 view: Mat4::orthographic_lh(0.0, width as f32, height as f32, 0.0, -1.0, 1.0),
                 y_flip: true,
                 ..Default::default()
             },
         }
     }
-    pub fn with_unit_camera(&mut self) -> CollectorWithCamera<'_> {
+    pub fn with_unit_camera(&mut self) -> CollectorWithContext<'_, Camera> {
         let aspect_ratio = {
             let (width, height) = self.owner.size();
             width as f32 / height as f32
         };
-        CollectorWithCamera {
+        CollectorWithContext {
             collector: &mut self.collector,
-            camera: Camera {
+            context: Camera {
                 view: Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0),
                 ..Default::default()
             },

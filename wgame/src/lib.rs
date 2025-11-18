@@ -31,6 +31,10 @@ pub use app::{Event, Input, Runtime, input, sleep, spawn};
 
 pub use crate::{config::*, library::*, window::*};
 
+pub mod prelude {
+    pub use wgame_gfx::prelude::*;
+}
+
 #[macro_export]
 macro_rules! run_app {
     ($main:ident, $app_fn:expr) => {

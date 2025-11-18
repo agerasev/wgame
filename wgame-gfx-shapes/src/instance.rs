@@ -37,6 +37,7 @@ impl<T: Shape> Textured<T> {
 
 impl<T: Shape> Instance for Textured<T> {
     type Resource = ShapeResource<T::Attribute>;
+    type Context = Camera;
 
     fn resource(&self) -> Self::Resource {
         ShapeResource {
@@ -63,7 +64,9 @@ impl<T: Shape> Instance for Textured<T> {
 }
 
 impl<T: Shape> Object for Textured<T> {
-    fn visit_instances<V: InstanceVisitor>(&self, camera: &Camera, visitor: &mut V) {
-        visitor.visit(camera, self);
+    type Context = Camera;
+
+    fn visit_instances<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
+        visitor.visit(self);
     }
 }

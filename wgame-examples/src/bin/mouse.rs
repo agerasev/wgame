@@ -5,12 +5,8 @@ use std::time::Duration;
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
-    Event, Library, Result, Window,
-    font::Font,
-    fs::read_bytes,
-    gfx::{ObjectExt, types::color},
-    shapes::ShapeExt,
-    utils::FrameCounter,
+    Event, Library, Result, Window, font::Font, fs::read_bytes, gfx::types::color, prelude::*,
+    shapes::ShapeExt, utils::FrameCounter,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
@@ -42,9 +38,9 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
-        let mut camera = frame.with_physical_camera();
+        let mut render = frame.with_physical_camera();
 
-        camera.add(
+        render.add(
             font_atlas
                 .text(&text)
                 .transform(Affine2::from_translation(Vec2::new(
@@ -53,7 +49,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 ))),
         );
 
-        camera.add(ring.transform(
+        render.add(ring.transform(
             Affine2::from_translation(mouse_pos) * Affine2::from_scale(Vec2::splat(32.0)),
         ));
 

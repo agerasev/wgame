@@ -58,6 +58,7 @@ impl Text {
 
 impl Instance for Text {
     type Resource = TextResource;
+    type Context = Camera;
 
     fn resource(&self) -> Self::Resource {
         TextResource::new(&self.font)
@@ -97,7 +98,9 @@ impl Instance for Text {
 }
 
 impl Object for Text {
-    fn visit_instances<V: InstanceVisitor>(&self, camera: &Camera, visitor: &mut V) {
-        visitor.visit(camera, self);
+    type Context = Camera;
+
+    fn visit_instances<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
+        visitor.visit(self);
     }
 }
