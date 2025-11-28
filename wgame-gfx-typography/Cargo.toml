@@ -1,11 +1,11 @@
 [package]
-name = "wgame-gfx-font"
+name = "wgame-gfx-typography"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-wgame-font.workspace = true
+wgame-typography.workspace = true
 wgame-gfx.workspace = true
 wgame-gfx-texture.workspace = true
 wgame-shader.workspace = true

@@ -7,21 +7,21 @@ use wgpu::util::DeviceExt;
 use crate::{Font, FontAtlas, FontTexture};
 
 #[derive(Clone)]
-pub struct TextState {
+pub struct TypographyState {
     pub(crate) inner: TextureState,
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
     pub(crate) pipeline: wgpu::RenderPipeline,
 }
 
-impl Deref for TextState {
+impl Deref for TypographyState {
     type Target = TextureState;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl TextState {
+impl TypographyState {
     const INSTANCE_COMPONENTS: u32 = 6;
 
     pub fn new(state: &TextureState) -> Self {
@@ -122,14 +122,14 @@ impl TextState {
 }
 
 #[derive(Clone)]
-pub struct TextLibrary {
-    state: TextState,
+pub struct TypographyLibrary {
+    state: TypographyState,
     default_atlas: TextureAtlas<u8>,
 }
 
-impl TextLibrary {
+impl TypographyLibrary {
     pub fn new(texture: &TextureLibrary) -> Self {
-        let state = TextState::new(texture.state());
+        let state = TypographyState::new(texture.state());
         Self {
             default_atlas: TextureAtlas::new(
                 &state,

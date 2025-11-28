@@ -8,7 +8,7 @@ use std::{
     fs::File,
     io::{Read, Write},
 };
-use wgame_font::{Font, FontAtlas};
+use wgame_typography::{Font, FontAtlas};
 use wgame_image::{Atlas, Encoding, ImageReadExt};
 
 const CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890";

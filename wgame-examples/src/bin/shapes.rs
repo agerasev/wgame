@@ -12,47 +12,49 @@ use rgb::Rgb;
 #[cfg(feature = "dump")]
 use wgame::image::ImageReadExt;
 use wgame::{
-    Library, Result, Window, app::time::Instant, font::Font, fs::read_bytes, gfx::types::color,
-    image::Image, prelude::*, shapes::ShapeExt, utils::FrameCounter,
+    Library, Result, Window, app::time::Instant, fs::read_bytes, gfx::types::color, image::Image,
+    prelude::*, shapes::ShapeExt, typography::Font, utils::FrameCounter,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
 async fn main(mut window: Window<'_>) -> Result<()> {
-    let gfx = Library::new(window.graphics())?;
+    let gfx = Library::new(window.graphics());
 
-    let texture = gfx
-        .texture
-        .texture(&Image::decode_auto(&read_bytes("assets/lenna.png").await?)?);
+    let texture = gfx.texture(&Image::decode_auto(&read_bytes("assets/lenna.png").await?)?);
     let font = Font::new(read_bytes("assets/free-sans-bold.ttf").await?, 0)?;
     let mut font_raster = None;
     let mut text = None;
     let mut window_size = (0, 0);
 
     let triangle = gfx
-        .shapes
+        .shapes()
         .triangle(
             Vec2::new(0.0, 1.0),
             Vec2::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos()),
             Vec2::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos()),
         )
-        .texture(gfx.texture.gradient2([
+        .texture(gfx.gradient2([
             [color::BLUE, color::RED],
             [color::GREEN, color::RED + color::GREEN - color::BLUE],
         ]));
 
     let quad = gfx
-        .shapes
+        .shapes()
         .quad(-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2))
         .texture(texture.clone());
 
-    let hexagon = gfx.shapes.hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
+    let hexagon = gfx.shapes().hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
 
-    let grad = gfx
-        .texture
-        .gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
-    let circle = gfx.shapes.circle(Vec2::ZERO, 0.8).texture(grad.clone());
-    let ring0 = gfx.shapes.ring(Vec2::ZERO, 0.8, 0.4).texture(grad.clone());
-    let ring1 = gfx.shapes.ring(Vec2::ZERO, 0.8, 0.5).texture(grad.clone());
+    let grad = gfx.gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]);
+    let circle = gfx.shapes().circle(Vec2::ZERO, 0.8).texture(grad.clone());
+    let ring0 = gfx
+        .shapes()
+        .ring(Vec2::ZERO, 0.8, 0.4)
+        .texture(grad.clone());
+    let ring1 = gfx
+        .shapes()
+        .ring(Vec2::ZERO, 0.8, 0.5)
+        .texture(grad.clone());
 
     #[cfg(feature = "dump")]
     std::fs::File::create("dump/atlas.png")?.write_all(
@@ -69,7 +71,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     while let Some(mut frame) = window.next_frame().await? {
         if let Some((width, height)) = frame.resized() {
             window_size = (width, height);
-            let raster = font_raster.insert(gfx.text.texture(&font, height as f32 / 10.0));
+            let raster = font_raster.insert(gfx.font(&font, height as f32 / 10.0));
             text = raster.text("Hello, World!");
 
             #[cfg(feature = "dump")]

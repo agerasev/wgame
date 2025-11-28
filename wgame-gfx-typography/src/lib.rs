@@ -6,9 +6,9 @@ mod text;
 mod texture;
 
 pub use self::{
-    library::{TextLibrary, TextState},
+    library::{TypographyLibrary, TypographyState},
     text::Text,
     texture::FontTexture,
 };
 
-pub use wgame_font::{Font, FontAtlas};
+pub use wgame_typography::{Font, FontAtlas};

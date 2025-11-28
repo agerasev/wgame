@@ -2526,9 +2526,9 @@ dependencies = [
  "wgame-app",
  "wgame-fs",
  "wgame-gfx",
- "wgame-gfx-font",
  "wgame-gfx-shapes",
  "wgame-gfx-texture",
+ "wgame-gfx-typography",
  "wgame-image",
  "wgame-macros",
  "wgame-shader",
@@ -2575,19 +2575,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgame-font"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "etagere",
- "euclid",
- "image",
- "rand",
- "swash",
- "wgame-image",
-]
-
-[[package]]
 name = "wgame-fs"
 version = "0.1.0"
 dependencies = [
@@ -2610,20 +2597,6 @@ dependencies = [
  "hashbrown 0.16.0",
  "log",
  "rgb",
- "wgpu",
-]
-
-[[package]]
-name = "wgame-gfx-font"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "glam",
- "wgame-font",
- "wgame-gfx",
- "wgame-gfx-texture",
- "wgame-shader",
  "wgpu",
 ]
 
@@ -2657,6 +2630,20 @@ dependencies = [
  "wgame-gfx",
  "wgame-image",
  "wgame-shader",
+ "wgpu",
+]
+
+[[package]]
+name = "wgame-gfx-typography"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "glam",
+ "wgame-gfx",
+ "wgame-gfx-texture",
+ "wgame-shader",
+ "wgame-typography",
  "wgpu",
 ]
 
@@ -2708,6 +2695,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.110",
+]
+
+[[package]]
+name = "wgame-typography"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "etagere",
+ "euclid",
+ "image",
+ "rand",
+ "swash",
+ "wgame-image",
 ]
 
 [[package]]

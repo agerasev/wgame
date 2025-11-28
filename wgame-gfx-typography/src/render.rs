@@ -1,8 +1,8 @@
 use glam::{Mat4, Vec4};
-use wgame_font::swash::GlyphId;
 use wgame_gfx::Resource;
 use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
+use wgame_typography::swash::GlyphId;
 use wgpu::util::DeviceExt;
 
 use crate::FontTexture;

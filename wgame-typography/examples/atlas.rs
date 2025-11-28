@@ -3,8 +3,8 @@ use std::{
     io::{Read, Write},
 };
 
-use wgame_font::{Font, FontAtlas};
 use wgame_image::{Atlas, Encoding};
+use wgame_typography::{Font, FontAtlas};
 
 fn main() {
     let mut contents = Vec::new();

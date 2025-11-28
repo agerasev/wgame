@@ -14,7 +14,7 @@ wgame = { workspace = true, features = [
     "shapes",
     "fs",
     "image",
-    "font",
+    "typography",
     "utils",
 ] }
 glam.workspace = true

@@ -17,10 +17,10 @@ pub mod shader {
 
 #[cfg(feature = "fs")]
 pub use wgame_fs as fs;
-#[cfg(feature = "font")]
-pub use wgame_gfx_font as font;
 #[cfg(feature = "shapes")]
 pub use wgame_gfx_shapes as shapes;
+#[cfg(feature = "typography")]
+pub use wgame_gfx_typography as typography;
 #[cfg(feature = "image")]
 pub use wgame_image as image;
 #[cfg(feature = "utils")]

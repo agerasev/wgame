@@ -2,11 +2,11 @@ use std::ops::Deref;
 
 use wgame_gfx_texture::{Texture, TextureAtlas};
 
-use crate::{FontAtlas, Text, TextState};
+use crate::{FontAtlas, Text, TypographyState};
 
 #[derive(Clone)]
 pub struct FontTexture {
-    pub(crate) library: TextState,
+    pub(crate) library: TypographyState,
     atlas: FontAtlas,
     texture: Texture<u8>,
 }
@@ -20,7 +20,7 @@ impl Deref for FontTexture {
 
 impl FontTexture {
     pub fn new(
-        state: &TextState,
+        state: &TypographyState,
         font_atlas: &FontAtlas,
         texture_atlas: &TextureAtlas<u8>,
     ) -> Self {

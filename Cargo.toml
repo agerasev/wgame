@@ -6,9 +6,9 @@ members = [
     "wgame-gfx",
     "wgame-gfx-texture",
     "wgame-gfx-shapes",
-    "wgame-gfx-font",
+    "wgame-gfx-typography",
     "wgame-fs",
-    "wgame-font",
+    "wgame-typography",
     "wgame-image",
     "wgame-shader",
     "wgame-shader-macros",
@@ -30,10 +30,10 @@ wgame-app-input = { version = "0.1.0", path = "wgame-app-input" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-gfx-texture = { version = "0.1.0", path = "wgame-gfx-texture" }
 wgame-gfx-shapes = { version = "0.1.0", path = "wgame-gfx-shapes" }
-wgame-gfx-font = { version = "0.1.0", path = "wgame-gfx-font" }
+wgame-gfx-typography = { version = "0.1.0", path = "wgame-gfx-typography" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }
-wgame-font = { version = "0.1.0", path = "wgame-font" }
 wgame-image = { version = "0.1.0", path = "wgame-image" }
+wgame-typography = { version = "0.1.0", path = "wgame-typography" }
 wgame-shader = { version = "0.1.0", path = "wgame-shader" }
 wgame-shader-macros = { version = "0.1.0", path = "wgame-shader-macros" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
