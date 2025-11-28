@@ -5,13 +5,13 @@ use half::f16;
 use rgb::{ComponentMap, Rgba};
 
 use wgame_gfx::{
-    Camera, Instance, InstanceVisitor, Object, Resource,
+    Camera, Instance, Visitor, Object, Resource,
     types::{Color, color},
 };
 
 use crate::{Shape, Texture, primitive::InstanceData, renderer::ShapeResource};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Textured<T: Shape> {
     shape: T,
     texture: Texture,
@@ -66,7 +66,7 @@ impl<T: Shape> Instance for Textured<T> {
 impl<T: Shape> Object for Textured<T> {
     type Context = Camera;
 
-    fn visit_instances<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
-        visitor.visit(self);
+    fn draw<V: Visitor<Self::Context>>(&self, visitor: &mut V) {
+        visitor.add(self);
     }
 }

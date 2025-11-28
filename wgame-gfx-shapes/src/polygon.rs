@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug};
+
 use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
 use wgame_gfx::types::Position;
 use wgame_shader::Attribute;
@@ -91,6 +93,7 @@ impl PolygonLibrary {
     }
 }
 
+#[derive(Clone)]
 pub struct Polygon<const N: u32> {
     state: ShapesLibrary,
     vertices: wgpu::Buffer,
@@ -119,6 +122,10 @@ impl<const N: u32> Shape for Polygon<N> {
         self.pipeline.clone()
     }
 }
+
+pub type Triangle = Polygon<3>;
+pub type Quad = Polygon<4>;
+pub type Hexagon = Polygon<6>;
 
 impl ShapesLibrary {
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<3> {
@@ -177,5 +184,11 @@ impl ShapesLibrary {
                 Mat2::from_diagonal(Vec2::new(edge_size, edge_size)),
                 center,
             ))
+    }
+}
+
+impl<const N: u32> Debug for Polygon<N> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Polygon<{N}>")
     }
 }

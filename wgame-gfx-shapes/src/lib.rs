@@ -20,7 +20,7 @@ use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
 
 pub use self::{
     instance::Textured,
-    polygon::Polygon,
+    polygon::{Hexagon, Polygon, Quad, Triangle},
     shape::{Shape, ShapeExt},
 };
 

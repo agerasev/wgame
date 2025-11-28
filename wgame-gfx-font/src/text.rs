@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use glam::{Mat4, Quat, Vec3, Vec4};
 use wgame_font::swash::{GlyphId, shape::ShapeContext};
-use wgame_gfx::{Camera, Instance, InstanceVisitor, Object, Resource};
+use wgame_gfx::{Camera, Instance, Object, Resource, Visitor};
 
 use crate::{
     FontTexture,
@@ -100,7 +100,7 @@ impl Instance for Text {
 impl Object for Text {
     type Context = Camera;
 
-    fn visit_instances<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
-        visitor.visit(self);
+    fn draw<V: Visitor<Self::Context>>(&self, visitor: &mut V) {
+        visitor.add(self);
     }
 }

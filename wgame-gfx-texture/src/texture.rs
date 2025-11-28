@@ -462,3 +462,28 @@ impl<T: Texel> Attribute for TextureAttribute<T> {
         self.0.coord_xform().store(dst);
     }
 }
+
+impl<T: Texel> Debug for Texture<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        #[derive(Debug)]
+        #[allow(dead_code)]
+        struct Texture {
+            pub atlas: *mut (),
+            pub image: Rect<u32>,
+            pub xform: Affine2,
+        }
+
+        Texture {
+            atlas: self.atlas.as_ptr() as *mut (),
+            image: self.image.rect(),
+            xform: self.xform,
+        }
+        .fmt(f)
+    }
+}
+
+impl<T: Texel> Debug for TextureAtlas<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TextureAtlas ({:?})", self.inner.as_ptr() as *mut ())
+    }
+}
