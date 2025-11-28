@@ -1,13 +1,16 @@
 #![forbid(unsafe_code)]
 
+pub type Path = str;
+pub type PathBuf = String;
+
 #[cfg(feature = "std")]
-pub async fn read_bytes(path: &str) -> anyhow::Result<Vec<u8>> {
-    Ok(async_fs::read(path).await?)
+pub async fn read_bytes(path: impl AsRef<Path>) -> anyhow::Result<Vec<u8>> {
+    Ok(async_fs::read(path.as_ref()).await?)
 }
 
 #[cfg(feature = "std")]
-pub async fn read_string(path: &str) -> anyhow::Result<String> {
-    Ok(async_fs::read_to_string(path).await?)
+pub async fn read_string(path: impl AsRef<Path>) -> anyhow::Result<String> {
+    Ok(async_fs::read_to_string(path.as_ref()).await?)
 }
 
 #[cfg(feature = "web")]
@@ -83,12 +86,16 @@ mod web {
         Ok(string)
     }
 
-    pub async fn read_bytes(path: &str) -> Result<Vec<u8>> {
-        request_bytes(path).await.context("Request bytes error")
+    pub async fn read_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>> {
+        request_bytes(path.as_ref())
+            .await
+            .context("Request bytes error")
     }
 
-    pub async fn read_string(path: &str) -> Result<String> {
-        request_string(path).await.context("Request string error")
+    pub async fn read_string(path: impl AsRef<Path>) -> Result<String> {
+        request_string(path.as_ref())
+            .await
+            .context("Request string error")
     }
 }
 

@@ -18,18 +18,18 @@ use wgame_image::{
 };
 use wgame_shader::{Attribute, BindingList, BytesSink};
 
-use crate::{TextureState, texel::Texel};
+use crate::{TexturingState, texel::Texel};
 
 #[derive(Clone)]
 struct TextureInstance {
-    state: TextureState,
+    state: TexturingState,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
 }
 
 pub(crate) struct InnerAtlas<T: Texel> {
-    state: TextureState,
+    state: TexturingState,
     format: wgpu::TextureFormat,
     dst: Option<TextureInstance>,
     src: Atlas<T>,
@@ -49,7 +49,7 @@ pub struct Texture<T: Texel = Rgba<f16>> {
 }
 
 impl TextureInstance {
-    fn new(state: &TextureState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
+    fn new(state: &TexturingState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
         let state = state.clone();
         let device = state.device();
 
@@ -152,7 +152,7 @@ impl<T: Texel> Drop for InnerAtlas<T> {
 }
 
 impl<T: Texel> InnerAtlas<T> {
-    fn new(state: &TextureState, mut src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
+    fn new(state: &TexturingState, mut src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
         assert!(T::is_format_supported(format));
         let mut updates = VecDeque::new();
         updates.push_back(Rect::from_size(src.size()));
@@ -189,13 +189,13 @@ impl<T: Texel> InnerAtlas<T> {
 }
 
 impl<T: Texel> TextureAtlas<T> {
-    pub fn new(state: &TextureState, src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
+    pub fn new(state: &TexturingState, src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
         Self {
             inner: Rc::new(RefCell::new(InnerAtlas::new(state, src, format))),
         }
     }
 
-    pub fn state(&self) -> TextureState {
+    pub fn state(&self) -> TexturingState {
         self.inner.borrow().state.clone()
     }
 

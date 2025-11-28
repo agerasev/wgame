@@ -5,23 +5,23 @@ use std::time::Duration;
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
-    Event, Library, Result, Window, fs::read_bytes, gfx::types::color, prelude::*,
-    shapes::ShapeExt, typography::Font, utils::FrameCounter,
+    Event, Library, Result, Window, gfx::types::color, prelude::*, shapes::ShapeExt,
+    utils::FrameCounter,
 };
 
-#[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
+#[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true)]
 async fn main(mut window: Window<'_>) -> Result<()> {
     let gfx = Library::new(window.graphics());
 
-    let font = Font::new(read_bytes("assets/free-sans-bold.ttf").await?, 0)?;
+    let font = gfx.load_font("assets/free-sans-bold.ttf").await?;
     let font_size = 32.0;
-    let font_atlas = gfx.font(&font, font_size);
+    let font_atlas = font.rasterize(font_size);
     let mut text = "Move your mouse in the window".to_string();
 
-    let ring = gfx
-        .shapes()
-        .ring(Vec2::ZERO, 1.0, 0.5)
-        .texture(gfx.gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]));
+    let ring = gfx.shapes().ring(Vec2::ZERO, 1.0, 0.5).texture(
+        gfx.texturing()
+            .gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]),
+    );
 
     let mut input = window.input();
     let mut mouse_pos = Vec2::ZERO;

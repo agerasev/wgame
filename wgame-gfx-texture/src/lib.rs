@@ -11,20 +11,20 @@ use wgame_gfx::{Graphics, types::Color};
 use wgame_image::{Image, ImageBase, ImageWriteMut};
 
 pub use self::{
-    state::TextureState,
+    state::TexturingState,
     texel::Texel,
     texture::{Texture, TextureAtlas, TextureAttribute, TextureResource},
 };
 
 #[derive(Clone)]
-pub struct TextureLibrary {
-    state: TextureState,
+pub struct TexturingLibrary {
+    state: TexturingState,
     default_atlas: TextureAtlas,
 }
 
-impl TextureLibrary {
+impl TexturingLibrary {
     pub fn new(state: &Graphics) -> Self {
-        let state = TextureState::new(state);
+        let state = TexturingState::new(state);
         Self {
             default_atlas: TextureAtlas::new(
                 &state,
@@ -35,7 +35,7 @@ impl TextureLibrary {
         }
     }
 
-    pub fn state(&self) -> &TextureState {
+    pub fn state(&self) -> &TexturingState {
         &self.state
     }
 

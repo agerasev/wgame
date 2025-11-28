@@ -4,21 +4,21 @@ use wgame_gfx::Graphics;
 
 /// Shared state
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct TextureState {
+pub struct TexturingState {
     inner: Graphics,
     pub uint_bind_group_layout: wgpu::BindGroupLayout,
     pub float_bind_group_layout: wgpu::BindGroupLayout,
     pub float_sampler: wgpu::Sampler,
 }
 
-impl Deref for TextureState {
+impl Deref for TexturingState {
     type Target = Graphics;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl TextureState {
+impl TexturingState {
     pub fn new(state: &Graphics) -> Self {
         Self {
             inner: state.clone(),

@@ -38,6 +38,8 @@ wgame-image = { workspace = true, optional = true }
 wgame-shader.workspace = true
 wgame-utils = { workspace = true, optional = true }
 wgame-macros.workspace = true
+half.workspace = true
+rgb.workspace = true
 anyhow.workspace = true
 log.workspace = true
 

@@ -13,7 +13,7 @@ use wgame_gfx::{
     Graphics,
     types::{Color, color},
 };
-use wgame_gfx_texture::{Texture, TextureLibrary, TextureState};
+use wgame_gfx_texture::{Texture, TexturingLibrary, TexturingState};
 use wgame_image::Image;
 
 use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
@@ -27,11 +27,11 @@ pub use self::{
 /// Library shared state
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ShapesState {
-    texture: TextureState,
+    texture: TexturingState,
 }
 
 impl ShapesState {
-    pub fn texture(&self) -> &TextureState {
+    pub fn texture(&self) -> &TexturingState {
         &self.texture
     }
 }
@@ -60,7 +60,7 @@ impl Deref for ShapesLibrary {
 }
 
 impl ShapesLibrary {
-    pub fn new(state: &Graphics, texture: &TextureLibrary) -> Self {
+    pub fn new(state: &Graphics, texture: &TexturingLibrary) -> Self {
         assert_eq!(state, &**texture.state());
         let state = ShapesState {
             texture: texture.state().clone(),

@@ -1,21 +1,21 @@
 use std::{borrow::Cow, ops::Deref};
 
 use glam::Vec4;
-use wgame_gfx_texture::{TextureAtlas, TextureLibrary, TextureState};
+use wgame_gfx_texture::{TextureAtlas, TexturingLibrary, TexturingState};
 use wgpu::util::DeviceExt;
 
-use crate::{Font, FontAtlas, FontTexture};
+use crate::{FontAtlas, FontData, FontTexture};
 
 #[derive(Clone)]
 pub struct TypographyState {
-    pub(crate) inner: TextureState,
+    pub(crate) inner: TexturingState,
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
     pub(crate) pipeline: wgpu::RenderPipeline,
 }
 
 impl Deref for TypographyState {
-    type Target = TextureState;
+    type Target = TexturingState;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
@@ -24,7 +24,7 @@ impl Deref for TypographyState {
 impl TypographyState {
     const INSTANCE_COMPONENTS: u32 = 6;
 
-    pub fn new(state: &TextureState) -> Self {
+    pub fn new(state: &TexturingState) -> Self {
         let device = state.device().clone();
         let swapchain_format = state.format();
 
@@ -128,7 +128,7 @@ pub struct TypographyLibrary {
 }
 
 impl TypographyLibrary {
-    pub fn new(texture: &TextureLibrary) -> Self {
+    pub fn new(texture: &TexturingLibrary) -> Self {
         let state = TypographyState::new(texture.state());
         Self {
             default_atlas: TextureAtlas::new(
@@ -140,7 +140,7 @@ impl TypographyLibrary {
         }
     }
 
-    pub fn texture(&self, font: &Font, size: f32) -> FontTexture {
+    pub fn texture(&self, font: &FontData, size: f32) -> FontTexture {
         let atlas = self.default_atlas.inner();
         let font_atlas = FontAtlas::new(&atlas, font, size);
         FontTexture::new(&self.state, &font_atlas, &self.default_atlas)
