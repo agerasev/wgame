@@ -36,7 +36,7 @@ impl FontTexture {
         }
     }
 
-    pub fn text(&self, text: &str) -> Option<Text> {
+    pub fn text(&self, text: &str) -> Text {
         Text::new(self, text)
     }
 

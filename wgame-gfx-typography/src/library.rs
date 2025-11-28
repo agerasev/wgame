@@ -4,7 +4,7 @@ use glam::Vec4;
 use wgame_gfx_texture::{TextureAtlas, TexturingLibrary, TexturingState};
 use wgpu::util::DeviceExt;
 
-use crate::{FontAtlas, FontData, FontTexture};
+use crate::{FontAtlas, FontData, FontTexture, RasterSettings};
 
 #[derive(Clone)]
 pub struct TypographyState {
@@ -140,9 +140,9 @@ impl TypographyLibrary {
         }
     }
 
-    pub fn texture(&self, font: &FontData, size: f32) -> FontTexture {
+    pub fn texture(&self, font: &FontData, settings: impl Into<RasterSettings>) -> FontTexture {
         let atlas = self.default_atlas.inner();
-        let font_atlas = FontAtlas::new(&atlas, font, size);
+        let font_atlas = FontAtlas::new(&atlas, font, settings);
         FontTexture::new(&self.state, &font_atlas, &self.default_atlas)
     }
 }

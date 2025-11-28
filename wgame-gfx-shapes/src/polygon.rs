@@ -159,9 +159,9 @@ impl ShapesLibrary {
         }
     }
 
-    pub fn quad(&self, a: Vec2, b: Vec2) -> impl Shape {
-        let center = 0.5 * (a + b);
-        let half_size = 0.5 * (b - a);
+    pub fn quad(&self, (min, max): (Vec2, Vec2)) -> impl Shape {
+        let center = 0.5 * (min + max);
+        let half_size = 0.5 * (max - min);
         let affine = Affine3A::from_mat3_translation(
             Mat3::from_diagonal(Vec3::from((half_size, 1.0))),
             Vec3::from((center, 0.0)),

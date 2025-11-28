@@ -6,7 +6,7 @@ use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
     Event, Library, Result, Window, gfx::types::color, prelude::*, shapes::ShapeExt,
-    utils::FrameCounter,
+    typography::TextAlign, utils::FrameCounter,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true)]
@@ -42,6 +42,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
 
         font_atlas
             .text(&text)
+            .align(TextAlign::Center)
             .transform(Affine2::from_translation(Vec2::new(
                 width as f32 / 2.0,
                 height as f32 / 2.0,

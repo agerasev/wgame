@@ -7,11 +7,11 @@ mod texture;
 
 pub use self::{
     library::{TypographyLibrary, TypographyState},
-    text::Text,
+    text::{Text, TextAlign},
     texture::FontTexture,
 };
 
-pub use wgame_typography::{Font as FontData, FontAtlas};
+pub use wgame_typography::{Font as FontData, FontAtlas, RasterSettings, TextMetrics};
 
 pub struct Font {
     lib: TypographyLibrary,
@@ -26,7 +26,7 @@ impl Font {
         }
     }
 
-    pub fn rasterize(&self, size: f32) -> FontTexture {
-        self.lib.texture(&self.data, size)
+    pub fn rasterize(&self, settings: impl Into<RasterSettings>) -> FontTexture {
+        self.lib.texture(&self.data, settings)
     }
 }

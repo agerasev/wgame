@@ -15,6 +15,17 @@ thread_local! {
     static CONTEXT: RefCell<ScaleContext> = Default::default();
 }
 
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+pub struct RasterSettings {
+    pub size: f32,
+}
+
+impl From<f32> for RasterSettings {
+    fn from(value: f32) -> Self {
+        Self { size: value }
+    }
+}
+
 #[derive(Clone)]
 pub struct FontAtlas {
     font: Font,
@@ -23,7 +34,8 @@ pub struct FontAtlas {
 }
 
 impl FontAtlas {
-    pub fn new(atlas: &Atlas<u8>, font: &Font, size: f32) -> Self {
+    pub fn new(atlas: &Atlas<u8>, font: &Font, settings: impl Into<RasterSettings>) -> Self {
+        let RasterSettings { size } = settings.into();
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();
         let image = atlas.allocate(Size2D::new(init_dim, init_dim));

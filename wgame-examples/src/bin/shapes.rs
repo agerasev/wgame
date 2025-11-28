@@ -18,6 +18,7 @@ use wgame::{
     prelude::*,
     shapes::ShapeExt,
     texture::TextureSettings,
+    typography::TextAlign,
     utils::FrameCounter,
 };
 
@@ -47,7 +48,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
 
     let quad = gfx
         .shapes()
-        .quad(-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2))
+        .quad((-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2)))
         .texture(texture.clone());
 
     let hexagon = gfx.shapes().hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
@@ -81,7 +82,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         if let Some((width, height)) = frame.resized() {
             window_size = (width, height);
             let raster = font_raster.insert(font.rasterize(height as f32 / 10.0));
-            text = raster.text("Hello, World!");
+            text = Some(raster.text("Hello, World!"));
 
             #[cfg(feature = "dump")]
             std::fs::File::create("dump/font_atlas.png")?.write_all(
@@ -140,12 +141,13 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             ))
             .draw(&mut renderer);
         if let Some(text) = &text {
-            text.transform(Affine2::from_scale_angle_translation(
-                Vec2::splat(1.0 / window_size.1 as f32),
-                0.0,
-                Vec2::new(0.4, 0.3),
-            ))
-            .draw(&mut renderer);
+            text.align(TextAlign::Center)
+                .transform(Affine2::from_scale_angle_translation(
+                    Vec2::splat(1.0 / window_size.1 as f32),
+                    0.0,
+                    Vec2::new(2.0 * scale, scale),
+                ))
+                .draw(&mut renderer);
         }
 
         n_passes += frame.render().n_passes;

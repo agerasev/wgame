@@ -1,8 +1,10 @@
 #![forbid(unsafe_code)]
 
 mod atlas;
+mod metrics;
 
-pub use self::atlas::{FontAtlas, GlyphImageInfo};
+pub use self::atlas::{FontAtlas, GlyphImageInfo, RasterSettings};
+pub use metrics::TextMetrics;
 pub use swash;
 
 use std::rc::Rc;
@@ -28,6 +30,10 @@ impl Font {
             offset,
             key,
         })
+    }
+
+    pub fn metrics<T: Into<String>>(&self, size: f32, text: T) -> TextMetrics {
+        TextMetrics::new(self, size, text)
     }
 
     pub fn as_ref(&'_ self) -> FontRef<'_> {
