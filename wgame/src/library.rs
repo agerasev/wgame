@@ -62,7 +62,7 @@ impl Library {
 
     #[cfg(feature = "typography")]
     pub fn make_font(&self, font: &FontData) -> Font {
-        Font::new(&self.typography, &font)
+        Font::new(&self.typography, font)
     }
     #[cfg(feature = "typography")]
     pub async fn load_font(&self, path: impl AsRef<Path>) -> Result<Font> {

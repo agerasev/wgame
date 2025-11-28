@@ -202,7 +202,7 @@ impl<T: Texel> TextureAtlas<T> {
     pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> Texture<T> {
         let size = size.into() + Size2D::new(2, 2);
         let image = self.inner.borrow().src.allocate(size);
-        Texture::new(&self, image)
+        Texture::new(self, image)
     }
 
     pub fn inner(&self) -> Atlas<T> {

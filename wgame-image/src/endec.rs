@@ -36,11 +36,11 @@ impl TryFrom<ImageFormat> for Encoding {
     }
 }
 
-impl Into<ImageFormat> for Encoding {
-    fn into(self) -> ImageFormat {
-        match self {
+impl From<Encoding> for ImageFormat {
+    fn from(value: Encoding) -> Self {
+        match value {
             #[cfg(feature = "png")]
-            Self::Png => ImageFormat::Png,
+            Encoding::Png => Self::Png,
         }
     }
 }

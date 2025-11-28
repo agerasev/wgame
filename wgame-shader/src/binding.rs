@@ -64,6 +64,7 @@ impl BindingList {
         self.0.iter().map(|Binding { ty, .. }| ty.size()).sum()
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.0.len()
     }

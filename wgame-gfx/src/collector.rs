@@ -51,6 +51,6 @@ impl<'a, C: Context> CollectorWithContext<'a, C> {
 
 impl<C: Context> Visitor<C> for CollectorWithContext<'_, C> {
     fn add<T: Instance<Context = C>>(&mut self, instance: T) {
-        self.collector.insert(&mut self.context, instance);
+        self.collector.insert(&self.context, instance);
     }
 }
