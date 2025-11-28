@@ -4,6 +4,12 @@ use rgb::{ComponentMap, Rgba};
 
 use crate::{Camera, Collector, CollectorWithContext, Surface, types::Color};
 
+#[derive(Clone, Copy, Debug)]
+pub struct RenderStatistics {
+    /// Number of render passes
+    pub n_passes: usize,
+}
+
 pub struct Frame<'a, 'b> {
     owner: &'b mut Surface<'a>,
     surface: wgpu::SurfaceTexture,
@@ -67,7 +73,7 @@ impl<'a, 'b> Frame<'a, 'b> {
         }
     }
 
-    pub fn render(&mut self) -> Result<usize> {
+    pub fn render(&mut self) -> RenderStatistics {
         let mut encoder = self
             .owner
             .state
@@ -110,11 +116,11 @@ impl<'a, 'b> Frame<'a, 'b> {
         self.collector = Collector::default();
         self.owner.state.queue().submit(Some(encoder.finish()));
 
-        Ok(n_passes)
+        RenderStatistics { n_passes }
     }
 
     pub fn present(mut self) {
-        self.render().expect("Error during rendering");
+        self.render();
         self.surface.present();
     }
 }

@@ -5,7 +5,7 @@ use anyhow::Result;
 use crate::{
     app::{self, Input, Runtime},
     config::WindowConfig,
-    gfx,
+    gfx::{self, RenderStatistics},
 };
 
 pub use app::{WindowError, WindowedTask};
@@ -103,7 +103,7 @@ impl Frame<'_, '_> {
         self.app.resized()
     }
 
-    pub fn render(&mut self) -> Result<usize> {
+    pub fn render(&mut self) -> RenderStatistics {
         self.gfx.as_mut().unwrap().render()
     }
 }

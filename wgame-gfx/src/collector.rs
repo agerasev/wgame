@@ -2,7 +2,7 @@ use std::{any::Any, rc::Rc};
 
 use hashbrown::{HashMap, hash_map::EntryRef};
 
-use crate::{Camera, Context, Instance, Object, Resource, object::Visitor, resource::AnyResource};
+use crate::{Camera, Context, Instance, Resource, object::Renderer, resource::AnyResource};
 
 #[derive(Default)]
 pub struct Collector {
@@ -10,10 +10,10 @@ pub struct Collector {
 }
 
 impl Collector {
-    pub fn insert<T: Instance>(&mut self, params: &T::Context, instance: T) {
+    pub fn insert_with_context<T: Instance>(&mut self, ctx: &T::Context, instance: T) {
         let resource = instance.resource();
         let instances = self.get_or_init_storage(resource);
-        instance.store(params, instances);
+        instance.store(ctx, instances);
     }
 
     fn get_or_init_storage<R: Resource>(&mut self, resource: R) -> &mut R::Storage {
@@ -32,9 +32,9 @@ impl Collector {
     }
 }
 
-impl<C: Context> Visitor<C> for Collector {
-    fn add<T: Instance<Context = C>>(&mut self, instance: T) {
-        self.insert(&C::default(), instance);
+impl<C: Context> Renderer<C> for Collector {
+    fn insert<T: Instance<Context = C>>(&mut self, instance: T) {
+        self.insert_with_context(&C::default(), instance);
     }
 }
 
@@ -43,14 +43,8 @@ pub struct CollectorWithContext<'a, C: Context = Camera> {
     pub context: C,
 }
 
-impl<'a, C: Context> CollectorWithContext<'a, C> {
-    pub fn add<T: Object<Context = C>>(&mut self, object: T) {
-        object.draw(self);
-    }
-}
-
-impl<C: Context> Visitor<C> for CollectorWithContext<'_, C> {
-    fn add<T: Instance<Context = C>>(&mut self, instance: T) {
-        self.collector.insert(&self.context, instance);
+impl<C: Context> Renderer<C> for CollectorWithContext<'_, C> {
+    fn insert<T: Instance<Context = C>>(&mut self, instance: T) {
+        self.collector.insert_with_context(&self.context, instance);
     }
 }

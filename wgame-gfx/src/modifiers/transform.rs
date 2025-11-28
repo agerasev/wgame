@@ -1,6 +1,6 @@
 use glam::Mat4;
 
-use crate::{Camera, Instance, Object, Visitor, types::Transform};
+use crate::{Camera, Instance, Object, Renderer, types::Transform};
 
 pub trait Transformable {
     type Transformed;
@@ -22,16 +22,16 @@ impl<T> Transformed<T> {
     }
 }
 
-impl<V: Visitor<Camera>> Visitor<Camera> for Transformed<&mut V> {
-    fn add<T: Instance<Context = Camera>>(&mut self, instance: T) {
-        self.inner.add(Transformed::new(instance, self.matrix));
+impl<R: Renderer<Camera>> Renderer<Camera> for Transformed<&mut R> {
+    fn insert<T: Instance<Context = Camera>>(&mut self, instance: T) {
+        self.inner.insert(Transformed::new(instance, self.matrix));
     }
 }
 
 impl<T: Object<Context = Camera>> Object for Transformed<T> {
     type Context = T::Context;
 
-    fn draw<V: Visitor<T::Context>>(&self, visitor: &mut V) {
+    fn draw<R: Renderer<T::Context>>(&self, visitor: &mut R) {
         self.inner.draw(&mut Transformed::new(visitor, self.matrix));
     }
 }
@@ -60,8 +60,8 @@ impl<'a, T: Object<Context = Camera>> Transformable for &'a T {
     }
 }
 
-impl<'a, V: Visitor<Camera>> Transformable for &'a mut V {
-    type Transformed = Transformed<&'a mut V>;
+impl<'a, R: Renderer<Camera>> Transformable for &'a mut R {
+    type Transformed = Transformed<&'a mut R>;
 
     fn transform<X: Transform>(self, xform: X) -> Self::Transformed {
         Transformed::new(self, xform)

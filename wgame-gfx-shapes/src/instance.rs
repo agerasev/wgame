@@ -5,7 +5,7 @@ use half::f16;
 use rgb::{ComponentMap, Rgba};
 
 use wgame_gfx::{
-    Camera, Instance, Visitor, Object, Resource,
+    Camera, Instance, Object, Renderer, Resource,
     types::{Color, color},
 };
 
@@ -54,8 +54,8 @@ impl<T: Shape> Instance for Textured<T> {
     fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage) {
         storage.instances.push(InstanceData {
             xform: camera.view
-                * Mat4::from_scale(Vec3::new(1.0, if camera.y_flip { -1.0 } else { 1.0 }, 1.0))
-                * self.shape.xform(),
+                * self.shape.matrix()
+                * Mat4::from_scale(Vec3::new(1.0, if camera.y_flip { -1.0 } else { 1.0 }, 1.0)),
             tex_xform: self.texture.attribute(),
             color: self.color.map(|x| x.to_f32()),
             custom: self.shape.attribute(),
@@ -66,7 +66,7 @@ impl<T: Shape> Instance for Textured<T> {
 impl<T: Shape> Object for Textured<T> {
     type Context = Camera;
 
-    fn draw<V: Visitor<Self::Context>>(&self, visitor: &mut V) {
-        visitor.add(self);
+    fn draw<R: Renderer<Self::Context>>(&self, visitor: &mut R) {
+        visitor.insert(self);
     }
 }

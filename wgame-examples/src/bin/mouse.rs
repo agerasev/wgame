@@ -38,20 +38,20 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
-        let mut render = frame.with_physical_camera();
+        let mut renderer = frame.with_physical_camera();
 
-        render.add(
-            font_atlas
-                .text(&text)
-                .transform(Affine2::from_translation(Vec2::new(
-                    width as f32 / 2.0,
-                    height as f32 / 2.0,
-                ))),
-        );
+        font_atlas
+            .text(&text)
+            .transform(Affine2::from_translation(Vec2::new(
+                width as f32 / 2.0,
+                height as f32 / 2.0,
+            )))
+            .draw(&mut renderer);
 
-        render.add(ring.transform(
+        ring.transform(
             Affine2::from_translation(mouse_pos) * Affine2::from_scale(Vec2::splat(32.0)),
-        ));
+        )
+        .draw(&mut renderer);
 
         if let Some(fps) = fps.count() {
             println!("FPS: {fps}");

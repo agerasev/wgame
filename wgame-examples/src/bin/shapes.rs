@@ -12,7 +12,11 @@ use rgb::Rgb;
 #[cfg(feature = "dump")]
 use wgame::image::ImageReadExt;
 use wgame::{
-    Library, Result, Window, app::time::Instant, gfx::types::color, prelude::*, shapes::ShapeExt,
+    Library, Result, Window,
+    app::time::Instant,
+    gfx::{Object, types::color},
+    prelude::*,
+    shapes::ShapeExt,
     utils::FrameCounter,
 };
 
@@ -87,49 +91,61 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
-        let mut render = frame.with_unit_camera();
+        let mut renderer = frame.with_unit_camera();
 
         let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
 
-        render.add(triangle.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(scale),
-            angle,
-            Vec2::new(-2.0 * scale, scale),
-        )));
-        render.add(quad.transform(Affine2::from_scale_angle_translation(
+        triangle
+            .transform(Affine2::from_scale_angle_translation(
+                Vec2::splat(scale),
+                angle,
+                Vec2::new(-2.0 * scale, scale),
+            ))
+            .draw(&mut renderer);
+        quad.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(0.0, scale),
-        )));
-        render.add(hexagon.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(scale),
-            angle,
-            Vec2::new(2.0 * scale, scale),
-        )));
-        render.add(circle.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(scale),
-            10.0 * angle,
-            Vec2::new(-2.0 * scale, -scale),
-        )));
-        render.add(ring0.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(scale),
-            10.0 * angle,
-            Vec2::new(0.0 * scale, -scale),
-        )));
-        render.add(ring1.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(scale),
-            10.0 * angle,
-            Vec2::new(2.0 * scale, -scale),
-        )));
+        ))
+        .draw(&mut renderer);
+        hexagon
+            .transform(Affine2::from_scale_angle_translation(
+                Vec2::splat(scale),
+                angle,
+                Vec2::new(2.0 * scale, scale),
+            ))
+            .draw(&mut renderer);
+        circle
+            .transform(Affine2::from_scale_angle_translation(
+                Vec2::splat(scale),
+                10.0 * angle,
+                Vec2::new(-2.0 * scale, -scale),
+            ))
+            .draw(&mut renderer);
+        ring0
+            .transform(Affine2::from_scale_angle_translation(
+                Vec2::splat(scale),
+                10.0 * angle,
+                Vec2::new(0.0 * scale, -scale),
+            ))
+            .draw(&mut renderer);
+        ring1
+            .transform(Affine2::from_scale_angle_translation(
+                Vec2::splat(scale),
+                10.0 * angle,
+                Vec2::new(2.0 * scale, -scale),
+            ))
+            .draw(&mut renderer);
         if let Some(text) = &text {
-            render.add(text.transform(Affine2::from_scale_angle_translation(
+            text.transform(Affine2::from_scale_angle_translation(
                 Vec2::splat(1.0 / window_size.1 as f32),
                 0.0,
                 Vec2::new(0.4, 0.3),
-            )));
+            ))
+            .draw(&mut renderer);
         }
 
-        n_passes += frame.render()?;
+        n_passes += frame.render().n_passes;
         if let Some(frames) = fps.count_ext() {
             log::info!(
                 "FPS: {},\tRPasses per frame: {}",

@@ -16,7 +16,7 @@ pub trait Shape {
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
         None
     }
-    fn xform(&self) -> Mat4 {
+    fn matrix(&self) -> Mat4 {
         Mat4::IDENTITY
     }
     fn attribute(&self) -> Self::Attribute;
@@ -35,8 +35,8 @@ impl<T: Shape> Shape for &T {
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
         T::uniforms(self)
     }
-    fn xform(&self) -> Mat4 {
-        T::xform(self)
+    fn matrix(&self) -> Mat4 {
+        T::matrix(self)
     }
     fn attribute(&self) -> Self::Attribute {
         T::attribute(self)
@@ -54,8 +54,8 @@ pub trait ShapeExt: Shape + Sized {
         }
     }
 
-    fn texture(self, texture: Texture) -> Textured<Self> {
-        Textured::new(self, texture)
+    fn texture(self, texture: impl AsRef<Texture>) -> Textured<Self> {
+        Textured::new(self, texture.as_ref().clone())
     }
     fn color(self, color: impl Color) -> Textured<Self> {
         let texture = self.state().white_texture.clone();
@@ -77,8 +77,8 @@ impl<T: Shape> Shape for Transformed<T> {
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
         self.inner.uniforms()
     }
-    fn xform(&self) -> Mat4 {
-        self.matrix * self.inner.xform()
+    fn matrix(&self) -> Mat4 {
+        self.matrix * self.inner.matrix()
     }
     fn attribute(&self) -> Self::Attribute {
         self.inner.attribute()

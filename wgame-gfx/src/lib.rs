@@ -14,9 +14,9 @@ pub mod utils;
 pub use self::{
     camera::Camera,
     collector::{Collector, CollectorWithContext},
-    frame::Frame,
+    frame::{Frame, RenderStatistics},
     instance::{Context, Instance, InstanceExt},
-    object::{Visitor, Object},
+    object::{Object, Renderer},
     resource::Resource,
     state::Graphics,
 };
@@ -24,7 +24,7 @@ pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
 pub mod prelude {
-    pub use crate::modifiers::Transformable;
+    pub use crate::{modifiers::Transformable, object::Object};
 }
 
 use anyhow::{Context as _, Result};

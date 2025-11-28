@@ -48,6 +48,12 @@ pub struct Texture<T: Texel = Rgba<f16>> {
     xform: Affine2,
 }
 
+impl AsRef<Texture> for Texture {
+    fn as_ref(&self) -> &Texture {
+        self
+    }
+}
+
 impl TextureInstance {
     fn new(state: &TexturingState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
         let state = state.clone();
