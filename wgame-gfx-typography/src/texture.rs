@@ -28,7 +28,7 @@ impl FontTexture {
         if font_atlas.image().atlas() != texture_atlas.inner() {
             panic!("Font atlas and texture atlas are built upon different atlases");
         }
-        let texture = Texture::new(texture_atlas, font_atlas.image());
+        let texture = Texture::new(texture_atlas, font_atlas.image(), Default::default());
         Self {
             library: state.clone(),
             atlas: font_atlas.clone(),

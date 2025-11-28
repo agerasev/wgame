@@ -68,7 +68,10 @@ impl ShapesLibrary {
         Self {
             polygon: PolygonLibrary::new(&state),
             circle: CircleLibrary::new(&state),
-            white_texture: texture.texture(&Image::with_color((1, 1), color::WHITE.to_rgba())),
+            white_texture: texture.texture(
+                &Image::with_color((1, 1), color::WHITE.to_rgba()),
+                Default::default(),
+            ),
             state,
         }
     }

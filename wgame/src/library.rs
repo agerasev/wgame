@@ -1,6 +1,7 @@
 use anyhow::Result;
 use half::f16;
 use rgb::Rgba;
+use wgame_gfx_texture::TextureSettings;
 
 use crate::image::Image;
 #[cfg(feature = "shapes")]
@@ -53,11 +54,15 @@ impl Library {
         &self.typography
     }
 
-    pub fn make_texture(&self, image: &Image<Rgba<f16>>) -> Texture {
-        self.texturing.texture(image)
+    pub fn make_texture(&self, image: &Image<Rgba<f16>>, settings: TextureSettings) -> Texture {
+        self.texturing.texture(image, settings)
     }
-    pub async fn load_texture(&self, path: impl AsRef<Path>) -> Result<Texture> {
-        Ok(self.make_texture(&Image::decode_auto(&read_bytes(path).await?)?))
+    pub async fn load_texture(
+        &self,
+        path: impl AsRef<Path>,
+        settings: TextureSettings,
+    ) -> Result<Texture> {
+        Ok(self.make_texture(&Image::decode_auto(&read_bytes(path).await?)?, settings))
     }
 
     #[cfg(feature = "typography")]

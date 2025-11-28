@@ -8,7 +8,8 @@ pub struct TexturingState {
     inner: Graphics,
     pub uint_bind_group_layout: wgpu::BindGroupLayout,
     pub float_bind_group_layout: wgpu::BindGroupLayout,
-    pub float_sampler: wgpu::Sampler,
+    pub nearest_sampler: wgpu::Sampler,
+    pub linear_sampler: wgpu::Sampler,
 }
 
 impl Deref for TexturingState {
@@ -24,7 +25,8 @@ impl TexturingState {
             inner: state.clone(),
             uint_bind_group_layout: create_uint_bind_group_layout(state),
             float_bind_group_layout: create_float_bind_group_layout(state),
-            float_sampler: create_float_sampler(state),
+            linear_sampler: create_sampler(state, wgpu::FilterMode::Linear),
+            nearest_sampler: create_sampler(state, wgpu::FilterMode::Nearest),
         }
     }
 
@@ -83,12 +85,11 @@ fn create_float_bind_group_layout(state: &Graphics) -> wgpu::BindGroupLayout {
         })
 }
 
-fn create_float_sampler(state: &Graphics) -> wgpu::Sampler {
+fn create_sampler(state: &Graphics, mag_filter: wgpu::FilterMode) -> wgpu::Sampler {
     state.device().create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("wgame_float_sampler"),
         address_mode_u: wgpu::AddressMode::ClampToEdge,
         address_mode_v: wgpu::AddressMode::ClampToEdge,
-        mag_filter: wgpu::FilterMode::Linear,
+        mag_filter,
         min_filter: wgpu::FilterMode::Nearest,
         ..Default::default()
     })

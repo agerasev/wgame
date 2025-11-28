@@ -17,6 +17,7 @@ use wgame::{
     gfx::{Object, types::color},
     prelude::*,
     shapes::ShapeExt,
+    texture::TextureSettings,
     utils::FrameCounter,
 };
 
@@ -24,7 +25,9 @@ use wgame::{
 async fn main(mut window: Window<'_>) -> Result<()> {
     let gfx = Library::new(window.graphics());
 
-    let texture = gfx.load_texture("assets/lenna.png").await?;
+    let texture = gfx
+        .load_texture("assets/lenna.png", TextureSettings::linear())
+        .await?;
     let font = gfx.load_font("assets/free-sans-bold.ttf").await?;
     let mut font_raster = None;
     let mut text = None;

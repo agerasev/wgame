@@ -11,6 +11,7 @@ use std::{
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
 use glam::{Affine2, Vec2};
 use half::f16;
+use hashbrown::HashMap;
 use rgb::Rgba;
 use wgame_image::{
     Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, ImageSliceMut,
@@ -25,7 +26,8 @@ struct TextureInstance {
     state: TexturingState,
     extent: wgpu::Extent3d,
     texture: wgpu::Texture,
-    bind_group: wgpu::BindGroup,
+    view: wgpu::TextureView,
+    bind_groups: HashMap<TextureSettings, wgpu::BindGroup>,
 }
 
 pub(crate) struct InnerAtlas<T: Texel> {
@@ -45,7 +47,23 @@ pub struct TextureAtlas<T: Texel = Rgba<f16>> {
 pub struct Texture<T: Texel = Rgba<f16>> {
     atlas: Rc<RefCell<InnerAtlas<T>>>,
     image: AtlasImage<T>,
+    settings: TextureSettings,
     xform: Affine2,
+}
+
+pub type FilterMode = wgpu::FilterMode;
+
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
+pub struct TextureSettings {
+    pub mag_filter: FilterMode,
+}
+
+impl TextureSettings {
+    pub fn linear() -> Self {
+        Self {
+            mag_filter: FilterMode::Linear,
+        }
+    }
 }
 
 impl AsRef<Texture> for Texture {
@@ -76,42 +94,60 @@ impl TextureInstance {
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let bind_group = match format.sample_type(None, None) {
-            Some(wgpu::TextureSampleType::Uint) => {
-                device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    layout: &state.uint_bind_group_layout,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&view),
-                    }],
-                    label: None,
-                })
-            }
-            Some(wgpu::TextureSampleType::Float { filterable: true }) => {
-                device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    layout: &state.float_bind_group_layout,
-                    entries: &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Sampler(&state.float_sampler),
-                        },
-                    ],
-                    label: None,
-                })
-            }
-            _ => panic!("Unsupported texture format: {format:?}"),
-        };
-
         Self {
             state,
             extent,
             texture,
-            bind_group,
+            view,
+            bind_groups: HashMap::new(),
         }
+    }
+
+    fn get_bind_group(&mut self, settings: TextureSettings) -> wgpu::BindGroup {
+        self.bind_groups
+            .entry(settings)
+            .or_insert_with(|| {
+                let format = self.texture.format();
+                match format.sample_type(None, None) {
+                    Some(wgpu::TextureSampleType::Uint) => {
+                        assert_eq!(settings.mag_filter, FilterMode::Nearest);
+                        self.state
+                            .device()
+                            .create_bind_group(&wgpu::BindGroupDescriptor {
+                                layout: &self.state.uint_bind_group_layout,
+                                entries: &[wgpu::BindGroupEntry {
+                                    binding: 0,
+                                    resource: wgpu::BindingResource::TextureView(&self.view),
+                                }],
+                                label: None,
+                            })
+                    }
+                    Some(wgpu::TextureSampleType::Float { filterable: true }) => self
+                        .state
+                        .device()
+                        .create_bind_group(&wgpu::BindGroupDescriptor {
+                            layout: &self.state.float_bind_group_layout,
+                            entries: &[
+                                wgpu::BindGroupEntry {
+                                    binding: 0,
+                                    resource: wgpu::BindingResource::TextureView(&self.view),
+                                },
+                                wgpu::BindGroupEntry {
+                                    binding: 1,
+                                    resource: wgpu::BindingResource::Sampler(
+                                        match settings.mag_filter {
+                                            FilterMode::Nearest => &self.state.nearest_sampler,
+                                            FilterMode::Linear => &self.state.linear_sampler,
+                                        },
+                                    ),
+                                },
+                            ],
+                            label: None,
+                        }),
+                    _ => panic!("Unsupported texture format: {format:?}"),
+                }
+            })
+            .clone()
     }
 
     fn write<T: Texel>(&self, data: ImageSlice<T>, dst: Point2D<u32>) {
@@ -205,10 +241,10 @@ impl<T: Texel> TextureAtlas<T> {
         self.inner.borrow().state.clone()
     }
 
-    pub fn allocate(&self, size: impl Into<Size2D<u32>>) -> Texture<T> {
+    pub fn allocate(&self, size: impl Into<Size2D<u32>>, settings: TextureSettings) -> Texture<T> {
         let size = size.into() + Size2D::new(2, 2);
         let image = self.inner.borrow().src.allocate(size);
-        Texture::new(self, image)
+        Texture::new(self, image, settings)
     }
 
     pub fn inner(&self) -> Atlas<T> {
@@ -217,10 +253,11 @@ impl<T: Texel> TextureAtlas<T> {
 }
 
 impl<T: Texel> Texture<T> {
-    pub fn new(atlas: &TextureAtlas<T>, image: AtlasImage<T>) -> Self {
+    pub fn new(atlas: &TextureAtlas<T>, image: AtlasImage<T>, settings: TextureSettings) -> Self {
         Self {
             atlas: atlas.inner.clone(),
             image,
+            settings,
             xform: Affine2::IDENTITY,
         }
     }
@@ -385,6 +422,7 @@ impl<T: Texel> Texture<T> {
     pub fn resource(&self) -> TextureResource<T> {
         TextureResource {
             atlas: self.atlas.clone(),
+            settings: self.settings,
         }
     }
 
@@ -404,6 +442,7 @@ impl<T: Texel> Deref for Texture<T> {
 #[derive(Clone)]
 pub struct TextureResource<T: Texel = Rgba<f16>> {
     atlas: Rc<RefCell<InnerAtlas<T>>>,
+    settings: TextureSettings,
 }
 
 impl<T: Texel> TextureResource<T> {
@@ -414,7 +453,7 @@ impl<T: Texel> TextureResource<T> {
     }
 
     pub fn bind_group(&self) -> wgpu::BindGroup {
-        self.get_instance().bind_group.clone()
+        self.get_instance().get_bind_group(self.settings)
     }
 
     pub fn bind_group_layout(&self) -> wgpu::BindGroupLayout {
