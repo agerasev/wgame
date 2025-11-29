@@ -33,7 +33,7 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
     });
 
     let vertex_attributes = VertexData::bindings();
-    let instance_attributes = InstanceData::<()>::bindings().chain(config.instances.clone());
+    let instance_attributes = InstanceData::<()>::bindings().chain(config.instance.clone());
     let vertex_buffers = [
         wgpu::VertexBufferLayout {
             array_stride: vertex_attributes.size(),

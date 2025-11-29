@@ -9,7 +9,7 @@ use wgame::{
     typography::TextAlign, utils::FrameCounter,
 };
 
-#[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true)]
+#[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = false)]
 async fn main(mut window: Window<'_>) -> Result<()> {
     let gfx = Library::new(window.graphics());
 
@@ -18,10 +18,18 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let font_atlas = font.rasterize(font_size);
     let mut text = "Move your mouse in the window".to_string();
 
-    let ring = gfx.shapes().ring(Vec2::ZERO, 1.0, 0.5).texture(
-        gfx.texturing()
-            .gradient2([[color::WHITE, color::BLUE], [color::GREEN, color::RED]]),
-    );
+    let ring = &gfx
+        .shapes()
+        .unit_ring(0.5)
+        .texture(gfx.texturing().gradient2([[
+            color::RED,
+            color::YELLOW,
+            color::GREEN,
+            color::CYAN,
+            color::BLUE,
+            color::MAGENTA,
+            color::RED,
+        ]]));
 
     let mut input = window.input();
     let mut mouse_pos = Vec2::ZERO;

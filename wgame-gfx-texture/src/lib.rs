@@ -48,10 +48,7 @@ impl TexturingLibrary {
     }
 
     pub fn gradient<T: Color, const N: usize>(&self, colors: [T; N]) -> Texture {
-        self.texture(
-            &Image::with_data((N as u32, 1), colors.map(|c| c.to_rgba())),
-            TextureSettings::linear(),
-        )
+        self.gradient2([colors])
     }
 
     pub fn gradient2<T: Color, const M: usize, const N: usize>(

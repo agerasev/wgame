@@ -17,8 +17,8 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct Textured<S, T: AsRef<Texture> = Texture> {
-    inner: S,
-    texture: T,
+    pub inner: S,
+    pub texture: T,
 }
 
 impl<S, T: AsRef<Texture>> Textured<S, T> {

@@ -4,7 +4,6 @@ use std::{
     collections::vec_deque::VecDeque,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    ops::Deref,
     rc::Rc,
 };
 
@@ -400,7 +399,7 @@ impl<T: Texel> Texture<T> {
         let Rect { origin, size } = self.image.rect();
         let item_rect = Rect {
             origin: Point2D::new(origin.x + 1, origin.y + 1),
-            size: Size2D::new(size.width.saturating_sub(2), size.width.saturating_sub(2)),
+            size: Size2D::new(size.width.saturating_sub(2), size.height.saturating_sub(2)),
         };
         let item_xform = Affine2::from_translation(Vec2::new(
             item_rect.origin.x as f32 / atlas_size.width as f32,
@@ -428,14 +427,6 @@ impl<T: Texel> Texture<T> {
 
     pub fn attribute(&self) -> TextureAttribute<T> {
         TextureAttribute(self.clone())
-    }
-}
-
-impl<T: Texel> Deref for Texture<T> {
-    type Target = AtlasImage<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.image
     }
 }
 

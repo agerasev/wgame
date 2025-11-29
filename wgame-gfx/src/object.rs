@@ -26,11 +26,11 @@ impl<T: Object> Object for Option<T> {
     }
 }
 
-pub trait ObjectExt: Object<Context = Camera> {
-    fn transform<X: Transform>(&self, xform: X) -> Transformed<&Self> {
+pub trait ObjectExt: Object<Context = Camera> + Sized {
+    fn transform<X: Transform>(self, xform: X) -> Transformed<Self> {
         Transformed::new(self, xform)
     }
-    fn color<C: Color>(&self, color: C) -> Colored<&Self> {
+    fn color<C: Color>(self, color: C) -> Colored<Self> {
         Colored::new(self, color)
     }
 }

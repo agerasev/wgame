@@ -5,10 +5,20 @@ use wgame_shader::{Attribute, Binding, BindingList};
 
 #[derive(Clone, Default, Debug, Serialize)]
 pub struct ShaderConfig {
-    pub instances: BindingList,
-    pub uniforms: Vec<Binding>,
-    pub vertex_modifier: String,
-    pub fragment_modifier: String,
+    /// Instance buffer additional attributes.
+    pub instance: BindingList,
+    /// Additional variables to pass from vertex shader to fragment shader.
+    pub varying: BindingList,
+    /// Uniforms to pass to fragment shader.
+    pub fragment_uniforms: Vec<Binding>,
+
+    /// Code to execute in vertex shader to set additional varyings and alter basic ones.
+    pub vertex_source: String,
+    /// Code to execute in fragment shader before texture sampling.
+    pub fragment_texcoord_source: String,
+    /// Code to execute in fragment shader after texture sampling.
+    /// Discarding should be done here if needed.
+    pub fragment_color_source: String,
 }
 
 #[derive(Clone, Copy, Attribute)]

@@ -102,6 +102,15 @@ pub struct Binding {
     pub ty: BindingType,
 }
 
+impl Binding {
+    pub fn new(name: impl Into<String>, ty: BindingType) -> Self {
+        Self {
+            name: name.into(),
+            ty,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct BindingType {
     pub item: ScalarType,
@@ -123,7 +132,7 @@ impl BindingType {
             [] => self.item.to_string(),
             [n] => format!("vec{}<{}>", Self::check_dim(*n)?, self.item),
             [m, n] => {
-                if Self::check_dim(*m)? == Self::check_dim(*n)? {
+                if Self::check_dim(*m)? != Self::check_dim(*n)? {
                     format!("mat{m}x{n}<{}>", self.item)
                 } else {
                     format!("mat{m}<{}>", self.item)
@@ -262,24 +271,25 @@ impl From<ScalarType> for String {
     }
 }
 
+#[macro_export]
 macro_rules! binding_type {
     ($item:ident) => {
-        $crate::binding::BindingType {
-            item: $crate::binding::ScalarType::$item,
+        $crate::BindingType {
+            item: $crate::ScalarType::$item,
             dims: [].into_iter().collect(),
         }
     };
     ($item:ident, $n:expr) => {
-        $crate::binding::BindingType {
-            item: $crate::binding::ScalarType::$item,
+        $crate::BindingType {
+            item: $crate::ScalarType::$item,
             dims: [$n].into_iter().collect(),
         }
     };
     ($item:ident, $m:expr, $n:expr) => {
-        $crate::binding::BindingType {
-            item: $crate::binding::ScalarType::$item,
+        $crate::BindingType {
+            item: $crate::ScalarType::$item,
             dims: [$m, $n].into_iter().collect(),
         }
     };
 }
-pub(crate) use binding_type;
+pub use binding_type;

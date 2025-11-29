@@ -1,9 +1,11 @@
-struct VertexInput {
+const PI: f32 = 3.141592653589793238462643;
+
+struct VertexData {
     @location(0) position: vec4<f32>,
     @location(1) local_coord: vec3<f32>,
 };
 
-struct InstanceInput {
+struct InstanceData {
     @location(2) xform_0: vec4<f32>,
     @location(3) xform_1: vec4<f32>,
     @location(4) xform_2: vec4<f32>,
@@ -12,27 +14,27 @@ struct InstanceInput {
     @location(7) tex_xform_v: vec2<f32>,
     @location(8) color: vec4<f32>,
 
-    {% for (i, a) in instances|enumerate %}
+    {% for (i, a) in instance|enumerate %}
     @location({{ i|add(9) }}) {{ a.name }}: {{ a.ty }},
     {% endfor %}
 };
 
-struct VertexOutput {
+struct VaryingData {
     @builtin(position) position: vec4<f32>,
     @location(0) local_coord: vec3<f32>,
     @location(1) tex_coord: vec2<f32>,
     @location(2) color: vec4<f32>,
 
-    {% for (i, a) in instances|enumerate %}
+    {% for (i, a) in varying|enumerate %}
     @location({{ i|add(3) }}) {{ a.name }}: {{ a.ty }},
     {% endfor %}
 };
 
 @vertex
 fn vertex_main(
-    vertex: VertexInput,
-    instance: InstanceInput,
-) -> VertexOutput {
+    vertex: VertexData,
+    instance: InstanceData,
+) -> VaryingData {
     let xform = mat4x4<f32>(
         instance.xform_0,
         instance.xform_1,
@@ -48,17 +50,14 @@ fn vertex_main(
     let position = vertex.position;
     let local_coord = vertex.local_coord;
     let color = instance.color;
-    {{ vertex_modifier }}
 
-    var output: VertexOutput;
-    output.position = xform * position;
-    output.local_coord = local_coord;
+    var output: VaryingData;
+    output.position = xform * vertex.position;
+    output.local_coord = vertex.local_coord;
     output.tex_coord = tex_xform * local_coord;
-    output.color = color;
+    output.color = instance.color;
 
-    {% for (i, a) in instances|enumerate %}
-    output.{{ a.name }} = instance.{{ a.name }};
-    {% endfor %}
+    {{ vertex_source }}
 
     return output;
 }
@@ -71,19 +70,22 @@ var texture: texture_2d<f32>;
 @binding(1)
 var sampler_: sampler;
 
-{% for (i, a) in uniforms|enumerate %}
+{% for (i, a) in fragment_uniforms|enumerate %}
 @group(1)
 @binding({{ i }})
 var<uniform> {{ a.name }}: {{ a.ty }};
 {% endfor %}
 
 @fragment
-fn fragment_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
-    var color = textureSample(texture, sampler_, vertex.tex_coord);
-    color *= vertex.color;
+fn fragment_main(input: VaryingData) -> @location(0) vec4<f32> {
+    var tex_coord = input.tex_coord;
 
-    let coord = vertex.local_coord;
-    {{ fragment_modifier }}
+    {{ fragment_texcoord_source }}
+
+    var color = textureSample(texture, sampler_, tex_coord);
+    color *= input.color;
+
+    {{ fragment_color_source }}
 
     return color;
 }
