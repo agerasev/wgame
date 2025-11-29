@@ -6,6 +6,7 @@ mod frame;
 mod instance;
 pub mod modifiers;
 mod object;
+mod renderer;
 mod resource;
 mod state;
 pub mod types;
@@ -16,7 +17,8 @@ pub use self::{
     collector::{Collector, CollectorWithContext},
     frame::{Frame, RenderStatistics},
     instance::{Context, Instance, InstanceExt},
-    object::{Object, Renderer},
+    object::{Object, ObjectExt},
+    renderer::{Renderer, RendererExt},
     resource::Resource,
     state::Graphics,
 };
@@ -24,7 +26,7 @@ pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
 pub mod prelude {
-    pub use crate::{modifiers::Transformable, object::Object};
+    pub use crate::{Object, ObjectExt, Renderer, RendererExt};
 }
 
 use anyhow::{Context as _, Result};

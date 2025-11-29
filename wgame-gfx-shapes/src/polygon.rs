@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use glam::{Affine2, Affine3A, Mat2, Mat3, Mat4, Vec2, Vec3, Vec4, Vec4Swizzles};
+use glam::{Affine3A, Mat3, Mat4, Vec2, Vec3, Vec4, Vec4Swizzles};
 use wgame_gfx::{modifiers::Transformed, types::Position};
 use wgame_shader::Attribute;
 use wgpu::util::DeviceExt;
@@ -61,7 +61,7 @@ impl PolygonLibrary {
             state
                 .device()
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("quad_vertices"),
+                    label: Some("hexagon_vertices"),
                     contents: &[
                         VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec3::new(0.5, 1.0, 1.0)),
                         VertexData::new(
@@ -89,7 +89,7 @@ impl PolygonLibrary {
             state
                 .device()
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("quad_indices"),
+                    label: Some("hexagon_indices"),
                     contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 3, 4, 4, 5, 0, 0, 2, 4]),
                     usage: wgpu::BufferUsages::INDEX,
                 });
@@ -171,7 +171,7 @@ impl ShapesLibrary {
         }
     }
 
-    pub fn quad(&self, (min, max): (Vec2, Vec2)) -> Transformed<Polygon<4>> {
+    pub fn rectangle(&self, (min, max): (Vec2, Vec2)) -> Transformed<Polygon<4>> {
         let center = 0.5 * (min + max);
         let half_size = 0.5 * (max - min);
         let affine = Affine3A::from_mat3_translation(
@@ -188,14 +188,6 @@ impl ShapesLibrary {
             indices: Some(self.polygon.hexagon_indices.clone()),
             pipeline: self.polygon.pipeline.clone(),
         }
-    }
-
-    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> Transformed<Polygon<6>> {
-        self.unit_hexagon()
-            .transform(Affine2::from_mat2_translation(
-                Mat2::from_diagonal(Vec2::new(edge_size, edge_size)),
-                center,
-            ))
     }
 }
 

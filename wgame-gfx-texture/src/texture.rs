@@ -412,10 +412,10 @@ impl<T: Texel> Texture<T> {
         item_xform * self.xform
     }
 
-    pub fn transform_coord(self, xform: Affine2) -> Self {
+    pub fn transform_coord(&self, xform: Affine2) -> Self {
         Self {
             xform: xform * self.xform,
-            ..self
+            ..self.clone()
         }
     }
 

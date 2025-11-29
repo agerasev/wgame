@@ -48,10 +48,18 @@ async fn main(mut window: Window<'_>) -> Result<()> {
 
     let quad = gfx
         .shapes()
-        .quad((-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2)))
+        .rectangle((-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2)))
         .texture(texture.clone());
 
-    let hexagon = gfx.shapes().hexagon(Vec2::ZERO, 1.0).color(color::BLUE);
+    let hexagon = gfx
+        .shapes()
+        .unit_hexagon()
+        .transform(Affine2::from_scale_angle_translation(
+            Vec2::ONE,
+            0.0,
+            Vec2::ZERO,
+        ))
+        .color(color::BLUE);
 
     let grad = gfx
         .texturing()

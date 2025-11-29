@@ -2,7 +2,7 @@ use std::{any::Any, rc::Rc};
 
 use hashbrown::{HashMap, hash_map::EntryRef};
 
-use crate::{Camera, Context, Instance, Resource, object::Renderer, resource::AnyResource};
+use crate::{Camera, Context, Instance, Renderer, Resource, resource::AnyResource};
 
 #[derive(Default)]
 pub struct Collector {
@@ -12,8 +12,8 @@ pub struct Collector {
 impl Collector {
     pub fn insert_with_context<T: Instance>(&mut self, ctx: &T::Context, instance: T) {
         let resource = instance.resource();
-        let instances = self.get_or_init_storage(resource);
-        instance.store(ctx, instances);
+        let storage = self.get_or_init_storage(resource);
+        instance.store(ctx, storage);
     }
 
     fn get_or_init_storage<R: Resource>(&mut self, resource: R) -> &mut R::Storage {
