@@ -6,8 +6,11 @@ use wgame_shader::Attribute;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline,
-    renderer::VertexBuffers, shader::VertexData,
+    Shape, ShapeExt, ShapesLibrary, ShapesState,
+    pipeline::create_pipeline,
+    resource::VertexBuffers,
+    shader::VertexData,
+    shape::{Element, ShapeContext, Visitor},
 };
 
 #[derive(Clone)]
@@ -110,17 +113,17 @@ impl PolygonLibrary {
 
 #[derive(Clone)]
 pub struct Polygon<const N: u32> {
-    state: ShapesLibrary,
+    library: ShapesLibrary,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl<const N: u32> Shape for Polygon<N> {
+impl<const N: u32> Element for Polygon<N> {
     type Attribute = ();
 
-    fn state(&self) -> &ShapesLibrary {
-        &self.state
+    fn state(&self) -> &ShapesState {
+        &self.library.state
     }
 
     fn vertices(&self) -> VertexBuffers {
@@ -138,6 +141,15 @@ impl<const N: u32> Shape for Polygon<N> {
     }
 }
 
+impl<const N: u32> Shape for Polygon<N> {
+    fn library(&self) -> &ShapesLibrary {
+        &self.library
+    }
+    fn visit<V: Visitor>(&self, ctx: ShapeContext, visitor: &mut V) {
+        visitor.apply(ctx, self);
+    }
+}
+
 pub type Triangle = Polygon<3>;
 pub type Quad = Polygon<4>;
 pub type Hexagon = Polygon<6>;
@@ -150,7 +162,7 @@ impl ShapesLibrary {
         c: impl Position,
     ) -> Transformed<Polygon<3>> {
         Polygon {
-            state: self.clone(),
+            library: self.clone(),
             vertices: self.polygon.triangle_vertices.clone(),
             indices: None,
             pipeline: self.polygon.pipeline.clone(),
@@ -164,7 +176,7 @@ impl ShapesLibrary {
 
     pub fn unit_quad(&self) -> Polygon<4> {
         Polygon {
-            state: self.clone(),
+            library: self.clone(),
             vertices: self.polygon.quad_vertices.clone(),
             indices: Some(self.polygon.quad_indices.clone()),
             pipeline: self.polygon.pipeline.clone(),
@@ -183,7 +195,7 @@ impl ShapesLibrary {
 
     pub fn unit_hexagon(&self) -> Polygon<6> {
         Polygon {
-            state: self.clone(),
+            library: self.clone(),
             vertices: self.polygon.hexagon_vertices.clone(),
             indices: Some(self.polygon.hexagon_indices.clone()),
             pipeline: self.polygon.pipeline.clone(),

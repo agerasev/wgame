@@ -1,5 +1,4 @@
 use glam::{Mat4, Vec3, Vec4};
-use rgb::Rgba;
 use serde::Serialize;
 use wgame_gfx_texture::TextureAttribute;
 use wgame_shader::{Attribute, Binding, BindingList};
@@ -28,6 +27,6 @@ impl VertexData {
 pub struct InstanceData<T: Attribute = ()> {
     pub xform: Mat4,
     pub tex_xform: TextureAttribute,
-    pub color: Rgba<f32>,
+    pub color: Vec4,
     pub custom: T,
 }

@@ -1,89 +1,90 @@
-use glam::Mat4;
+use glam::{Affine2, Mat4};
+use half::f16;
+use rgb::Rgba;
 use wgame_gfx::{
-    modifiers::Transformed,
-    types::{Color, Transform},
+    modifiers::{Colored, Transformed},
+    types::{Color, Transform, color},
 };
 use wgame_shader::Attribute;
 
-use crate::{ShapesLibrary, Texture, Textured, renderer::VertexBuffers};
+use crate::{ShapesLibrary, ShapesState, Texture, Textured, resource::VertexBuffers};
 
-pub trait Shape {
+#[derive(Clone, Copy, Debug)]
+pub struct ShapeContext {
+    pub xform: Mat4,
+    pub tex_xform: Affine2,
+    pub color: Rgba<f16>,
+}
+
+impl Default for ShapeContext {
+    fn default() -> Self {
+        Self {
+            xform: Mat4::IDENTITY,
+            tex_xform: Affine2::IDENTITY,
+            color: color::WHITE.to_rgba(),
+        }
+    }
+}
+
+pub trait Visitor {
+    fn apply<T: Element>(&mut self, ctx: ShapeContext, element: &T);
+}
+
+pub trait Element {
     type Attribute: Attribute;
 
-    fn state(&self) -> &ShapesLibrary;
-
+    fn state(&self) -> &ShapesState;
     fn vertices(&self) -> VertexBuffers;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
         None
-    }
-    fn matrix(&self) -> Mat4 {
-        Mat4::IDENTITY
     }
     fn attribute(&self) -> Self::Attribute;
     fn pipeline(&self) -> wgpu::RenderPipeline;
 }
 
-impl<T: Shape> Shape for &T {
-    type Attribute = T::Attribute;
+pub trait Shape {
+    fn library(&self) -> &ShapesLibrary;
+    fn visit<V: Visitor>(&self, ctx: ShapeContext, visitor: &mut V);
+}
 
-    fn state(&self) -> &ShapesLibrary {
-        T::state(self)
+impl<T: Shape> Shape for &T {
+    fn library(&self) -> &ShapesLibrary {
+        T::library(self)
     }
-    fn vertices(&self) -> VertexBuffers {
-        T::vertices(self)
-    }
-    fn uniforms(&self) -> Option<wgpu::BindGroup> {
-        T::uniforms(self)
-    }
-    fn matrix(&self) -> Mat4 {
-        T::matrix(self)
-    }
-    fn attribute(&self) -> Self::Attribute {
-        T::attribute(self)
-    }
-    fn pipeline(&self) -> wgpu::RenderPipeline {
-        T::pipeline(self)
+    fn visit<V: Visitor>(&self, ctx: ShapeContext, visitor: &mut V) {
+        T::visit(*self, ctx, visitor);
     }
 }
 
 pub trait ShapeExt: Shape + Sized {
+    fn texture(self, texture: impl AsRef<Texture>) -> Textured<Self> {
+        Textured::new(self, texture.as_ref().clone())
+    }
     fn transform<T: Transform>(self, xform: T) -> Transformed<Self> {
         Transformed {
             inner: self,
             matrix: xform.to_mat4(),
         }
     }
-
-    fn texture(self, texture: impl AsRef<Texture>) -> Textured<Self> {
-        Textured::new(self, texture.as_ref().clone())
-    }
-    fn color(self, color: impl Color) -> Textured<Self> {
-        let texture = self.state().white_texture.clone();
-        Textured::new(self, texture).color(color)
+    fn color(self, color: impl Color) -> Colored<Textured<Self>> {
+        let texture = self.library().white_texture.clone();
+        Colored::new(Textured::new(self, texture), color)
     }
 }
 
 impl<T: Shape> ShapeExt for T {}
 
 impl<T: Shape> Shape for Transformed<T> {
-    type Attribute = T::Attribute;
-
-    fn state(&self) -> &ShapesLibrary {
-        self.inner.state()
+    fn library(&self) -> &ShapesLibrary {
+        self.inner.library()
     }
-    fn vertices(&self) -> VertexBuffers {
-        self.inner.vertices()
-    }
-    fn uniforms(&self) -> Option<wgpu::BindGroup> {
-        self.inner.uniforms()
-    }
-    fn matrix(&self) -> Mat4 {
-        self.matrix * self.inner.matrix()
-    }
-    fn attribute(&self) -> Self::Attribute {
-        self.inner.attribute()
-    }
-    fn pipeline(&self) -> wgpu::RenderPipeline {
-        self.inner.pipeline()
+    fn visit<V: Visitor>(&self, ctx: ShapeContext, visitor: &mut V) {
+        self.inner.visit(
+            ShapeContext {
+                xform: ctx.xform * self.matrix,
+                ..ctx
+            },
+            visitor,
+        );
     }
 }

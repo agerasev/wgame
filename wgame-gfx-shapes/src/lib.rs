@@ -1,12 +1,12 @@
 #![forbid(unsafe_code)]
 
 mod circle;
-mod instance;
 mod pipeline;
 mod polygon;
-mod renderer;
+mod resource;
 pub mod shader;
 mod shape;
+mod textured;
 
 use core::ops::Deref;
 use wgame_gfx::{
@@ -19,9 +19,9 @@ use wgame_image::Image;
 use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
 
 pub use self::{
-    instance::Textured,
     polygon::{Hexagon, Polygon, Quad, Triangle},
     shape::{Shape, ShapeExt},
+    textured::Textured,
 };
 
 /// Library shared state

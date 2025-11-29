@@ -2614,6 +2614,7 @@ dependencies = [
  "log",
  "rgb",
  "serde",
+ "smallvec",
  "wgame-gfx",
  "wgame-gfx-texture",
  "wgame-image",

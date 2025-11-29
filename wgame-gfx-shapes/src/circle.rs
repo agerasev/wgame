@@ -2,8 +2,11 @@ use glam::{Affine2, Mat2, Vec2};
 use wgame_shader::Attribute;
 
 use crate::{
-    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline,
-    renderer::VertexBuffers, shader::ShaderConfig,
+    Shape, ShapeExt, ShapesLibrary, ShapesState,
+    pipeline::create_pipeline,
+    resource::VertexBuffers,
+    shader::ShaderConfig,
+    shape::{Element, ShapeContext, Visitor},
 };
 
 #[derive(Clone, Copy, Attribute)]
@@ -40,18 +43,18 @@ impl CircleLibrary {
 }
 
 pub struct Circle {
-    state: ShapesLibrary,
+    library: ShapesLibrary,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
 }
 
-impl Shape for Circle {
+impl Element for Circle {
     type Attribute = CircleAttrs;
 
-    fn state(&self) -> &ShapesLibrary {
-        &self.state
+    fn state(&self) -> &ShapesState {
+        &self.library.state
     }
 
     fn vertices(&self) -> VertexBuffers {
@@ -73,10 +76,19 @@ impl Shape for Circle {
     }
 }
 
+impl Shape for Circle {
+    fn library(&self) -> &ShapesLibrary {
+        &self.library
+    }
+    fn visit<V: Visitor>(&self, ctx: ShapeContext, visitor: &mut V) {
+        visitor.apply(ctx, self);
+    }
+}
+
 impl ShapesLibrary {
     pub fn unit_ring(&self, inner_radius: f32) -> impl Shape {
         Circle {
-            state: self.clone(),
+            library: self.clone(),
             vertices: self.polygon.quad_vertices.clone(),
             indices: Some(self.polygon.quad_indices.clone()),
             pipeline: self.circle.pipeline.clone(),
