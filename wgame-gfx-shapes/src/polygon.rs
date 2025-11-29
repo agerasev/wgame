@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 
-use glam::{Affine2, Affine3A, Mat2, Mat3, Vec2, Vec3, Vec4};
-use wgame_gfx::types::Position;
+use glam::{Affine2, Affine3A, Mat2, Mat3, Mat4, Vec2, Vec3, Vec4, Vec4Swizzles};
+use wgame_gfx::{modifiers::Transformed, types::Position};
 use wgame_shader::Attribute;
 use wgpu::util::DeviceExt;
 
@@ -12,6 +12,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct PolygonLibrary {
+    pub triangle_vertices: wgpu::Buffer,
     pub quad_vertices: wgpu::Buffer,
     pub quad_indices: wgpu::Buffer,
     pub hexagon_vertices: wgpu::Buffer,
@@ -21,6 +22,19 @@ pub struct PolygonLibrary {
 
 impl PolygonLibrary {
     pub fn new(state: &ShapesState) -> Self {
+        let triangle_vertices =
+            state
+                .device()
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("triangle_vertices"),
+                    contents: &[
+                        VertexData::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
+                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
+                        VertexData::new(Vec4::new(0.0, 0.0, 1.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+                    ]
+                    .to_bytes(),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
         let quad_vertices = state
             .device()
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -84,6 +98,7 @@ impl PolygonLibrary {
             create_pipeline(state, &Default::default()).expect("Failed to create polygon pipeline");
 
         Self {
+            triangle_vertices,
             quad_vertices,
             quad_indices,
             hexagon_vertices,
@@ -128,26 +143,23 @@ pub type Quad = Polygon<4>;
 pub type Hexagon = Polygon<6>;
 
 impl ShapesLibrary {
-    pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon<3> {
-        let vertices = self
-            .state
-            .device()
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("triangle_vertices"),
-                contents: &[
-                    VertexData::new(a.to_xyzw(), Vec3::new(0.0, 0.0, 1.0)),
-                    VertexData::new(b.to_xyzw(), Vec3::new(1.0, 0.0, 1.0)),
-                    VertexData::new(c.to_xyzw(), Vec3::new(0.0, 1.0, 1.0)),
-                ]
-                .to_bytes(),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
+    pub fn triangle(
+        &self,
+        a: impl Position,
+        b: impl Position,
+        c: impl Position,
+    ) -> Transformed<Polygon<3>> {
         Polygon {
             state: self.clone(),
-            vertices,
+            vertices: self.polygon.triangle_vertices.clone(),
             indices: None,
             pipeline: self.polygon.pipeline.clone(),
         }
+        .transform(Mat4::from_mat3(Mat3::from_cols(
+            a.to_xyzw().xyz(),
+            b.to_xyzw().xyz(),
+            c.to_xyzw().xyz(),
+        )))
     }
 
     pub fn unit_quad(&self) -> Polygon<4> {
@@ -159,7 +171,7 @@ impl ShapesLibrary {
         }
     }
 
-    pub fn quad(&self, (min, max): (Vec2, Vec2)) -> impl Shape {
+    pub fn quad(&self, (min, max): (Vec2, Vec2)) -> Transformed<Polygon<4>> {
         let center = 0.5 * (min + max);
         let half_size = 0.5 * (max - min);
         let affine = Affine3A::from_mat3_translation(
@@ -178,7 +190,7 @@ impl ShapesLibrary {
         }
     }
 
-    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> impl Shape {
+    pub fn hexagon(&self, center: Vec2, edge_size: f32) -> Transformed<Polygon<6>> {
         self.unit_hexagon()
             .transform(Affine2::from_mat2_translation(
                 Mat2::from_diagonal(Vec2::new(edge_size, edge_size)),
