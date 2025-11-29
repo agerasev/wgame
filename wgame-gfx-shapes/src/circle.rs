@@ -1,8 +1,9 @@
 use glam::{Affine2, Mat2, Vec2};
-use wgame_shader::{Attribute, ShaderConfig};
+use wgame_shader::Attribute;
 
 use crate::{
-    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline, renderer::VertexBuffers,
+    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline,
+    renderer::VertexBuffers, shader::ShaderConfig,
 };
 
 #[derive(Clone, Copy, Attribute)]
@@ -21,7 +22,7 @@ impl CircleLibrary {
             state,
             &ShaderConfig {
                 fragment_modifier: "
-                    let c = coord - vec2(0.5, 0.5);
+                    let c = coord.xy - vec2(0.5, 0.5);
                     let l = 2.0 * length(c);
                     if (l > 1.0 || l < vertex.custom_inner_radius) {
                         discard;

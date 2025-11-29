@@ -48,7 +48,8 @@ half = { version = "2.7.1", default-features = false, features = ["bytemuck"] }
 euclid = { version = "0.22.11", default-features = false }
 image = { version = "0.25.8", default-features = false }
 hashbrown = { version = "0.16.0", features = ["core", "alloc"] }
-smallvec = "1.15.1"
+smallvec = { version = "1.15.1", features = ["serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
 derivative = { version = "2.2.0", features = ["use_core"] }
 thiserror = { version = "2.0.17", default-features = false }
 anyhow = "1.0.100"

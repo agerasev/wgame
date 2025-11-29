@@ -6,8 +6,8 @@ use wgame_shader::Attribute;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline, primitive::VertexData,
-    renderer::VertexBuffers,
+    Shape, ShapeExt, ShapesLibrary, ShapesState, pipeline::create_pipeline,
+    renderer::VertexBuffers, shader::VertexData,
 };
 
 #[derive(Clone)]
@@ -26,10 +26,10 @@ impl PolygonLibrary {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_vertices"),
                 contents: &[
-                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec2::new(0.0, 1.0)),
-                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec2::new(1.0, 1.0)),
-                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec2::new(0.0, 0.0)),
-                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec2::new(1.0, 0.0)),
+                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec3::new(1.0, 1.0, 1.0)),
+                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
+                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
                 ]
                 .to_bytes(),
                 usage: wgpu::BufferUsages::VERTEX,
@@ -49,23 +49,23 @@ impl PolygonLibrary {
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("quad_vertices"),
                     contents: &[
-                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec2::new(0.5, 1.0)),
+                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec3::new(0.5, 1.0, 1.0)),
                         VertexData::new(
                             Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.75),
+                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.75, 1.0),
                         ),
                         VertexData::new(
                             Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec2::new(0.5 + 0.5 * sqrt_3_2, 0.25),
+                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.25, 1.0),
                         ),
-                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec2::new(0.5, 0.0)),
+                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.5, 0.0, 1.0)),
                         VertexData::new(
                             Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.25),
+                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.25, 1.0),
                         ),
                         VertexData::new(
                             Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec2::new(0.5 - 0.5 * sqrt_3_2, 0.75),
+                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.75, 1.0),
                         ),
                     ]
                     .to_bytes(),
@@ -135,9 +135,9 @@ impl ShapesLibrary {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("triangle_vertices"),
                 contents: &[
-                    VertexData::new(a.to_xyzw(), Vec2::new(0.0, 0.0)),
-                    VertexData::new(b.to_xyzw(), Vec2::new(1.0, 0.0)),
-                    VertexData::new(c.to_xyzw(), Vec2::new(0.0, 1.0)),
+                    VertexData::new(a.to_xyzw(), Vec3::new(0.0, 0.0, 1.0)),
+                    VertexData::new(b.to_xyzw(), Vec3::new(1.0, 0.0, 1.0)),
+                    VertexData::new(c.to_xyzw(), Vec3::new(0.0, 1.0, 1.0)),
                 ]
                 .to_bytes(),
                 usage: wgpu::BufferUsages::VERTEX,

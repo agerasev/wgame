@@ -17,3 +17,4 @@ glam.workspace = true
 rgb.workspace = true
 half.workspace = true
 derivative.workspace = true
+serde.workspace = true

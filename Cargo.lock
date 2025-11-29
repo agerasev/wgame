@@ -2613,6 +2613,7 @@ dependencies = [
  "half",
  "log",
  "rgb",
+ "serde",
  "wgame-gfx",
  "wgame-gfx-texture",
  "wgame-image",

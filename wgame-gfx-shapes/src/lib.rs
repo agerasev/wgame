@@ -4,8 +4,8 @@ mod circle;
 mod instance;
 mod pipeline;
 mod polygon;
-pub mod primitive;
 mod renderer;
+pub mod shader;
 mod shape;
 
 use core::ops::Deref;

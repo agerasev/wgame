@@ -1,15 +1,8 @@
+use std::fmt::Debug;
+
 use anyhow::Result;
 use minijinja::{Environment, UndefinedBehavior, Value, value::ValueKind};
 use serde::Serialize;
-
-use crate::binding::{Binding, BindingList};
-
-#[derive(Clone, Default, Debug, Serialize)]
-pub struct ShaderConfig {
-    pub fragment_modifier: String,
-    pub instances: BindingList,
-    pub uniforms: Vec<Binding>,
-}
 
 #[derive(Clone, Debug)]
 pub struct ShaderSource {
@@ -35,7 +28,7 @@ impl ShaderSource {
         Ok(Self { name, env })
     }
 
-    pub fn substitute(&self, ctx: &ShaderConfig) -> Result<String> {
+    pub fn substitute<S: Serialize + Debug>(&self, ctx: &S) -> Result<String> {
         let template = self.env.get_template(&self.name)?;
         let rendered = template.render(ctx)?;
         log::debug!(

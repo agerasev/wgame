@@ -1,6 +1,6 @@
 struct VertexInput {
     @location(0) position: vec4<f32>,
-    @location(1) local_coord: vec2<f32>,
+    @location(1) local_coord: vec3<f32>,
 };
 
 struct InstanceInput {
@@ -19,7 +19,7 @@ struct InstanceInput {
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
-    @location(0) local_coord: vec2<f32>,
+    @location(0) local_coord: vec3<f32>,
     @location(1) tex_coord: vec2<f32>,
     @location(2) color: vec4<f32>,
 
@@ -45,11 +45,16 @@ fn vertex_main(
         instance.tex_xform_v,
     );
 
+    let position = vertex.position;
+    let local_coord = vertex.local_coord;
+    let color = instance.color;
+    {{ vertex_modifier }}
+
     var output: VertexOutput;
-    output.position = xform * vertex.position;
-    output.local_coord = vertex.local_coord;
-    output.tex_coord = tex_xform * vec3(vertex.local_coord, 1.0);
-    output.color = instance.color;
+    output.position = xform * position;
+    output.local_coord = local_coord;
+    output.tex_coord = tex_xform * local_coord;
+    output.color = color;
 
     {% for (i, a) in instances|enumerate %}
     output.{{ a.name }} = instance.{{ a.name }};

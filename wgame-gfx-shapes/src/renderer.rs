@@ -6,7 +6,7 @@ use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
 
-use crate::primitive::InstanceData;
+use crate::shader::InstanceData;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct VertexBuffers {

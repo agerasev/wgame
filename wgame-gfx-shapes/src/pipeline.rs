@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
 use anyhow::Result;
-use wgame_shader::{Attribute, ShaderConfig, ShaderSource};
+use wgame_shader::{Attribute, ShaderSource};
 
 use crate::{
     ShapesState,
-    primitive::{InstanceData, VertexData},
+    shader::{InstanceData, ShaderConfig, VertexData},
 };
 
 pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgpu::RenderPipeline> {

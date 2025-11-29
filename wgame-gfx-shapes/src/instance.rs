@@ -9,7 +9,7 @@ use wgame_gfx::{
     types::{Color, color},
 };
 
-use crate::{Shape, Texture, primitive::InstanceData, renderer::ShapeResource};
+use crate::{Shape, Texture, renderer::ShapeResource, shader::InstanceData};
 
 #[derive(Clone, Debug)]
 pub struct Textured<T: Shape> {
