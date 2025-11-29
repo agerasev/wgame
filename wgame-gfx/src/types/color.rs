@@ -11,8 +11,24 @@ pub const BLUE: Rgb<f32> = Rgb::new(0.0, 0.0, 1.0);
 pub const MAGENTA: Rgb<f32> = Rgb::new(1.0, 0.0, 1.0);
 pub const WHITE: Rgb<f32> = Rgb::new(1.0, 1.0, 1.0);
 
-pub trait Color {
+pub trait Color: Copy + Sized {
     fn to_rgba(self) -> Rgba<f16>;
+
+    fn to_vec4(self) -> Vec4 {
+        let c = self.to_rgba();
+        Vec4::new(c.r.to_f32(), c.g.to_f32(), c.b.to_f32(), c.a.to_f32())
+    }
+
+    fn multiply(self, other: impl Color) -> Rgba<f16> {
+        let c = self.to_rgba();
+        let d = other.to_rgba();
+        Rgba {
+            r: c.r * d.r,
+            g: c.g * d.g,
+            b: c.b * d.b,
+            a: c.a * d.a,
+        }
+    }
 }
 
 impl Color for Rgb<f32> {
@@ -58,6 +74,10 @@ impl Color for Vec3 {
             a: f16::ONE,
         }
     }
+
+    fn to_vec4(self) -> Vec4 {
+        Vec4::from((self, 1.0))
+    }
 }
 
 impl Color for Vec4 {
@@ -68,5 +88,9 @@ impl Color for Vec4 {
             b: f16::from_f32(self.z),
             a: f16::from_f32(self.w),
         }
+    }
+
+    fn to_vec4(self) -> Vec4 {
+        self
     }
 }

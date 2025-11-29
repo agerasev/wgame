@@ -11,5 +11,7 @@ wgame-gfx-texture.workspace = true
 wgame-shader.workspace = true
 wgpu.workspace = true
 glam.workspace = true
+rgb.workspace = true
+half.workspace = true
 bytemuck.workspace = true
 anyhow.workspace = true

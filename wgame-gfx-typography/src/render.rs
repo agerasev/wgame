@@ -1,11 +1,10 @@
 use glam::{Mat4, Vec4};
-use wgame_gfx::Resource;
+use wgame_gfx::{Resource, types::Color};
 use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
-use wgame_typography::swash::GlyphId;
 use wgpu::util::DeviceExt;
 
-use crate::FontTexture;
+use crate::{FontTexture, text::TextInstance};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextResource {
@@ -29,17 +28,6 @@ impl TextResource {
             device: library.device().clone(),
         }
     }
-}
-
-pub struct TextInstance {
-    pub texture: FontTexture,
-    pub glyphs: Vec<GlyphInstance>,
-    pub color: Vec4,
-}
-
-pub struct GlyphInstance {
-    pub xform: Mat4,
-    pub id: GlyphId,
 }
 
 #[derive(Attribute)]
@@ -74,7 +62,7 @@ impl Resource for TextResource {
                         rect.size.width as f32,
                         rect.size.height as f32,
                     ),
-                    color: text.color,
+                    color: text.color.to_vec4(),
                 };
                 attr.store(&mut bytes);
                 instance_count += 1;
