@@ -17,6 +17,7 @@ wgame = { workspace = true, features = [
     "typography",
     "utils",
 ] }
+futures.workspace = true
 glam.workspace = true
 rgb.workspace = true
 log.workspace = true

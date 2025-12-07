@@ -38,7 +38,10 @@ wgame-shader = { version = "0.1.0", path = "wgame-shader" }
 wgame-shader-macros = { version = "0.1.0", path = "wgame-shader-macros" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
-futures = { version = "0.3.31", default-features = false, features = ["std"] }
+futures = { version = "0.3.31", default-features = false, features = [
+    "std",
+    "async-await",
+] }
 winit = { version = "0.30.12", default-features = false, features = ["rwh_06"] }
 wgpu = { version = "27.0.1", default-features = false, features = ["wgsl"] }
 bytemuck = "1.24.0"

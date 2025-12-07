@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    mem::{self, replace},
+    mem::replace,
     pin::Pin,
     rc::Rc,
     task::{Context, Poll, Waker},
@@ -25,6 +25,7 @@ pub(crate) struct WindowState {
     resized: bool,
     close_requested: bool,
     redraw_requested: bool,
+    redraw_ready: bool,
     terminated: bool,
 }
 
@@ -36,7 +37,7 @@ impl WindowState {
                 self.close_requested = true;
             }
             WindowEvent::RedrawRequested => {
-                self.redraw_requested = true;
+                self.redraw_ready = true;
             }
             WindowEvent::Resized(size) => {
                 self.size = *size;
@@ -130,6 +131,7 @@ impl<'a> Window<'a> {
 
     pub fn request_redraw(&mut self) -> WaitRedraw<'a, '_> {
         self.handle.request_redraw();
+        self.state.borrow_mut().redraw_requested = true;
         WaitRedraw { owner: self }
     }
 }
@@ -160,7 +162,8 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
             return Poll::Ready(None);
         }
 
-        let result = if mem::take(&mut state.redraw_requested) {
+        let result = if state.redraw_requested && state.redraw_ready {
+            (state.redraw_requested, state.redraw_ready) = (false, false);
             if let size @ ((0, _) | (_, 0)) = owner.size() {
                 log::warn!("Redraw requested but window size is zero: {size:?}");
                 owner.handle.request_redraw();

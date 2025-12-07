@@ -36,7 +36,10 @@ impl EventHandler {
     pub fn push(&mut self, event: Event) {
         self.states.retain_mut(|state| match state.upgrade() {
             Some(state) => {
-                state.push_event(event.clone());
+                match &event {
+                    Event::RedrawRequested => (),
+                    _ => state.push_event(event.clone()),
+                }
                 true
             }
             None => false,

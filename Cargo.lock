@@ -2570,6 +2570,7 @@ dependencies = [
 name = "wgame-examples"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "glam",
  "log",
  "rgb",
