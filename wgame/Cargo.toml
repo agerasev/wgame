@@ -12,14 +12,12 @@ desktop = [
     "wgame-gfx/vulkan",
     "wgame-gfx/gles",
     "wgame-fs?/std",
-    "wgame-utils?/std",
 ]
 web = [
     "wgame-app/web",
     "wgame-gfx/webgl",
     # "wgame-gfx/webgpu",
     "wgame-fs?/web",
-    "wgame-utils?/web",
 ]
 shapes = ["dep:wgame-gfx-shapes"]
 fs = ["dep:wgame-fs"]

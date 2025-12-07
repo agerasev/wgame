@@ -19,7 +19,7 @@ use wgame::{
     shapes::ShapeExt,
     texture::TextureSettings,
     typography::TextAlign,
-    utils::FrameCounter,
+    utils::PeriodicTimer,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = true)]
@@ -96,7 +96,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
 
     let scale = 1.0 / 3.0;
     let start_time = Instant::now();
-    let mut fps = FrameCounter::new(Duration::from_secs(4));
+    let mut periodic = PeriodicTimer::new(Duration::from_secs(4));
+    let mut n_frames = 0;
     let mut n_passes = 0;
     while let Some(mut frame) = window.next_frame().await? {
         if let Some((width, height)) = frame.resized() {
@@ -183,14 +184,19 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 .draw(&mut renderer);
         }
 
-        n_passes += frame.render().n_passes;
-        if let Some(frames) = fps.count_ext() {
-            log::info!(
-                "FPS: {},\tRPasses per frame: {}",
-                frames.per_second(),
-                n_passes as f32 / frames.count as f32,
-            );
-            n_passes = 0;
+        {
+            n_frames += 1;
+            n_passes += frame.render().n_passes;
+            let dur = periodic.elapsed_periods();
+            if !dur.is_zero() {
+                log::info!(
+                    "FPS: {},\tRPasses per frame: {}",
+                    n_frames as f32 / dur.as_secs_f32(),
+                    n_passes as f32 / n_frames as f32,
+                );
+                n_frames = 0;
+                n_passes = 0;
+            }
         }
     }
     Ok(())

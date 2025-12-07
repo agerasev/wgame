@@ -86,9 +86,8 @@ impl Runtime {
         output
     }
 
-    pub fn create_timer(&self, timeout: Duration) -> Timer {
-        let timestamp = Instant::now().checked_add(timeout).unwrap();
-        self.timers.borrow_mut().add(timestamp)
+    pub fn create_timer(&self, timestamp: Instant) -> Timer {
+        self.timers.borrow_mut().insert(timestamp)
     }
 }
 
@@ -126,8 +125,13 @@ impl<T> FusedFuture for Task<T> {
     }
 }
 
-pub async fn sleep(timeout: Duration) {
-    Runtime::current().create_timer(timeout).await;
+pub fn sleep_until(timestamp: Instant) -> Timer {
+    Runtime::current().create_timer(timestamp)
+}
+
+pub fn sleep(timeout: Duration) -> Timer {
+    let timestamp = Instant::now().checked_add(timeout).unwrap();
+    Runtime::current().create_timer(timestamp)
 }
 
 pub fn spawn<F>(future: F) -> Task<F::Output>

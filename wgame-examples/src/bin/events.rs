@@ -6,8 +6,8 @@ use futures::{FutureExt, StreamExt, select_biased};
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
-    Event, Library, Result, Window, gfx::types::color, prelude::*, shapes::ShapeExt, sleep,
-    typography::TextAlign, utils::FrameCounter,
+    Event, Library, Result, Window, gfx::types::color, prelude::*, shapes::ShapeExt,
+    typography::TextAlign, utils::PeriodicTimer,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = false)]
@@ -36,24 +36,40 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let mut input = window.input();
     let mut mouse_pos = Vec2::ZERO;
 
-    let update_duration = Duration::from_secs(1);
-    let mut fps = FrameCounter::new(2 * update_duration);
+    let mut periodic = PeriodicTimer::new(Duration::from_secs(1));
+    let mut n_frames: u32 = 0;
+    let mut need_redraw = true;
     loop {
-        let mut event = select_biased! {
-            ev = input.next().fuse() => ev,
-            () = sleep(update_duration).fuse() => None,
-        };
-        while let Some(ev) = event {
-            match ev {
-                Event::CursorMoved { position, .. } => {
-                    mouse_pos = Vec2::new(position.x as f32, position.y as f32);
-                    mouse_text = format!("Mouse pos: {},{}", position.x as i32, position.y as i32);
+        if !need_redraw {
+            let mut event = select_biased! {
+                event = input.next().fuse() => event,
+                dur = periodic.wait_next().fuse() => {
+                    let fps = n_frames as f32 / dur.as_secs_f32();
+                    n_frames = 0;
+                    fps_text = format!("FPS: {fps}");
+                    println!("{}", fps_text);
+                    need_redraw = true;
+                    None
+                },
+            };
+            while let Some(ev) = event {
+                match ev {
+                    Event::CursorMoved { position, .. } => {
+                        mouse_pos = Vec2::new(position.x as f32, position.y as f32);
+                        mouse_text =
+                            format!("Mouse pos: {},{}", position.x as i32, position.y as i32);
+                        need_redraw = true;
+                    }
+                    Event::CloseRequested => break,
+                    _ => (),
                 }
-                Event::CloseRequested => break,
-                _ => (),
+                event = input.try_next();
             }
-            event = input.try_next();
         }
+        if !need_redraw {
+            continue;
+        }
+        need_redraw = false;
 
         let mut frame = match window.next_frame().await? {
             Some(frame) => frame,
@@ -91,10 +107,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             .transform(Affine2::from_translation(Vec2::new(0.0, font_size)))
             .draw(&mut renderer);
 
-        if let Some(fps) = fps.count() {
-            fps_text = format!("FPS: {fps}");
-            println!("{}", fps_text);
-        }
+        n_frames += 1;
     }
     Ok(())
 }

@@ -2722,7 +2722,8 @@ dependencies = [
 name = "wgame-utils"
 version = "0.1.0"
 dependencies = [
- "web-time",
+ "futures",
+ "wgame-app",
 ]
 
 [[package]]

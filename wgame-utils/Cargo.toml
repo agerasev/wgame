@@ -4,9 +4,6 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
-[features]
-std = []
-web = []
-
 [dependencies]
-web-time.workspace = true
+wgame-app.workspace = true
+futures.workspace = true

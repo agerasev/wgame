@@ -1,75 +1,48 @@
 #![forbid(unsafe_code)]
 
-use std::{ops::Deref, time::Duration};
+use futures::future::FusedFuture;
+use std::time::Duration;
+use wgame_app::{
+    runtime::sleep_until,
+    sleep,
+    time::{Instant, Timer},
+};
 
-#[cfg(feature = "std")]
-use std::time::Instant;
-#[cfg(feature = "web")]
-use web_time::Instant;
-
-pub struct FrameCounter {
-    pub start: Instant,
-    pub count: usize,
-    pub period: Duration,
+pub struct PeriodicTimer {
+    timer: Timer,
+    period: Duration,
 }
 
-impl Default for FrameCounter {
-    fn default() -> Self {
-        Self::new(Duration::from_secs(10))
-    }
-}
-
-impl FrameCounter {
+impl PeriodicTimer {
     pub fn new(period: Duration) -> Self {
+        dbg!(period);
         Self {
-            start: Instant::now(),
-            count: 0,
+            timer: sleep(period),
             period,
         }
     }
 
-    #[must_use]
-    pub fn count(&mut self) -> Option<f32> {
-        self.count_ext().map(|guard| guard.per_second())
+    pub fn period(&self) -> Duration {
+        self.period
     }
 
-    #[must_use]
-    pub fn count_ext(&mut self) -> Option<CountGuard<'_>> {
-        self.count += 1;
-        let now = Instant::now();
-        let elapsed = now - self.start;
-        if elapsed > self.period {
-            Some(CountGuard { owner: self, now })
+    pub fn elapsed_periods(&mut self) -> Duration {
+        if self.timer.is_terminated() {
+            let now = Instant::now();
+            let elapsed = now - self.timer.timestamp() + self.period;
+            let n_periods = elapsed.div_duration_f32(self.period);
+            let last_timestamp = self.timer.timestamp() + self.period.mul_f32(n_periods);
+            let elapsed = last_timestamp - self.timer.timestamp();
+            let next_timestamp = last_timestamp + self.period;
+            self.timer = sleep_until(next_timestamp);
+            elapsed
         } else {
-            None
+            Duration::ZERO
         }
     }
-}
 
-pub struct CountGuard<'a> {
-    owner: &'a mut FrameCounter,
-    pub now: Instant,
-}
-
-impl CountGuard<'_> {
-    pub fn elapsed(&self) -> Duration {
-        self.now - self.start
-    }
-    pub fn per_second(&self) -> f32 {
-        self.count as f32 / self.elapsed().as_secs_f32()
-    }
-}
-
-impl Deref for CountGuard<'_> {
-    type Target = FrameCounter;
-    fn deref(&self) -> &Self::Target {
-        self.owner
-    }
-}
-
-impl Drop for CountGuard<'_> {
-    fn drop(&mut self) {
-        self.owner.start = self.now;
-        self.owner.count = 0;
+    pub async fn wait_next(&mut self) -> Duration {
+        (&mut self.timer).await;
+        self.elapsed_periods()
     }
 }
