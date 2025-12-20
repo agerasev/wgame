@@ -8,8 +8,8 @@ use anyhow::{Result, bail};
 use serde::Serialize;
 use smallvec::SmallVec;
 
-#[derive(Clone, Default, Debug, Serialize)]
-pub struct BindingList(SmallVec<[Binding; 2]>);
+#[derive(Clone, Default, PartialEq, Eq, Hash, Debug, Serialize)]
+pub struct BindingList(SmallVec<[Binding; 3]>);
 
 impl FromIterator<Binding> for BindingList {
     fn from_iter<T: IntoIterator<Item = Binding>>(iter: T) -> Self {
@@ -19,7 +19,7 @@ impl FromIterator<Binding> for BindingList {
 
 impl IntoIterator for BindingList {
     type Item = Binding;
-    type IntoIter = <SmallVec<[Binding; 2]> as IntoIterator>::IntoIter;
+    type IntoIter = <SmallVec<[Binding; 3]> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
@@ -96,7 +96,7 @@ impl BindingList {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize)]
 pub struct Binding {
     pub name: String,
     pub ty: BindingType,
@@ -111,7 +111,7 @@ impl Binding {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct BindingType {
     pub item: ScalarType,
     pub dims: SmallVec<[usize; 2]>,
@@ -213,7 +213,7 @@ impl Serialize for BindingType {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
 #[serde(into = "String")]
 pub enum ScalarType {
     U8,

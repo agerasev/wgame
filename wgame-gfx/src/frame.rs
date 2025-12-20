@@ -1,8 +1,7 @@
 use anyhow::{Context as _, Result};
-use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
-use crate::{Camera, Collector, CollectorWithContext, Surface, types::Color};
+use crate::{Collector, Surface, types::Color};
 
 #[derive(Clone, Copy, Debug)]
 pub struct RenderStatistics {
@@ -48,6 +47,7 @@ impl<'a, 'b> Frame<'a, 'b> {
     pub fn collector(&mut self) -> &mut Collector {
         &mut self.collector
     }
+    /*
     pub fn with_physical_camera(&mut self) -> CollectorWithContext<'_, Camera> {
         let (width, height) = self.owner.size();
         CollectorWithContext {
@@ -72,7 +72,7 @@ impl<'a, 'b> Frame<'a, 'b> {
             },
         }
     }
-
+    */
     pub fn render(&mut self) -> RenderStatistics {
         let mut encoder = self
             .owner

@@ -23,7 +23,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let ring = &gfx
         .shapes()
         .unit_ring(0.5)
-        .texture(gfx.texturing().gradient2([[
+        .with_texture(gfx.texturing().gradient2([[
             color::RED,
             color::YELLOW,
             color::GREEN,
@@ -94,7 +94,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 width as f32 / 2.0,
                 height as f32 / 2.0,
             )))
-            .draw(&mut renderer);
+            .for_each_instance(&mut renderer);
 
         ring.transform(
             Affine2::from_translation(mouse_pos) * Affine2::from_scale(Vec2::splat(32.0)),
@@ -105,7 +105,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             .text(&fps_text)
             .align(TextAlign::Left)
             .transform(Affine2::from_translation(Vec2::new(0.0, font_size)))
-            .draw(&mut renderer);
+            .for_each_instance(&mut renderer);
 
         n_frames += 1;
     }

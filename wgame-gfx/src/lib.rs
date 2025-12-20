@@ -1,7 +1,6 @@
 #![forbid(unsafe_code)]
 
 mod camera;
-mod collector;
 mod frame;
 mod instance;
 pub mod modifiers;
@@ -14,11 +13,10 @@ pub mod utils;
 
 pub use self::{
     camera::Camera,
-    collector::{Collector, CollectorWithContext},
     frame::{Frame, RenderStatistics},
-    instance::{Context, Instance, InstanceExt},
-    object::{Object, ObjectExt},
-    renderer::{Renderer, RendererExt},
+    instance::Instance,
+    object::Object,
+    renderer::{Collector, InstanceVisitor, Renderer},
     resource::Resource,
     state::Graphics,
 };
@@ -26,7 +24,8 @@ pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
 pub mod prelude {
-    pub use crate::{Object, ObjectExt, Renderer, RendererExt};
+    #[doc(no_inline)]
+    pub use crate::{Object, Renderer, modifiers::*};
 }
 
 use anyhow::{Context as _, Result};

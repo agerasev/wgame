@@ -22,17 +22,12 @@ pub trait Resource: Any + Ord + Hash + Clone + Sized {
     fn into_any(self) -> Rc<dyn AnyResource> {
         Rc::new(self)
     }
-
-    fn order(&self) -> i64 {
-        0
-    }
 }
 
 pub trait AnyResource: AnyKey {
     fn clone_dyn(&self) -> Rc<dyn AnyResource>;
     fn new_dyn_storage(&self) -> Box<dyn Any>;
     fn render_dyn(&self, storage: &dyn Any, pass: &mut wgpu::RenderPass<'_>);
-    fn order_dyn(&self) -> i64;
 }
 
 impl<R: Resource> AnyResource for R {
@@ -51,10 +46,6 @@ impl<R: Resource> AnyResource for R {
                 .expect("Error downcasting storage"),
             pass,
         );
-    }
-
-    fn order_dyn(&self) -> i64 {
-        self.order()
     }
 }
 
@@ -98,10 +89,6 @@ impl Resource for Rc<dyn AnyResource> {
         Self: Sized,
     {
         self
-    }
-
-    fn order(&self) -> i64 {
-        (**self).order_dyn()
     }
 }
 

@@ -52,7 +52,7 @@ impl Resource for TextResource {
         let mut bytes = BytesSink::default();
         let mut instance_count = 0;
         for text in &storage.instances {
-            for glyph in &text.glyphs {
+            for glyph in text.glyphs.iter() {
                 let rect = text.texture.glyph_rect(glyph.id).unwrap();
                 let attr = GlyphAttribute {
                     xform: glyph.xform,
@@ -86,10 +86,5 @@ impl Resource for TextResource {
 
         pass.insert_debug_marker("draw");
         pass.draw_indexed(0..6, 0, 0..instance_count);
-    }
-
-    fn order(&self) -> i64 {
-        // Text is rendered over other shapes by default
-        1 << 16
     }
 }

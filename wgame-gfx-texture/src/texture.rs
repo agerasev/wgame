@@ -8,10 +8,11 @@ use std::{
 };
 
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
-use glam::{Affine2, Vec2};
+use glam::{Affine2, Vec2, Vec4};
 use half::f16;
 use hashbrown::HashMap;
 use rgb::Rgba;
+use wgame_gfx::types::{Color, color};
 use wgame_image::{
     Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, ImageSliceMut,
     ImageWriteMut, atlas::Tracker,
@@ -48,6 +49,7 @@ pub struct Texture<T: Texel = Rgba<f16>> {
     image: AtlasImage<T>,
     settings: TextureSettings,
     xform: Affine2,
+    color: Rgba<f16>,
 }
 
 pub type FilterMode = wgpu::FilterMode;
@@ -258,6 +260,7 @@ impl<T: Texel> Texture<T> {
             image,
             settings,
             xform: Affine2::IDENTITY,
+            color: color::WHITE.to_rgba(),
         }
     }
 
@@ -418,6 +421,13 @@ impl<T: Texel> Texture<T> {
         }
     }
 
+    pub fn multiply_color<C: Color>(&self, color: C) -> Self {
+        Self {
+            color: self.color.multiply(color),
+            ..self.clone()
+        }
+    }
+
     pub fn resource(&self) -> TextureResource<T> {
         TextureResource {
             atlas: self.atlas.clone(),
@@ -487,15 +497,28 @@ impl<T: Texel> Debug for TextureResource<T> {
 #[derive(Clone)]
 pub struct TextureAttribute<T: Texel = Rgba<f16>>(Texture<T>);
 
+impl<T: Texel> TextureAttribute<T> {
+    pub fn coord_xform(&self) -> Affine2 {
+        self.0.coord_xform()
+    }
+    pub fn color(&self) -> Rgba<f16> {
+        self.0.color
+    }
+}
+
 impl<T: Texel> Attribute for TextureAttribute<T> {
     fn bindings() -> BindingList {
-        <glam::Affine2 as Attribute>::bindings()
+        BindingList::chain(
+            <Affine2 as Attribute>::bindings().with_prefix("xform"),
+            <Vec4 as Attribute>::bindings().with_prefix("color"),
+        )
     }
 
-    const SIZE: usize = <glam::Affine2 as Attribute>::SIZE;
+    const SIZE: usize = <Affine2 as Attribute>::SIZE + <Vec4 as Attribute>::SIZE;
 
     fn store(&self, dst: &mut BytesSink) {
-        self.0.coord_xform().store(dst);
+        self.coord_xform().store(dst);
+        self.color().to_vec4().store(dst);
     }
 }
 

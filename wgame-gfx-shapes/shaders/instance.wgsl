@@ -12,7 +12,7 @@ struct InstanceData {
     @location(5) xform_3: vec4<f32>,
     @location(6) tex_xform_m: vec4<f32>,
     @location(7) tex_xform_v: vec2<f32>,
-    @location(8) color: vec4<f32>,
+    @location(8) tex_color: vec4<f32>,
 
     {% for (i, a) in instance|enumerate %}
     @location({{ i|add(9) }}) {{ a.name }}: {{ a.ty }},
@@ -47,15 +47,11 @@ fn vertex_main(
         instance.tex_xform_v,
     );
 
-    let position = vertex.position;
-    let local_coord = vertex.local_coord;
-    let color = instance.color;
-
     var output: VaryingData;
     output.position = xform * vertex.position;
     output.local_coord = vertex.local_coord;
-    output.tex_coord = tex_xform * local_coord;
-    output.color = instance.color;
+    output.tex_coord = tex_xform * vertex.local_coord;
+    output.color = instance.tex_color;
 
     {{ vertex_source }}
 

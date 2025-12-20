@@ -2,16 +2,12 @@ use glam::Mat4;
 use half::f16;
 use rgb::Rgba;
 
-use crate::{
-    Context,
-    types::{Color, Transform, color},
-};
+use crate::types::{Color, Transform, color};
 
 #[derive(Clone, Debug)]
 pub struct Camera {
     pub view: Mat4,
     pub color: Rgba<f16>,
-    pub y_flip: bool,
 }
 
 impl Default for Camera {
@@ -19,12 +15,9 @@ impl Default for Camera {
         Self {
             view: Mat4::IDENTITY,
             color: color::WHITE.to_rgba(),
-            y_flip: false,
         }
     }
 }
-
-impl Context for Camera {}
 
 impl Camera {
     pub fn transform(&self, xform: impl Transform) -> Self {

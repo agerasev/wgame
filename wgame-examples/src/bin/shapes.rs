@@ -42,7 +42,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             Vec2::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos()),
             Vec2::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos()),
         )
-        .texture(gfx.texturing().gradient2([
+        .with_texture(gfx.texturing().gradient2([
             [color::BLUE, color::RED],
             [color::GREEN, color::RED + color::GREEN - color::BLUE],
         ]));
@@ -50,7 +50,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let quad = &gfx
         .shapes()
         .rectangle((-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2)))
-        .texture(texture);
+        .with_texture(texture);
 
     let hexagon = &gfx
         .shapes()
@@ -60,18 +60,18 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             0.0,
             Vec2::ZERO,
         ))
-        .color(color::BLUE);
+        .with_color(color::BLUE);
 
     let circle = &gfx
         .shapes()
         .unit_circle()
         .segment(2.0 * PI / 3.0)
-        .texture(texture)
+        .with_texture(texture)
         .color(color::YELLOW);
     let mut ring0 = gfx
         .shapes()
         .unit_ring(0.75)
-        .texture(gfx.texturing().gradient2([[
+        .with_texture(gfx.texturing().gradient2([[
             color::RED,
             color::MAGENTA,
             color::BLUE,
@@ -80,7 +80,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let ring1 = &gfx
         .shapes()
         .unit_ring(0.75)
-        .texture(gfx.texturing().gradient2([
+        .with_texture(gfx.texturing().gradient2([
             [color::BLACK, color::BLACK, color::BLACK, color::BLACK],
             [color::RED, color::GREEN, color::BLUE, color::RED],
             [color::BLACK, color::BLACK, color::BLACK, color::BLACK],
@@ -181,7 +181,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                     0.0,
                     Vec2::new(2.0 * scale, scale),
                 ))
-                .draw(&mut renderer);
+                .for_each_instance(&mut renderer);
         }
 
         {
