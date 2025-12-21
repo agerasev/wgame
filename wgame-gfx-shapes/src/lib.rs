@@ -3,7 +3,7 @@
 mod circle;
 mod pipeline;
 mod polygon;
-mod resource;
+mod render;
 pub mod shader;
 mod shape;
 mod textured;

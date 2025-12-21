@@ -2,7 +2,7 @@ use glam::Mat4;
 use wgame_gfx::{modifiers::Transformable, types::Color};
 use wgame_shader::Attribute;
 
-use crate::{ShapesLibrary, ShapesState, Texture, Textured, resource::VertexBuffers};
+use crate::{ShapesLibrary, ShapesState, Texture, Textured, render::VertexBuffers};
 
 pub trait ElementVisitor {
     fn visit<T: Element>(&mut self, element: &T);

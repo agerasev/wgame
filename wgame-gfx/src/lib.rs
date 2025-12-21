@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod camera;
+mod collector;
 mod frame;
 mod instance;
 pub mod modifiers;
@@ -13,11 +14,12 @@ pub mod utils;
 
 pub use self::{
     camera::Camera,
+    collector::{Collector, InstanceVisitor},
     frame::{Frame, RenderStatistics},
-    instance::Instance,
+    instance::{AnyStorage, Instance, Storage},
     object::Object,
-    renderer::{Collector, InstanceVisitor, Renderer},
-    resource::Resource,
+    renderer::{Context, Renderer},
+    resource::{AnyResource, Resource},
     state::Graphics,
 };
 pub use anyhow::Error;

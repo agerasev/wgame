@@ -3,14 +3,14 @@ use core::marker::PhantomData;
 use glam::Affine2;
 
 use wgame_gfx::{
-    Instance, InstanceVisitor, Object, Resource,
+    Camera, Instance, InstanceVisitor, Object,
     modifiers::{Colorable, Transformable},
     types::{Color, Transform},
 };
 
 use crate::{
     Shape, Texture,
-    resource::ShapeResource,
+    render::{ShapeResource, ShapeStorage},
     shader::InstanceData,
     shape::{Element, ElementVisitor},
 };
@@ -37,11 +37,12 @@ impl<S: Clone> Textured<S> {
 }
 
 impl<S: Element> Instance for Textured<S> {
+    type Context = Camera;
     type Resource = ShapeResource<S::Attribute>;
+    type Storage = ShapeStorage<S::Attribute>;
 
     fn resource(&self) -> Self::Resource {
         ShapeResource {
-            order: 0,
             vertices: self.inner.vertices(),
             texture: self.texture.as_ref().resource(),
             uniforms: self.inner.uniforms(),
@@ -51,7 +52,11 @@ impl<S: Element> Instance for Textured<S> {
         }
     }
 
-    fn store(&self, storage: &mut <Self::Resource as Resource>::Storage) {
+    fn new_storage(&self) -> Self::Storage {
+        ShapeStorage::new(self.resource())
+    }
+
+    fn store(&self, storage: &mut Self::Storage) {
         storage.instances.push(InstanceData {
             matrix: self.inner.matrix(),
             tex: self.texture.as_ref().attribute(),
@@ -60,9 +65,9 @@ impl<S: Element> Instance for Textured<S> {
     }
 }
 
-impl<V: InstanceVisitor> ElementVisitor for Textured<&mut V> {
+impl<V: InstanceVisitor<Camera>> ElementVisitor for Textured<&mut V> {
     fn visit<S: Element>(&mut self, element: &S) {
-        self.inner.visit(Textured {
+        self.inner.visit(&Textured {
             inner: element.clone(),
             texture: self.texture.clone(),
         });
@@ -70,7 +75,8 @@ impl<V: InstanceVisitor> ElementVisitor for Textured<&mut V> {
 }
 
 impl<T: Shape> Object for Textured<T> {
-    fn for_each_instance<R: InstanceVisitor>(&self, renderer: &mut R) {
+    type Context = Camera;
+    fn for_each_instance<R: InstanceVisitor<Camera>>(&self, renderer: &mut R) {
         self.inner.for_each_element(&mut Textured {
             inner: renderer,
             texture: self.texture.clone(),

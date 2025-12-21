@@ -1,7 +1,8 @@
 use anyhow::{Context as _, Result};
+use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
-use crate::{Collector, Surface, types::Color};
+use crate::{Camera, Context, Renderer, Surface, types::Color};
 
 #[derive(Clone, Copy, Debug)]
 pub struct RenderStatistics {
@@ -13,8 +14,7 @@ pub struct Frame<'a, 'b> {
     owner: &'b mut Surface<'a>,
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
-    collector: Collector,
-    clear_color: Option<wgpu::Color>,
+    encoder: wgpu::CommandEncoder,
 }
 
 impl<'a, 'b> Frame<'a, 'b> {
@@ -26,101 +26,75 @@ impl<'a, 'b> Frame<'a, 'b> {
         let view = surface
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+        let encoder = owner
+            .state
+            .device()
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         Ok(Frame {
             owner,
             surface,
             view,
-            collector: Collector::default(),
-            clear_color: Some(wgpu::Color::BLACK),
+            encoder,
         })
     }
 
-    /// Set clear color
-    pub fn clear(&mut self, color: impl Color) {
-        self.clear_color = {
-            let Rgba { r, g, b, a } = color.to_rgba().map(|c| c.to_f64());
-            Some(wgpu::Color { r, g, b, a })
-        };
-    }
-
-    pub fn collector(&mut self) -> &mut Collector {
-        &mut self.collector
-    }
-    /*
-    pub fn with_physical_camera(&mut self) -> CollectorWithContext<'_, Camera> {
+    pub fn physical_camera(&mut self) -> Camera {
         let (width, height) = self.owner.size();
-        CollectorWithContext {
-            collector: &mut self.collector,
-            context: Camera {
-                view: Mat4::orthographic_lh(0.0, width as f32, height as f32, 0.0, -1.0, 1.0),
-                y_flip: true,
-                ..Default::default()
-            },
+        Camera {
+            view: Mat4::orthographic_lh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0),
+            ..Default::default()
         }
     }
-    pub fn with_unit_camera(&mut self) -> CollectorWithContext<'_, Camera> {
+    pub fn unit_camera(&mut self) -> Camera {
         let aspect_ratio = {
             let (width, height) = self.owner.size();
             width as f32 / height as f32
         };
-        CollectorWithContext {
-            collector: &mut self.collector,
-            context: Camera {
-                view: Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0),
-                ..Default::default()
-            },
+        Camera {
+            view: Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0),
+            ..Default::default()
         }
     }
-    */
-    pub fn render(&mut self) -> RenderStatistics {
-        let mut encoder = self
-            .owner
-            .state
-            .device()
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        if let Some(clear_color) = self.clear_color.take() {
-            let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(clear_color),
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-                ..Default::default()
-            });
-        }
+    pub fn clear(&mut self, color: impl Color) {
+        let clear_color = {
+            let Rgba { r, g, b, a } = color.to_rgba().map(|c| c.to_f64());
+            wgpu::Color { r, g, b, a }
+        };
 
-        let mut n_passes = 0;
-        for (resource, storage) in self.collector.items() {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-                ..Default::default()
-            });
-            resource.render_dyn(storage, &mut pass);
-            n_passes += 1;
-        }
-
-        self.collector = Collector::default();
-        self.owner.state.queue().submit(Some(encoder.finish()));
-
-        RenderStatistics { n_passes }
+        let _ = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(clear_color),
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            ..Default::default()
+        });
     }
 
-    pub fn present(mut self) {
-        self.render();
+    pub fn draw<C: Context, R: Renderer<C>>(&mut self, ctx: &C, renderer: &R) {
+        let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            ..Default::default()
+        });
+        renderer.render(ctx, &mut pass);
+    }
+
+    pub fn present(self) {
+        self.owner.state.queue().submit(Some(self.encoder.finish()));
         self.surface.present();
     }
 }

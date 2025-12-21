@@ -5,29 +5,16 @@ use std::{
     rc::Rc,
 };
 
-use crate::utils::AnyKey;
-
 /// Shared resource required to draw an instance.
 ///
 /// Equality of the instances' resource means that they can be draw in single render pass.
-pub trait Resource: Any + Ord + Hash + Clone + Sized {
-    type Storage: Any;
+pub trait Resource: Any + Ord + Hash + Clone + Sized {}
 
-    fn new_storage(&self) -> Self::Storage;
-    fn render(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass<'_>);
-
-    fn as_any(&self) -> &dyn AnyResource {
-        self
-    }
-    fn into_any(self) -> Rc<dyn AnyResource> {
-        Rc::new(self)
-    }
-}
-
-pub trait AnyResource: AnyKey {
+pub trait AnyResource: Any + 'static {
     fn clone_dyn(&self) -> Rc<dyn AnyResource>;
-    fn new_dyn_storage(&self) -> Box<dyn Any>;
-    fn render_dyn(&self, storage: &dyn Any, pass: &mut wgpu::RenderPass<'_>);
+    fn hash_dyn(&self, state: &mut dyn Hasher);
+    fn eq_dyn(&self, other: &dyn AnyResource) -> bool;
+    fn cmp_dyn(&self, other: &dyn AnyResource) -> Ordering;
 }
 
 impl<R: Resource> AnyResource for R {
@@ -35,17 +22,27 @@ impl<R: Resource> AnyResource for R {
         Rc::new(self.clone())
     }
 
-    fn new_dyn_storage(&self) -> Box<dyn Any> {
-        Box::new(self.new_storage())
+    fn hash_dyn(&self, mut state: &mut dyn Hasher) {
+        self.hash(&mut state);
     }
 
-    fn render_dyn(&self, storage: &dyn Any, pass: &mut wgpu::RenderPass<'_>) {
-        self.render(
-            storage
-                .downcast_ref::<R::Storage>()
-                .expect("Error downcasting storage"),
-            pass,
-        );
+    fn eq_dyn(&self, other: &dyn AnyResource) -> bool {
+        if let Some(other) = (other as &dyn Any).downcast_ref::<R>() {
+            self.eq(other)
+        } else {
+            false
+        }
+    }
+
+    fn cmp_dyn(&self, other: &dyn AnyResource) -> Ordering {
+        match self.type_id().cmp(&other.type_id()) {
+            Ordering::Equal => self.cmp(
+                (other as &dyn Any)
+                    .downcast_ref::<R>()
+                    .expect("Type IDs are equal, but downcast failed"),
+            ),
+            not_equal => not_equal,
+        }
     }
 }
 
@@ -68,27 +65,6 @@ impl Ord for dyn AnyResource {
 impl Hash for dyn AnyResource {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash_dyn(state);
-    }
-}
-
-impl Resource for Rc<dyn AnyResource> {
-    type Storage = Box<dyn Any>;
-
-    fn new_storage(&self) -> Self::Storage {
-        (**self).new_dyn_storage()
-    }
-    fn render(&self, storage: &Self::Storage, pass: &mut wgpu::RenderPass<'_>) {
-        (**self).render_dyn(storage, pass);
-    }
-
-    fn as_any(&self) -> &dyn AnyResource {
-        &**self
-    }
-    fn into_any(self) -> Rc<dyn AnyResource>
-    where
-        Self: Sized,
-    {
-        self
     }
 }
 

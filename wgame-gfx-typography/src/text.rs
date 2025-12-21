@@ -4,13 +4,16 @@ use glam::{Mat4, Quat, Vec3};
 use half::f16;
 use rgb::Rgba;
 use wgame_gfx::{
-    Instance, InstanceVisitor, Object, Resource,
+    Camera, Instance, InstanceVisitor, Object,
     modifiers::{Colorable, Transformable},
     types::{Color, Transform, color},
 };
 use wgame_typography::{TextMetrics, swash::GlyphId};
 
-use crate::{FontTexture, render::TextResource};
+use crate::{
+    FontTexture,
+    render::{TextResource, TextStorage},
+};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum TextAlign {
@@ -135,26 +138,33 @@ pub(crate) struct GlyphInstance {
 }
 
 impl Instance for TextInstance {
+    type Context = Camera;
     type Resource = TextResource;
+    type Storage = TextStorage;
 
     fn resource(&self) -> Self::Resource {
         TextResource::new(&self.texture)
     }
-    fn store(&self, storage: &mut <Self::Resource as Resource>::Storage) {
+    fn new_storage(&self) -> Self::Storage {
+        TextStorage::new(self.resource())
+    }
+    fn store(&self, storage: &mut Self::Storage) {
         storage.instances.push(self.clone());
     }
 }
 
 impl Object for TextInstance {
-    fn for_each_instance<V: InstanceVisitor>(&self, visitor: &mut V) {
+    type Context = Camera;
+    fn for_each_instance<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
         visitor.visit(self);
     }
 }
 
 impl Object for Text {
-    fn for_each_instance<V: InstanceVisitor>(&self, visitor: &mut V) {
+    type Context = Camera;
+    fn for_each_instance<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
         if let Some(instance) = self.instance() {
-            visitor.visit(instance);
+            visitor.visit(&instance);
         }
     }
 }

@@ -2,7 +2,10 @@ use glam::Mat4;
 use half::f16;
 use rgb::Rgba;
 
-use crate::types::{Color, Transform, color};
+use crate::{
+    Context,
+    types::{Color, Transform, color},
+};
 
 #[derive(Clone, Debug)]
 pub struct Camera {
@@ -41,3 +44,5 @@ impl Camera {
         }
     }
 }
+
+impl Context for Camera {}

@@ -104,6 +104,6 @@ impl Frame<'_, '_> {
     }
 
     pub fn render(&mut self) -> RenderStatistics {
-        self.gfx.as_mut().unwrap().render()
+        self.gfx.as_mut().unwrap().draw()
     }
 }

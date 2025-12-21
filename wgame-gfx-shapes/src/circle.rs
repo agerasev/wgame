@@ -7,7 +7,7 @@ use wgame_shader::Attribute;
 use crate::{
     Shape, ShapesLibrary, ShapesState,
     pipeline::create_pipeline,
-    resource::VertexBuffers,
+    render::VertexBuffers,
     shader::ShaderConfig,
     shape::{Element, ElementVisitor},
 };
