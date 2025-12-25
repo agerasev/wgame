@@ -1,5 +1,5 @@
 use glam::{Mat4, Vec4};
-use wgame_gfx::{Camera, Renderer, Resource, Storage, types::Color};
+use wgame_gfx::{Camera, Context, Renderer, Resource, Storage, types::Color};
 use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
@@ -114,7 +114,8 @@ impl Renderer<Camera> for TextRenderer {
     fn render(&self, ctx: &Camera, pass: &mut wgpu::RenderPass<'_>) {
         pass.push_debug_group("prepare");
         pass.set_pipeline(&self.pipeline);
-        pass.set_bind_group(0, &self.texture_bind_group, &[]);
+        pass.set_bind_group(0, &ctx.bind_group(), &[]);
+        pass.set_bind_group(1, &self.texture_bind_group, &[]);
         pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
         pass.set_vertex_buffer(1, self.instance_buffer.slice(..));

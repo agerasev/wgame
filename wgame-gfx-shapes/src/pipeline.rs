@@ -24,11 +24,12 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
         source: shader_source,
     });
 
-    let bind_group_layout = &state.texture().float_bind_group_layout;
-
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
-        bind_group_layouts: &[bind_group_layout],
+        bind_group_layouts: &[
+            state.camera_bind_group_layout(),
+            &state.texture().float_bind_group_layout,
+        ],
         push_constant_ranges: &[],
     });
 

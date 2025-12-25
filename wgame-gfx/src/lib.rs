@@ -91,12 +91,7 @@ impl<'a> Surface<'a> {
         let this = Self {
             config,
             surface,
-            state: Graphics {
-                adapter,
-                device,
-                queue,
-                format,
-            },
+            state: Graphics::new(adapter, device, queue, format),
             size: Default::default(),
         };
 
@@ -111,7 +106,7 @@ impl<'a> Surface<'a> {
         }
         let surface_config = self
             .surface
-            .get_default_config(&self.state.adapter, size.0, size.1)
+            .get_default_config(self.state.adapter(), size.0, size.1)
             .unwrap();
         self.surface.configure(
             self.state.device(),

@@ -41,20 +41,16 @@ impl<'a, 'b> Frame<'a, 'b> {
 
     pub fn physical_camera(&mut self) -> Camera {
         let (width, height) = self.owner.size();
-        Camera {
-            view: Mat4::orthographic_lh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0),
-            ..Default::default()
-        }
+        let view = Mat4::orthographic_lh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+        Camera::new(&self.owner.state).transform(view)
     }
     pub fn unit_camera(&mut self) -> Camera {
         let aspect_ratio = {
             let (width, height) = self.owner.size();
             width as f32 / height as f32
         };
-        Camera {
-            view: Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0),
-            ..Default::default()
-        }
+        let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        Camera::new(&self.owner.state).transform(view)
     }
 
     pub fn clear(&mut self, color: impl Color) {

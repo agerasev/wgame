@@ -2595,6 +2595,7 @@ name = "wgame-gfx"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytemuck",
  "glam",
  "half",
  "hashbrown 0.16.0",

@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use derivative::Derivative;
 use smallvec::SmallVec;
-use wgame_gfx::{Camera, Renderer, Resource, Storage};
+use wgame_gfx::{Camera, Context, Renderer, Resource, Storage};
 use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
@@ -44,7 +44,6 @@ pub struct ShapeRenderer {
     vertices: VertexBuffers,
     instance_count: u32,
     instance_buffer: wgpu::Buffer,
-    texture_bind_group: wgpu::BindGroup,
     uniforms: SmallVec<[wgpu::BindGroup; 2]>,
     pipeline: wgpu::RenderPipeline,
 }
@@ -87,7 +86,6 @@ impl<T: Attribute> Storage for ShapeStorage<T> {
             vertices: self.resource.vertices.clone(),
             instance_count,
             instance_buffer,
-            texture_bind_group: self.resource.texture.bind_group(),
             uniforms: self.resource.uniforms().into_iter().collect(),
             pipeline: self.resource.pipeline.clone(),
         }
@@ -106,7 +104,7 @@ impl Renderer<Camera> for ShapeRenderer {
     fn render(&self, ctx: &Camera, pass: &mut wgpu::RenderPass<'_>) {
         pass.push_debug_group("prepare");
         pass.set_pipeline(&self.pipeline);
-        for (i, bind_group) in self.uniforms.iter().enumerate() {
+        for (i, bind_group) in [ctx.bind_group()].iter().chain(&self.uniforms).enumerate() {
             pass.set_bind_group(i as u32, bind_group, &[]);
         }
         pass.set_vertex_buffer(0, self.vertices.vertex_buffer.slice(..));

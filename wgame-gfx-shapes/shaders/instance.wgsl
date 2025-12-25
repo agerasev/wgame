@@ -30,12 +30,19 @@ struct VaryingData {
     {% endfor %}
 };
 
+@group(0)
+@binding(0)
+var<uniform> view_matrix: mat4x4<f32>;
+@group(0)
+@binding(1)
+var<uniform> view_color: vec4<f32>;
+
 @vertex
 fn vertex_main(
     vertex: VertexData,
     instance: InstanceData,
 ) -> VaryingData {
-    let xform = mat4x4<f32>(
+    let model_matrix = mat4x4<f32>(
         instance.xform_0,
         instance.xform_1,
         instance.xform_2,
@@ -48,26 +55,26 @@ fn vertex_main(
     );
 
     var output: VaryingData;
-    output.position = xform * vertex.position;
+    output.position = view_matrix * model_matrix * vertex.position;
     output.local_coord = vertex.local_coord;
     output.tex_coord = tex_xform * vertex.local_coord;
-    output.color = instance.tex_color;
+    output.color = view_color * instance.tex_color;
 
     {{ vertex_source }}
 
     return output;
 }
 
-@group(0)
+@group(1)
 @binding(0)
 var texture: texture_2d<f32>;
 
-@group(0)
+@group(1)
 @binding(1)
 var sampler_: sampler;
 
 {% for (i, a) in fragment_uniforms|enumerate %}
-@group(1)
+@group(2)
 @binding({{ i }})
 var<uniform> {{ a.name }}: {{ a.ty }};
 {% endfor %}
