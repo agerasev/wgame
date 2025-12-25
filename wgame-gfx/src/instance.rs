@@ -36,3 +36,22 @@ impl<S: Storage> AnyStorage<S::Context> for S {
         Rc::new(self.bake())
     }
 }
+
+impl<C: Context> Storage for dyn AnyStorage<C> {
+    type Context = C;
+    type Resource = Rc<dyn AnyResource>;
+    type Renderer = Rc<dyn Renderer<C>>;
+
+    fn resource(&self) -> Self::Resource {
+        self.resource_dyn()
+    }
+    fn bake(&self) -> Self::Renderer {
+        self.bake_dyn()
+    }
+}
+
+impl<S: Storage + ?Sized> Renderer<S::Context> for S {
+    fn render(&self, ctx: &S::Context, pass: &mut wgpu::RenderPass<'_>) {
+        self.bake().render(ctx, pass);
+    }
+}

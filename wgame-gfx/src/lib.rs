@@ -15,7 +15,7 @@ pub mod utils;
 pub use self::{
     camera::Camera,
     collector::{Collector, InstanceVisitor},
-    frame::{Frame, RenderStatistics},
+    frame::Frame,
     instance::{AnyStorage, Instance, Storage},
     object::Object,
     renderer::{Context, Renderer},

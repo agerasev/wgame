@@ -6,8 +6,12 @@ use futures::{FutureExt, StreamExt, select_biased};
 use glam::{Affine2, Vec2};
 use rgb::Rgb;
 use wgame::{
-    Event, Library, Result, Window, gfx::types::color, prelude::*, shapes::ShapeExt,
-    typography::TextAlign, utils::PeriodicTimer,
+    Event, Library, Result, Window,
+    gfx::{Collector, types::color},
+    prelude::*,
+    shapes::ShapeExt,
+    typography::TextAlign,
+    utils::PeriodicTimer,
 };
 
 #[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = false)]
@@ -85,27 +89,37 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
-        let mut renderer = frame.with_physical_camera();
 
-        font_atlas
-            .text(&mouse_text)
-            .align(TextAlign::Center)
-            .transform(Affine2::from_translation(Vec2::new(
-                width as f32 / 2.0,
-                height as f32 / 2.0,
-            )))
-            .for_each_instance(&mut renderer);
+        let camera = frame.physical_camera();
+        let mut renderer = Collector::default();
 
-        ring.transform(
-            Affine2::from_translation(mouse_pos) * Affine2::from_scale(Vec2::splat(32.0)),
-        )
-        .draw(&mut renderer);
+        renderer.insert(
+            &font_atlas
+                .text(&mouse_text)
+                .align(TextAlign::Center)
+                .transform(Affine2::from_scale_angle_translation(
+                    Vec2::splat(font_size),
+                    0.0,
+                    Vec2::new(width as f32 / 2.0, height as f32 / 2.0),
+                )),
+        );
 
-        font_atlas
-            .text(&fps_text)
-            .align(TextAlign::Left)
-            .transform(Affine2::from_translation(Vec2::new(0.0, font_size)))
-            .for_each_instance(&mut renderer);
+        renderer.insert(&ring.transform(
+            Affine2::from_translation(Vec2::new(mouse_pos.x, height as f32 - mouse_pos.y))
+                * Affine2::from_scale(Vec2::splat(32.0)),
+        ));
+
+        renderer.insert(
+            &font_atlas.text(&fps_text).align(TextAlign::Left).transform(
+                Affine2::from_scale_angle_translation(
+                    Vec2::splat(font_size),
+                    0.0,
+                    Vec2::new(0.0, height as f32 - font_size),
+                ),
+            ),
+        );
+
+        frame.draw_multiple(&camera, renderer.iter());
 
         n_frames += 1;
     }

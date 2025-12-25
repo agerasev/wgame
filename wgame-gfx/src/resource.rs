@@ -68,6 +68,8 @@ impl Hash for dyn AnyResource {
     }
 }
 
+impl Resource for Rc<dyn AnyResource> {}
+
 impl From<&dyn AnyResource> for Rc<dyn AnyResource> {
     fn from(value: &dyn AnyResource) -> Self {
         value.clone_dyn()

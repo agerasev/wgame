@@ -14,7 +14,7 @@ use wgame::image::ImageReadExt;
 use wgame::{
     Library, Result, Window,
     app::time::Instant,
-    gfx::{Object, types::color},
+    gfx::{Collector, Object, types::color},
     prelude::*,
     shapes::ShapeExt,
     texture::TextureSettings,
@@ -67,7 +67,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         .unit_circle()
         .segment(2.0 * PI / 3.0)
         .with_texture(texture)
-        .color(color::YELLOW);
+        .multiply_color(color::YELLOW);
     let mut ring0 = gfx
         .shapes()
         .unit_ring(0.75)
@@ -116,37 +116,31 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
-        let mut renderer = frame.with_unit_camera();
+        let camera = frame.unit_camera();
+        let mut renderer = Collector::default();
 
         let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
 
-        triangle
-            .transform(Affine2::from_scale_angle_translation(
-                Vec2::splat(scale),
-                angle,
-                Vec2::new(-2.0 * scale, scale),
-            ))
-            .draw(&mut renderer);
-        quad.transform(Affine2::from_scale_angle_translation(
+        renderer.insert(&triangle.transform(Affine2::from_scale_angle_translation(
+            Vec2::splat(scale),
+            angle,
+            Vec2::new(-2.0 * scale, scale),
+        )));
+        renderer.insert(&quad.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(0.0, scale),
-        ))
-        .draw(&mut renderer);
-        hexagon
-            .transform(Affine2::from_scale_angle_translation(
-                Vec2::splat(scale),
-                angle,
-                Vec2::new(2.0 * scale, scale),
-            ))
-            .draw(&mut renderer);
-        circle
-            .transform(Affine2::from_scale_angle_translation(
-                Vec2::splat(0.8 * scale),
-                -angle,
-                Vec2::new(-2.0 * scale, -scale),
-            ))
-            .draw(&mut renderer);
+        )));
+        renderer.insert(&hexagon.transform(Affine2::from_scale_angle_translation(
+            Vec2::splat(scale),
+            angle,
+            Vec2::new(2.0 * scale, scale),
+        )));
+        renderer.insert(&circle.transform(Affine2::from_scale_angle_translation(
+            Vec2::splat(0.8 * scale),
+            -angle,
+            Vec2::new(-2.0 * scale, -scale),
+        )));
 
         let (seg_angle, rot_angle) = {
             let a = 5.0 * angle;
@@ -159,25 +153,21 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             }
         };
         ring0.inner = ring0.inner.segment(seg_angle);
-        (&ring0)
-            .transform(Affine2::from_scale_angle_translation(
-                Vec2::splat(0.8 * scale),
-                rot_angle - angle,
-                Vec2::new(0.0 * scale, -scale),
-            ))
-            .draw(&mut renderer);
+        renderer.insert(&ring0.transform(Affine2::from_scale_angle_translation(
+            Vec2::splat(0.8 * scale),
+            rot_angle - angle,
+            Vec2::new(0.0 * scale, -scale),
+        )));
 
-        ring1
-            .transform(Affine2::from_scale_angle_translation(
-                Vec2::splat(0.8 * scale),
-                -10.0 * angle,
-                Vec2::new(2.0 * scale, -scale),
-            ))
-            .draw(&mut renderer);
+        renderer.insert(&ring1.transform(Affine2::from_scale_angle_translation(
+            Vec2::splat(0.8 * scale),
+            -10.0 * angle,
+            Vec2::new(2.0 * scale, -scale),
+        )));
         if let Some(text) = &text {
             text.align(TextAlign::Center)
                 .transform(Affine2::from_scale_angle_translation(
-                    Vec2::splat(1.0 / window_size.1 as f32),
+                    Vec2::splat(text.metrics().size() * 1.0 / window_size.1 as f32),
                     0.0,
                     Vec2::new(2.0 * scale, scale),
                 ))
@@ -186,7 +176,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
 
         {
             n_frames += 1;
-            n_passes += frame.render().n_passes;
+            n_passes += renderer.len();
             let dur = periodic.elapsed_periods();
             if !dur.is_zero() {
                 log::info!(
@@ -198,6 +188,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 n_passes = 0;
             }
         }
+
+        frame.draw_multiple(&camera, renderer.iter());
     }
     Ok(())
 }

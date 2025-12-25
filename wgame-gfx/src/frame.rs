@@ -4,12 +4,6 @@ use rgb::{ComponentMap, Rgba};
 
 use crate::{Camera, Context, Renderer, Surface, types::Color};
 
-#[derive(Clone, Copy, Debug)]
-pub struct RenderStatistics {
-    /// Number of render passes
-    pub n_passes: usize,
-}
-
 pub struct Frame<'a, 'b> {
     owner: &'b mut Surface<'a>,
     surface: wgpu::SurfaceTexture,
@@ -73,7 +67,7 @@ impl<'a, 'b> Frame<'a, 'b> {
         });
     }
 
-    pub fn draw<C: Context, R: Renderer<C>>(&mut self, ctx: &C, renderer: &R) {
+    pub fn draw_single<C: Context, R: Renderer<C> + ?Sized>(&mut self, ctx: &C, renderer: &R) {
         let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &self.view,
@@ -87,6 +81,21 @@ impl<'a, 'b> Frame<'a, 'b> {
             ..Default::default()
         });
         renderer.render(ctx, &mut pass);
+    }
+
+    pub fn draw_multiple<
+        'r,
+        C: Context,
+        I: Iterator<Item = &'r R>,
+        R: Renderer<C> + ?Sized + 'r,
+    >(
+        &mut self,
+        ctx: &C,
+        renderers: I,
+    ) {
+        for renderer in renderers {
+            self.draw_single(ctx, renderer);
+        }
     }
 
     pub fn present(self) {

@@ -2,7 +2,7 @@ use std::{cell::RefCell, num::NonZero};
 
 use glam::Mat4;
 use half::f16;
-use rgb::{ComponentSlice, Rgba};
+use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
 use crate::{
@@ -98,7 +98,7 @@ impl Context for Camera {
                         .device()
                         .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                             label: None,
-                            contents: bytemuck::cast_slice(self.color.as_slice()),
+                            contents: bytemuck::cast_slice(&self.color.to_vec4().to_array()),
                             usage: wgpu::BufferUsages::UNIFORM,
                         });
                 self.state
