@@ -2,7 +2,7 @@ use anyhow::{Context as _, Result};
 use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
-use crate::{Camera, Context, Renderer, Surface, types::Color};
+use crate::{AutoScene, Camera, Context, Renderer, Surface, types::Color};
 
 pub struct Frame<'a, 'b> {
     owner: &'b mut Surface<'a>,
@@ -33,17 +33,17 @@ impl<'a, 'b> Frame<'a, 'b> {
         })
     }
 
-    pub fn physical_camera(&mut self) -> Camera {
-        let (width, height) = self.owner.size();
-        let view = Mat4::orthographic_lh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
-        Camera::new(&self.owner.state).transform(view)
-    }
-    pub fn unit_camera(&mut self) -> Camera {
+    pub fn camera(&mut self) -> Camera {
         let aspect_ratio = {
             let (width, height) = self.owner.size();
             width as f32 / height as f32
         };
         let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        Camera::new(&self.owner.state).transform(view)
+    }
+    pub fn physical_camera(&mut self) -> Camera {
+        let (width, height) = self.owner.size();
+        let view = Mat4::orthographic_lh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
         Camera::new(&self.owner.state).transform(view)
     }
 
@@ -67,7 +67,7 @@ impl<'a, 'b> Frame<'a, 'b> {
         });
     }
 
-    pub fn draw_single<C: Context, R: Renderer<C> + ?Sized>(&mut self, ctx: &C, renderer: &R) {
+    pub fn render<C: Context, R: Renderer<C> + ?Sized>(&mut self, ctx: &C, renderer: &R) {
         let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &self.view,
@@ -83,23 +83,23 @@ impl<'a, 'b> Frame<'a, 'b> {
         renderer.render(ctx, &mut pass);
     }
 
-    pub fn draw_multiple<
-        'r,
-        C: Context,
-        I: Iterator<Item = &'r R>,
-        R: Renderer<C> + ?Sized + 'r,
-    >(
+    pub fn render_iter<'r, C: Context, I: Iterator<Item = &'r R>, R: Renderer<C> + ?Sized + 'r>(
         &mut self,
         ctx: &C,
         renderers: I,
     ) {
         for renderer in renderers {
-            self.draw_single(ctx, renderer);
+            self.render(ctx, renderer);
         }
     }
 
     pub fn present(self) {
         self.owner.state.queue().submit(Some(self.encoder.finish()));
         self.surface.present();
+    }
+
+    pub fn scene(&mut self) -> AutoScene<'a, 'b, '_> {
+        let camera = self.camera();
+        AutoScene::new(self, camera)
     }
 }

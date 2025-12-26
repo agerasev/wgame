@@ -3,12 +3,12 @@
 use std::time::Duration;
 
 use futures::{FutureExt, StreamExt, select_biased};
-use glam::{Affine2, Vec2};
-use rgb::Rgb;
 use wgame::{
     Event, Library, Result, Window,
-    gfx::{Collector, types::color},
+    gfx::types::color,
+    glam::{Affine2, Vec2},
     prelude::*,
+    rgb::Rgb,
     shapes::ShapeExt,
     typography::TextAlign,
     utils::PeriodicTimer,
@@ -91,9 +91,10 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
 
         let camera = frame.physical_camera();
-        let mut renderer = Collector::default();
+        let mut scene = frame.scene();
+        scene.camera = camera;
 
-        renderer.insert(
+        scene.add(
             &font_atlas
                 .text(&mouse_text)
                 .align(TextAlign::Center)
@@ -104,12 +105,12 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 )),
         );
 
-        renderer.insert(&ring.transform(
+        scene.add(&ring.transform(
             Affine2::from_translation(Vec2::new(mouse_pos.x, height as f32 - mouse_pos.y))
                 * Affine2::from_scale(Vec2::splat(32.0)),
         ));
 
-        renderer.insert(
+        scene.add(
             &font_atlas.text(&fps_text).align(TextAlign::Left).transform(
                 Affine2::from_scale_angle_translation(
                     Vec2::splat(font_size),
@@ -118,8 +119,6 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 ),
             ),
         );
-
-        frame.draw_multiple(&camera, renderer.iter());
 
         n_frames += 1;
     }

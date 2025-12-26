@@ -8,11 +8,11 @@ pub trait InstanceVisitor<C: Context> {
     fn visit<T: Instance<Context = C>>(&mut self, instance: &T);
 }
 
-pub struct Collector<C: Context> {
+pub struct Scene<C: Context> {
     storages: HashMap<Rc<dyn AnyResource>, Box<dyn AnyStorage<C>>>,
 }
 
-impl<C: Context> Default for Collector<C> {
+impl<C: Context> Default for Scene<C> {
     fn default() -> Self {
         Self {
             storages: HashMap::default(),
@@ -20,8 +20,8 @@ impl<C: Context> Default for Collector<C> {
     }
 }
 
-impl<C: Context> Collector<C> {
-    fn insert_instance<T: Instance<Context = C>>(&mut self, instance: &T) {
+impl<C: Context> Scene<C> {
+    fn add_instance<T: Instance<Context = C>>(&mut self, instance: &T) {
         let resource = instance.resource();
         let any_storage = match self.storages.entry_ref(&resource as &dyn AnyResource) {
             EntryRef::Vacant(entry) => entry.insert(Box::new(instance.new_storage())),
@@ -33,7 +33,7 @@ impl<C: Context> Collector<C> {
         instance.store(storage);
     }
 
-    pub fn insert<T: Object<Context = C>>(&mut self, object: &T) {
+    pub fn add<T: Object<Context = C>>(&mut self, object: &T) {
         object.for_each_instance(self);
     }
 
@@ -48,8 +48,8 @@ impl<C: Context> Collector<C> {
     }
 }
 
-impl<C: Context> InstanceVisitor<C> for Collector<C> {
+impl<C: Context> InstanceVisitor<C> for Scene<C> {
     fn visit<T: Instance<Context = C>>(&mut self, instance: &T) {
-        self.insert_instance(instance);
+        self.add_instance(instance);
     }
 }

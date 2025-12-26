@@ -18,6 +18,4 @@ wgame = { workspace = true, features = [
     "utils",
 ] }
 futures.workspace = true
-glam.workspace = true
-rgb.workspace = true
 log.workspace = true

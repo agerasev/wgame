@@ -1,25 +1,27 @@
 #![forbid(unsafe_code)]
 
+mod auto;
 mod camera;
-mod collector;
 mod frame;
 mod instance;
 pub mod modifiers;
 mod object;
 mod renderer;
 mod resource;
+mod scene;
 mod state;
 pub mod types;
 pub mod utils;
 
 pub use self::{
+    auto::AutoScene,
     camera::Camera,
-    collector::{Collector, InstanceVisitor},
     frame::Frame,
     instance::{AnyStorage, Instance, Storage},
     object::Object,
     renderer::{Context, Renderer},
     resource::{AnyResource, Resource},
+    scene::{InstanceVisitor, Scene},
     state::Graphics,
 };
 pub use anyhow::Error;

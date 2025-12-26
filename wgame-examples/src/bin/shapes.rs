@@ -7,15 +7,15 @@ use std::{
     time::Duration,
 };
 
-use glam::{Affine2, Vec2};
-use rgb::Rgb;
 #[cfg(feature = "dump")]
 use wgame::image::ImageReadExt;
 use wgame::{
     Library, Result, Window,
     app::time::Instant,
-    gfx::{Collector, Object, types::color},
+    gfx::types::color,
+    glam::{Affine2, Vec2},
     prelude::*,
+    rgb::Rgb,
     shapes::ShapeExt,
     texture::TextureSettings,
     typography::TextAlign,
@@ -116,27 +116,26 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         frame.clear(Rgb::new(0.0, 0.0, 0.0));
-        let camera = frame.unit_camera();
-        let mut renderer = Collector::default();
+        let mut scene = frame.scene();
 
         let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;
 
-        renderer.insert(&triangle.transform(Affine2::from_scale_angle_translation(
+        scene.add(&triangle.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(-2.0 * scale, scale),
         )));
-        renderer.insert(&quad.transform(Affine2::from_scale_angle_translation(
+        scene.add(&quad.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(0.0, scale),
         )));
-        renderer.insert(&hexagon.transform(Affine2::from_scale_angle_translation(
+        scene.add(&hexagon.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(2.0 * scale, scale),
         )));
-        renderer.insert(&circle.transform(Affine2::from_scale_angle_translation(
+        scene.add(&circle.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(0.8 * scale),
             -angle,
             Vec2::new(-2.0 * scale, -scale),
@@ -153,30 +152,30 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             }
         };
         ring0.inner = ring0.inner.segment(seg_angle);
-        renderer.insert(&ring0.transform(Affine2::from_scale_angle_translation(
+        scene.add(&ring0.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(0.8 * scale),
             rot_angle - angle,
             Vec2::new(0.0 * scale, -scale),
         )));
 
-        renderer.insert(&ring1.transform(Affine2::from_scale_angle_translation(
+        scene.add(&ring1.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(0.8 * scale),
             -10.0 * angle,
             Vec2::new(2.0 * scale, -scale),
         )));
         if let Some(text) = &text {
-            text.align(TextAlign::Center)
-                .transform(Affine2::from_scale_angle_translation(
+            scene.add(&text.align(TextAlign::Center).transform(
+                Affine2::from_scale_angle_translation(
                     Vec2::splat(text.metrics().size() * 1.0 / window_size.1 as f32),
                     0.0,
                     Vec2::new(2.0 * scale, scale),
-                ))
-                .for_each_instance(&mut renderer);
+                ),
+            ));
         }
 
         {
             n_frames += 1;
-            n_passes += renderer.len();
+            n_passes += scene.len();
             let dur = periodic.elapsed_periods();
             if !dur.is_zero() {
                 log::info!(
@@ -188,8 +187,6 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 n_passes = 0;
             }
         }
-
-        frame.draw_multiple(&camera, renderer.iter());
     }
     Ok(())
 }

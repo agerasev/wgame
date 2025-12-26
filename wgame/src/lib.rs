@@ -35,6 +35,10 @@ pub mod prelude {
     pub use wgame_gfx::prelude::*;
 }
 
+pub use glam;
+pub use half;
+pub use rgb;
+
 #[macro_export]
 macro_rules! run_app {
     ($main:ident, $app_fn:expr) => {
