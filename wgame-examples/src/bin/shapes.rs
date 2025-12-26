@@ -15,7 +15,6 @@ use wgame::{
     gfx::types::color,
     glam::{Affine2, Vec2},
     prelude::*,
-    rgb::Rgb,
     shapes::ShapeExt,
     texture::TextureSettings,
     typography::TextAlign,
@@ -115,7 +114,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             )?;
         }
 
-        frame.clear(Rgb::new(0.0, 0.0, 0.0));
+        frame.clear(color::BLACK);
         let mut scene = frame.scene();
 
         let angle = (2.0 * PI) * (Instant::now() - start_time).as_secs_f32() / 10.0;

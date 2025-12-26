@@ -8,7 +8,6 @@ use wgame::{
     gfx::types::color,
     glam::{Affine2, Vec2},
     prelude::*,
-    rgb::Rgb,
     shapes::ShapeExt,
     typography::TextAlign,
     utils::PeriodicTimer,
@@ -88,7 +87,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             }
         }
 
-        frame.clear(Rgb::new(0.0, 0.0, 0.0));
+        frame.clear(color::BLACK);
 
         let camera = frame.physical_camera();
         let mut scene = frame.scene();
