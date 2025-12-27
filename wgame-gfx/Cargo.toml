@@ -19,3 +19,4 @@ rgb.workspace = true
 half.workspace = true
 hashbrown.workspace = true
 bytemuck.workspace = true
+smallvec.workspace = true

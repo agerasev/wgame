@@ -6,6 +6,7 @@ mod frame;
 mod instance;
 pub mod modifiers;
 mod object;
+mod order;
 mod renderer;
 mod resource;
 mod scene;
@@ -18,10 +19,11 @@ pub use self::{
     camera::Camera,
     frame::Frame,
     instance::{AnyStorage, Instance, Storage},
-    object::Object,
+    object::{InstanceVisitor, Object},
+    order::Ordered,
     renderer::{Context, Renderer},
     resource::{AnyResource, Resource},
-    scene::{InstanceVisitor, Scene},
+    scene::Scene,
     state::Graphics,
 };
 pub use anyhow::Error;

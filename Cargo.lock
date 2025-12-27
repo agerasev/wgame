@@ -2599,6 +2599,7 @@ dependencies = [
  "hashbrown 0.16.0",
  "log",
  "rgb",
+ "smallvec",
  "wgpu",
 ]
 

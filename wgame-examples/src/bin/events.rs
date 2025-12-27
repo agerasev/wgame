@@ -104,10 +104,14 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 )),
         );
 
-        scene.add(&ring.transform(
-            Affine2::from_translation(Vec2::new(mouse_pos.x, height as f32 - mouse_pos.y))
-                * Affine2::from_scale(Vec2::splat(32.0)),
-        ));
+        scene.add(
+            &ring
+                .transform(
+                    Affine2::from_translation(Vec2::new(mouse_pos.x, height as f32 - mouse_pos.y))
+                        * Affine2::from_scale(Vec2::splat(32.0)),
+                )
+                .order(-1),
+        );
 
         scene.add(
             &font_atlas.text(&fps_text).align(TextAlign::Left).transform(

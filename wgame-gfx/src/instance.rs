@@ -13,6 +13,22 @@ pub trait Instance {
     fn store(&self, storage: &mut Self::Storage);
 }
 
+impl<T: Instance> Instance for &T {
+    type Context = T::Context;
+    type Resource = T::Resource;
+    type Storage = T::Storage;
+
+    fn resource(&self) -> Self::Resource {
+        (**self).resource()
+    }
+    fn new_storage(&self) -> Self::Storage {
+        (**self).new_storage()
+    }
+    fn store(&self, storage: &mut Self::Storage) {
+        (**self).store(storage)
+    }
+}
+
 pub trait Storage: Any {
     type Context: Context;
     type Resource: Resource;

@@ -124,16 +124,31 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             angle,
             Vec2::new(-2.0 * scale, scale),
         )));
+
         scene.add(&quad.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(0.0, scale),
         )));
+
         scene.add(&hexagon.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(scale),
             angle,
             Vec2::new(2.0 * scale, scale),
         )));
+        if let Some(text) = &text {
+            scene.add(
+                &text
+                    .align(TextAlign::Center)
+                    .transform(Affine2::from_scale_angle_translation(
+                        Vec2::splat(text.metrics().size() * 1.0 / window_size.1 as f32),
+                        0.0,
+                        Vec2::new(2.0 * scale, scale),
+                    ))
+                    .order(1),
+            );
+        }
+
         scene.add(&circle.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(0.8 * scale),
             -angle,
@@ -162,15 +177,6 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             -10.0 * angle,
             Vec2::new(2.0 * scale, -scale),
         )));
-        if let Some(text) = &text {
-            scene.add(&text.align(TextAlign::Center).transform(
-                Affine2::from_scale_angle_translation(
-                    Vec2::splat(text.metrics().size() * 1.0 / window_size.1 as f32),
-                    0.0,
-                    Vec2::new(2.0 * scale, scale),
-                ),
-            ));
-        }
 
         {
             n_frames += 1;
