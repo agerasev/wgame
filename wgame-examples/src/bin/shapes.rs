@@ -66,7 +66,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         .unit_circle()
         .segment(2.0 * PI / 3.0)
         .with_texture(texture)
-        .multiply_color(color::YELLOW);
+        .mul_color(color::YELLOW);
     let mut ring0 = gfx
         .shapes()
         .unit_ring(0.75)

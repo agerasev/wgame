@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use glam::{Affine2, Mat4};
+use glam::{Affine2, Affine3A};
 use wgame_gfx::{modifiers::Transformable, types::Transform};
 use wgame_shader::Attribute;
 
@@ -116,7 +116,7 @@ pub struct Circle {
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
     segment_angle: f32,
-    matrix: Mat4,
+    xform: Affine3A,
 }
 
 impl Circle {
@@ -161,8 +161,8 @@ impl Element for Circle {
         self.pipeline.clone()
     }
 
-    fn matrix(&self) -> Mat4 {
-        self.matrix
+    fn xform(&self) -> Affine3A {
+        self.xform
     }
 }
 
@@ -178,7 +178,7 @@ impl Shape for Circle {
 impl Transformable for Circle {
     fn transform<X: Transform>(&self, xform: X) -> Self {
         Self {
-            matrix: xform.to_mat4() * self.matrix,
+            xform: xform.to_affine3() * self.xform,
             ..self.clone()
         }
     }
@@ -193,7 +193,7 @@ impl ShapesLibrary {
             pipeline: self.circle.ring_pipeline.clone(),
             inner_radius,
             segment_angle: 2.0 * PI,
-            matrix: Mat4::IDENTITY,
+            xform: Affine3A::IDENTITY,
         }
     }
 
@@ -205,7 +205,7 @@ impl ShapesLibrary {
             pipeline: self.circle.circle_pipeline.clone(),
             inner_radius: 0.0,
             segment_angle: 2.0 * PI,
-            matrix: Mat4::IDENTITY,
+            xform: Affine3A::IDENTITY,
         }
     }
 }

@@ -49,7 +49,7 @@ pub struct Texture<T: Texel = Rgba<f16>> {
     image: AtlasImage<T>,
     settings: TextureSettings,
     xform: Affine2,
-    color: Rgba<f16>,
+    color: Rgba<f32>,
 }
 
 pub type FilterMode = wgpu::FilterMode;
@@ -423,7 +423,7 @@ impl<T: Texel> Texture<T> {
 
     pub fn multiply_color<C: Color>(&self, color: C) -> Self {
         Self {
-            color: self.color.multiply(color),
+            color: self.color.mul(color),
             ..self.clone()
         }
     }
@@ -501,7 +501,7 @@ impl<T: Texel> TextureAttribute<T> {
     pub fn coord_xform(&self) -> Affine2 {
         self.0.coord_xform()
     }
-    pub fn color(&self) -> Rgba<f16> {
+    pub fn color(&self) -> Rgba<f32> {
         self.0.color
     }
 }

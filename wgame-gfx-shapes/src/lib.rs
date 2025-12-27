@@ -52,13 +52,6 @@ pub struct ShapesLibrary {
     white_texture: Texture,
 }
 
-impl Deref for ShapesLibrary {
-    type Target = ShapesState;
-    fn deref(&self) -> &Self::Target {
-        &self.state
-    }
-}
-
 impl ShapesLibrary {
     pub fn new(state: &Graphics, texture: &TexturingLibrary) -> Self {
         assert_eq!(state, &**texture.state());
@@ -69,10 +62,14 @@ impl ShapesLibrary {
             polygon: PolygonLibrary::new(&state),
             circle: CircleLibrary::new(&state),
             white_texture: texture.texture(
-                &Image::with_color((1, 1), color::WHITE.to_rgba()),
+                &Image::with_color((1, 1), color::WHITE.to_rgba_f16()),
                 Default::default(),
             ),
             state,
         }
+    }
+
+    pub fn state(&self) -> &ShapesState {
+        &self.state
     }
 }

@@ -58,7 +58,7 @@ impl<S: Element> Instance for Textured<S> {
 
     fn store(&self, storage: &mut Self::Storage) {
         storage.instances.push(InstanceData {
-            matrix: self.inner.matrix(),
+            matrix: self.inner.xform().to_mat4(),
             tex: self.texture.as_ref().attribute(),
             custom: self.inner.attribute(),
         });
@@ -94,7 +94,7 @@ impl<S: Shape> Transformable for Textured<S> {
 }
 
 impl<S: Shape> Colorable for Textured<S> {
-    fn multiply_color<C: Color>(&self, color: C) -> Self {
+    fn mul_color<C: Color>(&self, color: C) -> Self {
         Self {
             inner: self.inner.clone(),
             texture: self.texture.multiply_color(color),

@@ -1,12 +1,12 @@
 use std::{cell::RefCell, num::NonZero};
 
 use glam::Mat4;
-use half::f16;
 use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
 use crate::{
     Context, Graphics,
+    prelude::{Colorable, Transformable},
     types::{Color, Transform, color},
 };
 
@@ -15,39 +15,16 @@ pub struct Camera {
     state: Graphics,
     bind_group: RefCell<Option<wgpu::BindGroup>>,
     view: Mat4,
-    color: Rgba<f16>,
+    color: Rgba<f32>,
 }
 
 impl Camera {
-    pub fn new(state: &Graphics) -> Self {
+    pub fn new(state: &Graphics, view: Mat4) -> Self {
         Self {
             state: state.clone(),
             bind_group: RefCell::default(),
-            view: Mat4::IDENTITY,
+            view,
             color: color::WHITE.to_rgba(),
-        }
-    }
-
-    pub fn transform(&self, xform: impl Transform) -> Self {
-        Self {
-            view: self.view * xform.to_mat4(),
-            bind_group: RefCell::default(),
-            ..self.clone()
-        }
-    }
-
-    pub fn color(&self, color: impl Color) -> Self {
-        let x = self.color;
-        let y = color.to_rgba();
-        Self {
-            color: Rgba {
-                r: x.r * y.r,
-                g: x.g * y.g,
-                b: x.b * y.b,
-                a: x.a * y.a,
-            },
-            bind_group: RefCell::default(),
-            ..self.clone()
         }
     }
 
@@ -77,6 +54,33 @@ impl Camera {
                 },
             ],
         })
+    }
+}
+
+impl Transformable for Camera {
+    fn transform<X: Transform>(&self, xform: X) -> Self {
+        Self {
+            view: self.view * xform.to_mat4(),
+            bind_group: RefCell::default(),
+            ..self.clone()
+        }
+    }
+}
+
+impl Colorable for Camera {
+    fn mul_color<C: Color>(&self, color: C) -> Self {
+        let x = self.color;
+        let y = color.to_rgba();
+        Self {
+            color: Rgba {
+                r: x.r * y.r,
+                g: x.g * y.g,
+                b: x.b * y.b,
+                a: x.a * y.a,
+            },
+            bind_group: RefCell::default(),
+            ..self.clone()
+        }
     }
 }
 

@@ -58,7 +58,7 @@ impl TexturingLibrary {
         let colors = colors
             .into_iter()
             .flatten()
-            .map(|c| c.to_rgba())
+            .map(|c| c.to_rgba_f16())
             .collect::<Vec<_>>();
         let pix_size = Vec2::new(M as f32, N as f32).recip();
         self.texture(

@@ -1,29 +1,23 @@
-use glam::{Vec2, Vec3, Vec3A, Vec4};
+use glam::{Vec2, Vec3, Vec3A};
 
-pub trait Position {
-    fn to_xyzw(self) -> Vec4;
+pub trait Position: Copy {
+    fn to_xyz(self) -> Vec3;
 }
 
 impl Position for Vec2 {
-    fn to_xyzw(self) -> Vec4 {
-        Vec4::from((self, 0.0, 1.0))
+    fn to_xyz(self) -> Vec3 {
+        (self, 0.0).into()
     }
 }
 
 impl Position for Vec3 {
-    fn to_xyzw(self) -> Vec4 {
-        Vec4::from((self, 1.0))
+    fn to_xyz(self) -> Vec3 {
+        self
     }
 }
 
 impl Position for Vec3A {
-    fn to_xyzw(self) -> Vec4 {
-        Vec4::from((self, 1.0))
-    }
-}
-
-impl Position for Vec4 {
-    fn to_xyzw(self) -> Vec4 {
-        self
+    fn to_xyz(self) -> Vec3 {
+        self.into()
     }
 }

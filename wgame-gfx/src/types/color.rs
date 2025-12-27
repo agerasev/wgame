@@ -11,67 +11,69 @@ pub const BLUE: Rgb<f32> = Rgb::new(0.0, 0.0, 1.0);
 pub const MAGENTA: Rgb<f32> = Rgb::new(1.0, 0.0, 1.0);
 pub const WHITE: Rgb<f32> = Rgb::new(1.0, 1.0, 1.0);
 
-pub trait Color: Copy + Sized {
-    fn to_rgba(self) -> Rgba<f16>;
+pub trait Color: Copy {
+    fn to_rgba(self) -> Rgba<f32>;
+
+    fn to_rgba_f16(self) -> Rgba<f16> {
+        let this = self.to_rgba();
+        Rgba::new(
+            f16::from_f32(this.r),
+            f16::from_f32(this.g),
+            f16::from_f32(this.b),
+            f16::from_f32(this.a),
+        )
+    }
 
     fn to_vec4(self) -> Vec4 {
         let c = self.to_rgba();
-        Vec4::new(c.r.to_f32(), c.g.to_f32(), c.b.to_f32(), c.a.to_f32())
+        Vec4::new(c.r, c.g, c.b, c.a)
     }
 
-    fn multiply(self, other: impl Color) -> Rgba<f16> {
-        let c = self.to_rgba();
-        let d = other.to_rgba();
-        Rgba {
-            r: c.r * d.r,
-            g: c.g * d.g,
-            b: c.b * d.b,
-            a: c.a * d.a,
-        }
+    fn mul(self, other: impl Color) -> Rgba<f32> {
+        (self.to_vec4() * other.to_vec4()).to_rgba()
+    }
+
+    fn mix(self, other: impl Color, other_weight: f32) -> Rgba<f32> {
+        (self.to_vec4() * (1.0 - other_weight) + other.to_vec4() * other_weight).to_rgba()
     }
 }
 
 impl Color for Rgb<f32> {
-    fn to_rgba(self) -> Rgba<f16> {
-        Rgba::new(
-            f16::from_f32(self.r),
-            f16::from_f32(self.g),
-            f16::from_f32(self.b),
-            f16::ONE,
-        )
+    fn to_rgba(self) -> Rgba<f32> {
+        Rgba::new(self.r, self.g, self.b, 1.0)
     }
 }
 
 impl Color for Rgba<f32> {
-    fn to_rgba(self) -> Rgba<f16> {
-        Rgba::new(
-            f16::from_f32(self.r),
-            f16::from_f32(self.g),
-            f16::from_f32(self.b),
-            f16::from_f32(self.a),
-        )
-    }
-}
-
-impl Color for Rgb<f16> {
-    fn to_rgba(self) -> Rgba<f16> {
-        Rgba::new(self.r, self.g, self.b, f16::ONE)
-    }
-}
-
-impl Color for Rgba<f16> {
-    fn to_rgba(self) -> Rgba<f16> {
+    fn to_rgba(self) -> Rgba<f32> {
         self
     }
 }
 
+impl Color for Rgb<f16> {
+    fn to_rgba(self) -> Rgba<f32> {
+        Rgba::new(self.r.to_f32(), self.g.to_f32(), self.b.to_f32(), 1.0)
+    }
+}
+
+impl Color for Rgba<f16> {
+    fn to_rgba(self) -> Rgba<f32> {
+        Rgba::new(
+            self.r.to_f32(),
+            self.g.to_f32(),
+            self.b.to_f32(),
+            self.a.to_f32(),
+        )
+    }
+}
+
 impl Color for Vec3 {
-    fn to_rgba(self) -> Rgba<f16> {
+    fn to_rgba(self) -> Rgba<f32> {
         Rgba {
-            r: f16::from_f32(self.x),
-            g: f16::from_f32(self.y),
-            b: f16::from_f32(self.z),
-            a: f16::ONE,
+            r: self.x,
+            g: self.y,
+            b: self.z,
+            a: 1.0,
         }
     }
 
@@ -81,12 +83,12 @@ impl Color for Vec3 {
 }
 
 impl Color for Vec4 {
-    fn to_rgba(self) -> Rgba<f16> {
+    fn to_rgba(self) -> Rgba<f32> {
         Rgba {
-            r: f16::from_f32(self.x),
-            g: f16::from_f32(self.y),
-            b: f16::from_f32(self.z),
-            a: f16::from_f32(self.w),
+            r: self.x,
+            g: self.y,
+            b: self.z,
+            a: self.w,
         }
     }
 

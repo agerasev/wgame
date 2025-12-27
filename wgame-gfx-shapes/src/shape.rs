@@ -1,4 +1,4 @@
-use glam::Mat4;
+use glam::Affine3A;
 use wgame_gfx::{modifiers::Transformable, types::Color};
 use wgame_shader::Attribute;
 
@@ -18,7 +18,7 @@ pub trait Element: Clone {
     }
     fn attribute(&self) -> Self::Attribute;
     fn pipeline(&self) -> wgpu::RenderPipeline;
-    fn matrix(&self) -> Mat4;
+    fn xform(&self) -> Affine3A;
 }
 
 pub trait Shape: Transformable + Clone {

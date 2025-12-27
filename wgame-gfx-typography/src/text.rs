@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
-use glam::{Mat4, Quat, Vec3};
-use half::f16;
+use glam::{Affine3A, Mat4, Quat, Vec3};
 use rgb::Rgba;
 use wgame_gfx::{
     Camera, Instance, InstanceVisitor, Object,
@@ -27,8 +26,8 @@ pub enum TextAlign {
 pub struct Text {
     font: FontTexture,
     metrics: Rc<TextMetrics>,
-    matrix: Mat4,
-    color: Rgba<f16>,
+    xform: Affine3A,
+    color: Rgba<f32>,
     align: TextAlign,
 }
 
@@ -43,7 +42,7 @@ impl Text {
         font.add_glyphs(metrics.glyphs().iter().map(|g| g.id));
         Self {
             font: font.clone(),
-            matrix: Mat4::from_scale(Vec3::splat(metrics.size().recip())),
+            xform: Affine3A::from_scale(Vec3::splat(metrics.size().recip())),
             metrics: Rc::new(metrics),
             color: color::WHITE.to_rgba(),
             align: TextAlign::default(),
@@ -75,8 +74,8 @@ impl Text {
         for glyph in self.metrics.glyphs() {
             if let Some(glyph_image) = self.font.glyph_info(glyph.id) {
                 glyphs.push(GlyphInstance {
-                    xform: self.matrix
-                        * Mat4::from_scale_rotation_translation(
+                    xform: (self.xform
+                        * Affine3A::from_scale_rotation_translation(
                             Vec3::new(
                                 glyph_image.placement.width as f32,
                                 glyph_image.placement.height as f32,
@@ -88,8 +87,8 @@ impl Text {
                                 glyph_image.placement.top as f32,
                                 0.0,
                             ),
-                        ),
-
+                        ))
+                    .to_mat4(),
                     id: glyph.id,
                 });
             }
@@ -110,16 +109,16 @@ impl Text {
 impl Transformable for Text {
     fn transform<X: Transform>(&self, xform: X) -> Self {
         Self {
-            matrix: xform.to_mat4() * self.matrix,
+            xform: xform.to_affine3() * self.xform,
             ..self.clone()
         }
     }
 }
 
 impl Colorable for Text {
-    fn multiply_color<C: Color>(&self, color: C) -> Self {
+    fn mul_color<C: Color>(&self, color: C) -> Self {
         Self {
-            color: self.color.multiply(color),
+            color: self.color.mul(color),
             ..self.clone()
         }
     }
@@ -129,7 +128,7 @@ impl Colorable for Text {
 pub struct TextInstance {
     pub(crate) texture: FontTexture,
     pub(crate) glyphs: Rc<[GlyphInstance]>,
-    pub(crate) color: Rgba<f16>,
+    pub(crate) color: Rgba<f32>,
 }
 
 pub(crate) struct GlyphInstance {

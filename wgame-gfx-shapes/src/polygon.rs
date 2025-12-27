@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use glam::{Affine3A, Mat3, Mat4, Vec2, Vec3, Vec4, Vec4Swizzles};
+use glam::{Affine3A, Mat3, Vec2, Vec3, Vec4};
 use wgame_gfx::{
     modifiers::Transformable,
     types::{Position, Transform},
@@ -121,7 +121,7 @@ pub struct Polygon {
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
-    matrix: Mat4,
+    xform: Affine3A,
 }
 
 impl Element for Polygon {
@@ -145,8 +145,8 @@ impl Element for Polygon {
         self.pipeline.clone()
     }
 
-    fn matrix(&self) -> Mat4 {
-        self.matrix
+    fn xform(&self) -> Affine3A {
+        self.xform
     }
 }
 
@@ -162,7 +162,7 @@ impl Shape for Polygon {
 impl Transformable for Polygon {
     fn transform<X: Transform>(&self, xform: X) -> Self {
         Self {
-            matrix: xform.to_mat4() * self.matrix,
+            xform: xform.to_affine3() * self.xform,
             ..self.clone()
         }
     }
@@ -181,17 +181,13 @@ impl ShapesLibrary {
             vertices: vertices.clone(),
             indices: indices.cloned(),
             pipeline: self.polygon.pipeline.clone(),
-            matrix: Mat4::IDENTITY,
+            xform: Affine3A::IDENTITY,
         }
     }
 
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon {
         self.polygon(3, &self.polygon.triangle_vertices, None)
-            .transform(Mat4::from_mat3(Mat3::from_cols(
-                a.to_xyzw().xyz(),
-                b.to_xyzw().xyz(),
-                c.to_xyzw().xyz(),
-            )))
+            .transform(Mat3::from_cols(a.to_xyz(), b.to_xyz(), c.to_xyz()))
     }
 
     pub fn unit_quad(&self) -> Polygon {

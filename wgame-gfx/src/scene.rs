@@ -2,9 +2,11 @@ use std::{any::Any, cmp::Ordering, rc::Rc};
 
 use hashbrown::{HashMap, hash_map::EntryRef};
 
-use crate::{AnyResource, AnyStorage, Context, Instance, InstanceVisitor, Object, Resource};
+use crate::{
+    AnyResource, AnyStorage, Camera, Context, Instance, InstanceVisitor, Object, Resource,
+};
 
-pub struct Scene<C: Context> {
+pub struct Scene<C: Context = Camera> {
     items: HashMap<Rc<dyn AnyResource>, Box<dyn AnyStorage<C>>>,
 }
 
