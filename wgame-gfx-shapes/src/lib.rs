@@ -3,7 +3,7 @@
 mod circle;
 mod pipeline;
 mod polygon;
-mod resource;
+mod render;
 pub mod shader;
 mod shape;
 mod textured;
@@ -19,7 +19,7 @@ use wgame_image::Image;
 use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
 
 pub use self::{
-    polygon::{Hexagon, Polygon, Quad, Triangle},
+    polygon::Polygon,
     shape::{Shape, ShapeExt},
     textured::Textured,
 };

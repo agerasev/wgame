@@ -35,8 +35,7 @@ impl VertexData {
 
 #[derive(Clone, Attribute)]
 pub struct InstanceData<T: Attribute = ()> {
-    pub xform: Mat4,
-    pub tex_xform: TextureAttribute,
-    pub color: Vec4,
+    pub matrix: Mat4,
+    pub tex: TextureAttribute,
     pub custom: T,
 }

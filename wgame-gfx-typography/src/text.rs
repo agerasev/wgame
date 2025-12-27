@@ -1,14 +1,19 @@
-use glam::{Affine2, Mat4, Quat, Vec2, Vec3};
+use std::rc::Rc;
+
+use glam::{Mat4, Quat, Vec3};
 use half::f16;
 use rgb::Rgba;
 use wgame_gfx::{
-    Camera, Instance, Object, Renderer, Resource,
-    modifiers::Transformed,
-    types::{Color, color},
+    Camera, Instance, InstanceVisitor, Object,
+    modifiers::{Colorable, Transformable},
+    types::{Color, Transform, color},
 };
 use wgame_typography::{TextMetrics, swash::GlyphId};
 
-use crate::{FontTexture, render::TextResource};
+use crate::{
+    FontTexture,
+    render::{TextResource, TextStorage},
+};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum TextAlign {
@@ -18,9 +23,13 @@ pub enum TextAlign {
     Right,
 }
 
+#[derive(Clone)]
 pub struct Text {
     font: FontTexture,
-    metrics: TextMetrics,
+    metrics: Rc<TextMetrics>,
+    matrix: Mat4,
+    color: Rgba<f16>,
+    align: TextAlign,
 }
 
 impl Text {
@@ -34,7 +43,10 @@ impl Text {
         font.add_glyphs(metrics.glyphs().iter().map(|g| g.id));
         Self {
             font: font.clone(),
-            metrics,
+            matrix: Mat4::from_scale(Vec3::splat(metrics.size().recip())),
+            metrics: Rc::new(metrics),
+            color: color::WHITE.to_rgba(),
+            align: TextAlign::default(),
         }
     }
 
@@ -45,40 +57,39 @@ impl Text {
         &self.metrics
     }
 
-    pub fn align(&self, align: TextAlign) -> Transformed<&Self> {
-        let width = self.metrics.width();
-        Transformed::new(
-            self,
-            Affine2::from_translation(Vec2::new(
-                match align {
-                    TextAlign::Left => 0.0,
-                    TextAlign::Center => -width / 2.0,
-                    TextAlign::Right => -width,
-                },
-                0.0,
-            )),
-        )
+    pub fn align(&self, align: TextAlign) -> Self {
+        Self {
+            align,
+            ..self.clone()
+        }
     }
 
     pub fn instance(&self) -> Option<TextInstance> {
-        let mut offset = 0.0;
+        let width = self.metrics.width();
+        let mut offset = match self.align {
+            TextAlign::Left => 0.0,
+            TextAlign::Center => -width / 2.0,
+            TextAlign::Right => -width,
+        };
         let mut glyphs = Vec::with_capacity(self.metrics.glyphs().len());
         for glyph in self.metrics.glyphs() {
             if let Some(glyph_image) = self.font.glyph_info(glyph.id) {
                 glyphs.push(GlyphInstance {
-                    xform: Mat4::from_scale_rotation_translation(
-                        Vec3::new(
-                            glyph_image.placement.width as f32,
-                            glyph_image.placement.height as f32,
-                            1.0,
+                    xform: self.matrix
+                        * Mat4::from_scale_rotation_translation(
+                            Vec3::new(
+                                glyph_image.placement.width as f32,
+                                glyph_image.placement.height as f32,
+                                1.0,
+                            ),
+                            Quat::IDENTITY,
+                            Vec3::new(
+                                glyph_image.placement.left as f32 + offset,
+                                glyph_image.placement.top as f32,
+                                0.0,
+                            ),
                         ),
-                        Quat::IDENTITY,
-                        Vec3::new(
-                            glyph_image.placement.left as f32 + offset,
-                            glyph_image.placement.top as f32,
-                            0.0,
-                        ),
-                    ),
+
                     id: glyph.id,
                 });
             }
@@ -89,16 +100,35 @@ impl Text {
         } else {
             Some(TextInstance {
                 texture: self.font.clone(),
-                glyphs,
-                color: color::WHITE.to_rgba(),
+                glyphs: glyphs.into(),
+                color: self.color,
             })
         }
     }
 }
 
+impl Transformable for Text {
+    fn transform<X: Transform>(&self, xform: X) -> Self {
+        Self {
+            matrix: xform.to_mat4() * self.matrix,
+            ..self.clone()
+        }
+    }
+}
+
+impl Colorable for Text {
+    fn multiply_color<C: Color>(&self, color: C) -> Self {
+        Self {
+            color: self.color.multiply(color),
+            ..self.clone()
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct TextInstance {
     pub(crate) texture: FontTexture,
-    pub(crate) glyphs: Vec<GlyphInstance>,
+    pub(crate) glyphs: Rc<[GlyphInstance]>,
     pub(crate) color: Rgba<f16>,
 }
 
@@ -108,48 +138,33 @@ pub(crate) struct GlyphInstance {
 }
 
 impl Instance for TextInstance {
-    type Resource = TextResource;
     type Context = Camera;
+    type Resource = TextResource;
+    type Storage = TextStorage;
 
     fn resource(&self) -> Self::Resource {
         TextResource::new(&self.texture)
     }
-    fn store(&self, camera: &Camera, storage: &mut <Self::Resource as Resource>::Storage) {
-        storage.instances.push(TextInstance {
-            texture: self.texture.clone(),
-            glyphs: self
-                .glyphs
-                .iter()
-                .map(|glyph| GlyphInstance {
-                    xform: camera.view
-                        * Mat4::from_scale(Vec3::new(
-                            1.0,
-                            if camera.y_flip { -1.0 } else { 1.0 },
-                            1.0,
-                        ))
-                        * glyph.xform,
-                    id: glyph.id,
-                })
-                .collect(),
-            color: self.color.multiply(camera.color),
-        });
+    fn new_storage(&self) -> Self::Storage {
+        TextStorage::new(self.resource())
+    }
+    fn store(&self, storage: &mut Self::Storage) {
+        storage.instances.push(self.clone());
     }
 }
 
 impl Object for TextInstance {
     type Context = Camera;
-
-    fn draw<R: Renderer<Self::Context>>(&self, renderer: &mut R) {
-        renderer.insert(self);
+    fn for_each_instance<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
+        visitor.visit(self);
     }
 }
 
 impl Object for Text {
     type Context = Camera;
-
-    fn draw<R: Renderer<Self::Context>>(&self, renderer: &mut R) {
+    fn for_each_instance<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
         if let Some(instance) = self.instance() {
-            renderer.insert(instance);
+            visitor.visit(&instance);
         }
     }
 }

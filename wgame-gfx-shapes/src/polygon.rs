@@ -1,16 +1,19 @@
 use std::fmt::{self, Debug};
 
 use glam::{Affine3A, Mat3, Mat4, Vec2, Vec3, Vec4, Vec4Swizzles};
-use wgame_gfx::{modifiers::Transformed, types::Position};
+use wgame_gfx::{
+    modifiers::Transformable,
+    types::{Position, Transform},
+};
 use wgame_shader::Attribute;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    Shape, ShapeExt, ShapesLibrary, ShapesState,
+    Shape, ShapesLibrary, ShapesState,
     pipeline::create_pipeline,
-    resource::VertexBuffers,
+    render::VertexBuffers,
     shader::VertexData,
-    shape::{Element, ShapeContext, Visitor},
+    shape::{Element, ElementVisitor},
 };
 
 #[derive(Clone)]
@@ -112,14 +115,16 @@ impl PolygonLibrary {
 }
 
 #[derive(Clone)]
-pub struct Polygon<const N: u32> {
+pub struct Polygon {
     library: ShapesLibrary,
+    count: u32,
     vertices: wgpu::Buffer,
     indices: Option<wgpu::Buffer>,
     pipeline: wgpu::RenderPipeline,
+    matrix: Mat4,
 }
 
-impl<const N: u32> Element for Polygon<N> {
+impl Element for Polygon {
     type Attribute = ();
 
     fn state(&self) -> &ShapesState {
@@ -128,7 +133,7 @@ impl<const N: u32> Element for Polygon<N> {
 
     fn vertices(&self) -> VertexBuffers {
         VertexBuffers {
-            count: 3 * (N - 2),
+            count: 3 * (self.count - 2),
             vertex_buffer: self.vertices.clone(),
             index_buffer: self.indices.clone(),
         }
@@ -139,51 +144,65 @@ impl<const N: u32> Element for Polygon<N> {
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.pipeline.clone()
     }
+
+    fn matrix(&self) -> Mat4 {
+        self.matrix
+    }
 }
 
-impl<const N: u32> Shape for Polygon<N> {
+impl Shape for Polygon {
     fn library(&self) -> &ShapesLibrary {
         &self.library
     }
-    fn visit<V: Visitor>(&self, ctx: ShapeContext, visitor: &mut V) {
-        visitor.apply(ctx, self);
+    fn for_each_element<V: ElementVisitor>(&self, visitor: &mut V) {
+        visitor.visit(self);
     }
 }
 
-pub type Triangle = Polygon<3>;
-pub type Quad = Polygon<4>;
-pub type Hexagon = Polygon<6>;
+impl Transformable for Polygon {
+    fn transform<X: Transform>(&self, xform: X) -> Self {
+        Self {
+            matrix: xform.to_mat4() * self.matrix,
+            ..self.clone()
+        }
+    }
+}
 
 impl ShapesLibrary {
-    pub fn triangle(
+    fn polygon(
         &self,
-        a: impl Position,
-        b: impl Position,
-        c: impl Position,
-    ) -> Transformed<Polygon<3>> {
+        count: u32,
+        vertices: &wgpu::Buffer,
+        indices: Option<&wgpu::Buffer>,
+    ) -> Polygon {
         Polygon {
             library: self.clone(),
-            vertices: self.polygon.triangle_vertices.clone(),
-            indices: None,
+            count,
+            vertices: vertices.clone(),
+            indices: indices.cloned(),
             pipeline: self.polygon.pipeline.clone(),
-        }
-        .transform(Mat4::from_mat3(Mat3::from_cols(
-            a.to_xyzw().xyz(),
-            b.to_xyzw().xyz(),
-            c.to_xyzw().xyz(),
-        )))
-    }
-
-    pub fn unit_quad(&self) -> Polygon<4> {
-        Polygon {
-            library: self.clone(),
-            vertices: self.polygon.quad_vertices.clone(),
-            indices: Some(self.polygon.quad_indices.clone()),
-            pipeline: self.polygon.pipeline.clone(),
+            matrix: Mat4::IDENTITY,
         }
     }
 
-    pub fn rectangle(&self, (min, max): (Vec2, Vec2)) -> Transformed<Polygon<4>> {
+    pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon {
+        self.polygon(3, &self.polygon.triangle_vertices, None)
+            .transform(Mat4::from_mat3(Mat3::from_cols(
+                a.to_xyzw().xyz(),
+                b.to_xyzw().xyz(),
+                c.to_xyzw().xyz(),
+            )))
+    }
+
+    pub fn unit_quad(&self) -> Polygon {
+        self.polygon(
+            4,
+            &self.polygon.quad_vertices,
+            Some(&self.polygon.quad_indices),
+        )
+    }
+
+    pub fn rectangle(&self, (min, max): (Vec2, Vec2)) -> Polygon {
         let center = 0.5 * (min + max);
         let half_size = 0.5 * (max - min);
         let affine = Affine3A::from_mat3_translation(
@@ -193,18 +212,17 @@ impl ShapesLibrary {
         self.unit_quad().transform(affine)
     }
 
-    pub fn unit_hexagon(&self) -> Polygon<6> {
-        Polygon {
-            library: self.clone(),
-            vertices: self.polygon.hexagon_vertices.clone(),
-            indices: Some(self.polygon.hexagon_indices.clone()),
-            pipeline: self.polygon.pipeline.clone(),
-        }
+    pub fn unit_hexagon(&self) -> Polygon {
+        self.polygon(
+            6,
+            &self.polygon.hexagon_vertices,
+            Some(&self.polygon.hexagon_indices),
+        )
     }
 }
 
-impl<const N: u32> Debug for Polygon<N> {
+impl Debug for Polygon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Polygon<{N}>")
+        write!(f, "Polygon<{}>", self.count)
     }
 }

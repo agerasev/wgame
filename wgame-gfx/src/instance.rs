@@ -1,32 +1,73 @@
-use crate::{Resource, modifiers::Ordered};
+use std::{any::Any, rc::Rc};
 
-pub trait Context: Clone + Default {}
+use crate::{AnyResource, Context, Renderer, Resource};
 
 /// Single instance to draw.
 pub trait Instance {
-    type Resource: Resource;
     type Context: Context;
+    type Resource: Resource;
+    type Storage: Storage<Context = Self::Context, Resource = Self::Resource>;
 
     fn resource(&self) -> Self::Resource;
-    fn store(&self, context: &Self::Context, storage: &mut <Self::Resource as Resource>::Storage);
+    fn new_storage(&self) -> Self::Storage;
+    fn store(&self, storage: &mut Self::Storage);
 }
 
-impl<T: Instance> Instance for &'_ T {
-    type Resource = T::Resource;
+impl<T: Instance> Instance for &T {
     type Context = T::Context;
+    type Resource = T::Resource;
+    type Storage = T::Storage;
 
     fn resource(&self) -> Self::Resource {
-        (*self).resource()
+        (**self).resource()
     }
-    fn store(&self, params: &Self::Context, storage: &mut <Self::Resource as Resource>::Storage) {
-        (*self).store(params, storage);
+    fn new_storage(&self) -> Self::Storage {
+        (**self).new_storage()
     }
-}
-
-pub trait InstanceExt: Instance + Sized {
-    fn order(&self, order: i64) -> Ordered<&Self> {
-        Ordered::new(self, order)
+    fn store(&self, storage: &mut Self::Storage) {
+        (**self).store(storage)
     }
 }
 
-impl<T: Instance> InstanceExt for T {}
+pub trait Storage: Any {
+    type Context: Context;
+    type Resource: Resource;
+    type Renderer: Renderer<Self::Context>;
+
+    fn resource(&self) -> Self::Resource;
+    /// Bake all collected instances into a single immutable renderer.
+    fn bake(&self) -> Self::Renderer;
+}
+
+pub trait AnyStorage<C: Context>: Any + 'static {
+    fn resource_dyn(&self) -> Rc<dyn AnyResource>;
+    fn bake_dyn(&self) -> Rc<dyn Renderer<C>>;
+}
+
+impl<S: Storage> AnyStorage<S::Context> for S {
+    fn resource_dyn(&self) -> Rc<dyn AnyResource> {
+        self.resource().clone_dyn()
+    }
+    fn bake_dyn(&self) -> Rc<dyn Renderer<S::Context>> {
+        Rc::new(self.bake())
+    }
+}
+
+impl<C: Context> Storage for dyn AnyStorage<C> {
+    type Context = C;
+    type Resource = Rc<dyn AnyResource>;
+    type Renderer = Rc<dyn Renderer<C>>;
+
+    fn resource(&self) -> Self::Resource {
+        self.resource_dyn()
+    }
+    fn bake(&self) -> Self::Renderer {
+        self.bake_dyn()
+    }
+}
+
+impl<S: Storage + ?Sized> Renderer<S::Context> for S {
+    fn render(&self, ctx: &S::Context, pass: &mut wgpu::RenderPass<'_>) {
+        self.bake().render(ctx, pass);
+    }
+}

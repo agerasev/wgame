@@ -1,38 +1,30 @@
-use crate::{
-    Camera, Renderer,
-    instance::Context,
-    modifiers::{Colored, Transformed},
-    types::{Color, Transform},
-};
+use crate::{Context, Instance, Ordered};
+
+pub trait InstanceVisitor<C: Context> {
+    fn visit<T: Instance<Context = C>>(&mut self, instance: &T);
+}
+
+impl<C: Context, V: InstanceVisitor<C>> InstanceVisitor<C> for &mut V {
+    fn visit<T: Instance<Context = C>>(&mut self, instance: &T) {
+        (**self).visit(instance)
+    }
+}
 
 pub trait Object {
     type Context: Context;
-    fn draw<R: Renderer<Self::Context>>(&self, renderer: &mut R);
+    fn for_each_instance<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V);
+
+    fn order(&self, order: i32) -> Ordered<Self>
+    where
+        Self: Clone,
+    {
+        Ordered::new(self.clone(), order)
+    }
 }
 
-impl<T: Object> Object for &'_ T {
+impl<T: Object> Object for &T {
     type Context = T::Context;
-    fn draw<R: Renderer<Self::Context>>(&self, renderer: &mut R) {
-        (*self).draw(renderer);
+    fn for_each_instance<V: InstanceVisitor<Self::Context>>(&self, visitor: &mut V) {
+        (**self).for_each_instance(visitor);
     }
 }
-
-impl<T: Object> Object for Option<T> {
-    type Context = T::Context;
-    fn draw<R: Renderer<Self::Context>>(&self, renderer: &mut R) {
-        if let Some(object) = self {
-            object.draw(renderer);
-        }
-    }
-}
-
-pub trait ObjectExt: Object<Context = Camera> + Sized {
-    fn transform<X: Transform>(self, xform: X) -> Transformed<Self> {
-        Transformed::new(self, xform)
-    }
-    fn color<C: Color>(self, color: C) -> Colored<Self> {
-        Colored::new(self, color)
-    }
-}
-
-impl<T: Object<Context = Camera>> ObjectExt for T {}

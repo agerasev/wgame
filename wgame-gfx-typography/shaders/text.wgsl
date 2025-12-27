@@ -17,12 +17,19 @@ struct VertexOutput {
     @location(1) color: vec4<f32>,
 };
 
+@group(0)
+@binding(0)
+var<uniform> view_matrix: mat4x4<f32>;
+@group(0)
+@binding(1)
+var<uniform> view_color: vec4<f32>;
+
 @vertex
 fn vertex_main(
     vertex: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
-    let xform = mat4x4<f32>(
+    let model_matrix = mat4x4<f32>(
         instance.xform_0,
         instance.xform_1,
         instance.xform_2,
@@ -33,14 +40,14 @@ fn vertex_main(
 
     let local_coord = vec2<f32>(vertex.position.x, -vertex.position.y);
     var output: VertexOutput;
-    output.position = xform * vertex.position;
+    output.position = view_matrix * model_matrix * vertex.position;
     output.tex_coord = tex_offset + local_coord * tex_size;
-    output.color = instance.color;
+    output.color = view_color * instance.color;
 
     return output;
 }
 
-@group(0)
+@group(1)
 @binding(0)
 var texture: texture_2d<u32>;
 

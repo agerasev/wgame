@@ -2571,9 +2571,7 @@ name = "wgame-examples"
 version = "0.1.0"
 dependencies = [
  "futures",
- "glam",
  "log",
- "rgb",
  "wgame",
 ]
 
@@ -2595,11 +2593,13 @@ name = "wgame-gfx"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytemuck",
  "glam",
  "half",
  "hashbrown 0.16.0",
  "log",
  "rgb",
+ "smallvec",
  "wgpu",
 ]
 

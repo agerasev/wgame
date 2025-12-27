@@ -1,32 +1,37 @@
 #![forbid(unsafe_code)]
 
+mod auto;
 mod camera;
-mod collector;
 mod frame;
 mod instance;
 pub mod modifiers;
 mod object;
+mod order;
 mod renderer;
 mod resource;
+mod scene;
 mod state;
 pub mod types;
 pub mod utils;
 
 pub use self::{
+    auto::AutoScene,
     camera::Camera,
-    collector::{Collector, CollectorWithContext},
-    frame::{Frame, RenderStatistics},
-    instance::{Context, Instance, InstanceExt},
-    object::{Object, ObjectExt},
-    renderer::{Renderer, RendererExt},
-    resource::Resource,
+    frame::Frame,
+    instance::{AnyStorage, Instance, Storage},
+    object::{InstanceVisitor, Object},
+    order::Ordered,
+    renderer::{Context, Renderer},
+    resource::{AnyResource, Resource},
+    scene::Scene,
     state::Graphics,
 };
 pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
 pub mod prelude {
-    pub use crate::{Object, ObjectExt, Renderer, RendererExt};
+    #[doc(no_inline)]
+    pub use crate::{Object, Renderer, modifiers::*};
 }
 
 use anyhow::{Context as _, Result};
@@ -90,12 +95,7 @@ impl<'a> Surface<'a> {
         let this = Self {
             config,
             surface,
-            state: Graphics {
-                adapter,
-                device,
-                queue,
-                format,
-            },
+            state: Graphics::new(adapter, device, queue, format),
             size: Default::default(),
         };
 
@@ -110,7 +110,7 @@ impl<'a> Surface<'a> {
         }
         let surface_config = self
             .surface
-            .get_default_config(&self.state.adapter, size.0, size.1)
+            .get_default_config(self.state.adapter(), size.0, size.1)
             .unwrap();
         self.surface.configure(
             self.state.device(),

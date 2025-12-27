@@ -1,14 +1,15 @@
 use std::f32::consts::PI;
 
-use glam::Affine2;
+use glam::{Affine2, Mat4};
+use wgame_gfx::{modifiers::Transformable, types::Transform};
 use wgame_shader::Attribute;
 
 use crate::{
     Shape, ShapesLibrary, ShapesState,
     pipeline::create_pipeline,
-    resource::VertexBuffers,
+    render::VertexBuffers,
     shader::ShaderConfig,
-    shape::{Element, ShapeContext, Visitor},
+    shape::{Element, ElementVisitor},
 };
 
 #[derive(Clone, Copy, Attribute)]
@@ -107,6 +108,7 @@ impl CircleLibrary {
     }
 }
 
+#[derive(Clone)]
 pub struct Circle {
     library: ShapesLibrary,
     vertices: wgpu::Buffer,
@@ -114,6 +116,7 @@ pub struct Circle {
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
     segment_angle: f32,
+    matrix: Mat4,
 }
 
 impl Circle {
@@ -157,14 +160,27 @@ impl Element for Circle {
     fn pipeline(&self) -> wgpu::RenderPipeline {
         self.pipeline.clone()
     }
+
+    fn matrix(&self) -> Mat4 {
+        self.matrix
+    }
 }
 
 impl Shape for Circle {
     fn library(&self) -> &ShapesLibrary {
         &self.library
     }
-    fn visit<V: Visitor>(&self, ctx: ShapeContext, visitor: &mut V) {
-        visitor.apply(ctx, self);
+    fn for_each_element<V: ElementVisitor>(&self, visitor: &mut V) {
+        visitor.visit(self);
+    }
+}
+
+impl Transformable for Circle {
+    fn transform<X: Transform>(&self, xform: X) -> Self {
+        Self {
+            matrix: xform.to_mat4() * self.matrix,
+            ..self.clone()
+        }
     }
 }
 
@@ -177,18 +193,19 @@ impl ShapesLibrary {
             pipeline: self.circle.ring_pipeline.clone(),
             inner_radius,
             segment_angle: 2.0 * PI,
+            matrix: Mat4::IDENTITY,
         }
     }
 
     pub fn unit_circle(&self) -> Circle {
         Circle {
             library: self.clone(),
-
             vertices: self.polygon.quad_vertices.clone(),
             indices: Some(self.polygon.quad_indices.clone()),
             pipeline: self.circle.circle_pipeline.clone(),
             inner_radius: 0.0,
             segment_angle: 2.0 * PI,
+            matrix: Mat4::IDENTITY,
         }
     }
 }
