@@ -30,7 +30,7 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
             state.camera_bind_group_layout(),
             &state.texture().float_bind_group_layout,
         ],
-        push_constant_ranges: &[],
+        immediate_size: 0,
     });
 
     let vertex_attributes = VertexData::bindings();
@@ -70,7 +70,7 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
         primitive: wgpu::PrimitiveState::default(),
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
-        multiview: None,
+        multiview_mask: None,
         cache: None,
     });
 
