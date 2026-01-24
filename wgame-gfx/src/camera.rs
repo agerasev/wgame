@@ -1,6 +1,6 @@
 use std::{cell::RefCell, num::NonZero};
 
-use glam::Mat4;
+use glam::{Mat4, Vec4};
 use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
@@ -26,6 +26,20 @@ impl Camera {
             view,
             color: color::WHITE.to_rgba(),
         }
+    }
+
+    pub fn view(&self) -> Mat4 {
+        self.view
+    }
+    pub fn color(&self) -> Rgba<f32> {
+        self.color
+    }
+
+    pub fn world_to_logical(&self, pos: Vec4) -> Vec4 {
+        self.view.mul_vec4(pos)
+    }
+    pub fn logical_to_world(&self, pos: Vec4) -> Vec4 {
+        self.view.inverse_or_zero().mul_vec4(pos)
     }
 
     pub(crate) fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
