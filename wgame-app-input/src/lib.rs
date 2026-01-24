@@ -10,11 +10,10 @@ use std::{
 };
 
 use futures::Stream;
-pub use winit::event::WindowEvent as Event;
-
-pub mod types {
-    pub use winit::event::*;
-}
+pub use winit::{
+    event::{self, WindowEvent as Event},
+    keyboard,
+};
 
 /// Event multiplexer
 #[derive(Default)]

@@ -20,7 +20,7 @@ pub use crate::{
 pub use wgame_app_input::{Event, Input};
 pub use winit::{dpi::PhysicalSize as Size, window::WindowAttributes};
 pub mod input {
-    pub use wgame_app_input::{Event, Input, types::*};
+    pub use wgame_app_input::{Event, Input, event, keyboard};
 }
 
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
