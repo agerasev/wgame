@@ -15,6 +15,7 @@ use crate::{
     shape::{Element, ElementVisitor},
 };
 
+#[must_use]
 #[derive(Clone, Debug)]
 pub struct Textured<S> {
     pub inner: S,

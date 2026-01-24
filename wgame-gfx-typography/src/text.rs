@@ -22,6 +22,7 @@ pub enum TextAlign {
     Right,
 }
 
+#[must_use]
 #[derive(Clone)]
 pub struct Text {
     font: FontTexture,
@@ -84,7 +85,7 @@ impl Text {
                             Quat::IDENTITY,
                             Vec3::new(
                                 glyph_image.placement.left as f32 + offset,
-                                glyph_image.placement.top as f32,
+                                -glyph_image.placement.top as f32,
                                 0.0,
                             ),
                         ))

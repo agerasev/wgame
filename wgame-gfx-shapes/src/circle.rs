@@ -108,6 +108,7 @@ impl CircleLibrary {
     }
 }
 
+#[must_use]
 #[derive(Clone)]
 pub struct Circle {
     library: ShapesLibrary,

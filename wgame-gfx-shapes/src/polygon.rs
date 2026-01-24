@@ -114,6 +114,7 @@ impl PolygonLibrary {
     }
 }
 
+#[must_use]
 #[derive(Clone)]
 pub struct Polygon {
     library: ShapesLibrary,
