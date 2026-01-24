@@ -45,7 +45,7 @@ futures = { version = "0.3.31", default-features = false, features = [
 winit = { version = "0.30.12", default-features = false, features = ["rwh_06"] }
 wgpu = { version = "27.0.1", default-features = false, features = ["wgsl"] }
 bytemuck = "1.24.0"
-glam = { version = "0.30.9", features = ["bytemuck"] }
+glam = { version = "0.31.0", features = ["bytemuck"] }
 rgb = { version = "0.8.52", default-features = false, features = ["bytemuck"] }
 half = { version = "2.7.1", default-features = false, features = ["bytemuck"] }
 euclid = { version = "0.22.11", default-features = false }

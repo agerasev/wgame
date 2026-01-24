@@ -60,6 +60,11 @@ pub struct TextureSettings {
 }
 
 impl TextureSettings {
+    pub fn nearest() -> Self {
+        Self {
+            mag_filter: FilterMode::Nearest,
+        }
+    }
     pub fn linear() -> Self {
         Self {
             mag_filter: FilterMode::Linear,
