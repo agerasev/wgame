@@ -126,7 +126,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         )));
 
         scene.add(&quad.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(scale),
+            Vec2::new(scale, -scale),
             angle,
             Vec2::new(0.0, scale),
         )));
@@ -141,7 +141,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 &text
                     .align(TextAlign::Center)
                     .transform(Affine2::from_scale_angle_translation(
-                        Vec2::splat(text.metrics().size() * 1.0 / window_size.1 as f32),
+                        Vec2::splat(text.metrics().size() * 1.0 / window_size.1 as f32)
+                            * Vec2::new(1.0, -1.0),
                         0.0,
                         Vec2::new(2.0 * scale, scale),
                     ))
@@ -150,7 +151,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         }
 
         scene.add(&circle.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(0.8 * scale),
+            0.8 * Vec2::new(scale, -scale),
             -angle,
             Vec2::new(-2.0 * scale, -scale),
         )));
@@ -167,7 +168,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         };
         ring0.inner = ring0.inner.segment(seg_angle);
         scene.add(&ring0.transform(Affine2::from_scale_angle_translation(
-            Vec2::splat(0.8 * scale),
+            0.8 * Vec2::new(scale, -scale),
             rot_angle - angle,
             Vec2::new(0.0 * scale, -scale),
         )));

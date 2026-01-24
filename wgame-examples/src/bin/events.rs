@@ -107,7 +107,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         scene.add(
             &ring
                 .transform(
-                    Affine2::from_translation(Vec2::new(mouse_pos.x, height as f32 - mouse_pos.y))
+                    Affine2::from_translation(Vec2::new(mouse_pos.x, mouse_pos.y))
                         * Affine2::from_scale(Vec2::splat(32.0)),
                 )
                 .order(-1),
@@ -118,7 +118,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 Affine2::from_scale_angle_translation(
                     Vec2::splat(font_size),
                     0.0,
-                    Vec2::new(0.0, height as f32 - font_size),
+                    Vec2::new(0.0, font_size),
                 ),
             ),
         );

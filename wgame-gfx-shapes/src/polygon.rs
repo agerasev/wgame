@@ -34,9 +34,9 @@ impl PolygonLibrary {
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("triangle_vertices"),
                     contents: &[
-                        VertexData::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
-                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
-                        VertexData::new(Vec4::new(0.0, 0.0, 1.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+                        VertexData::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
+                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+                        VertexData::new(Vec4::new(0.0, 0.0, 1.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
                     ]
                     .to_bytes(),
                     usage: wgpu::BufferUsages::VERTEX,
@@ -46,10 +46,10 @@ impl PolygonLibrary {
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("quad_vertices"),
                 contents: &[
-                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
-                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec3::new(1.0, 1.0, 1.0)),
-                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
-                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
+                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
+                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
+                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 1.0, 1.0)),
                 ]
                 .to_bytes(),
                 usage: wgpu::BufferUsages::VERTEX,
@@ -69,23 +69,23 @@ impl PolygonLibrary {
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("hexagon_vertices"),
                     contents: &[
-                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec3::new(0.5, 1.0, 1.0)),
+                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec3::new(0.5, 0.0, 1.0)),
                         VertexData::new(
                             Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.75, 1.0),
+                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.25, 1.0),
                         ),
                         VertexData::new(
                             Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.25, 1.0),
+                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.75, 1.0),
                         ),
-                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.5, 0.0, 1.0)),
+                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.5, 1.0, 1.0)),
                         VertexData::new(
                             Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.25, 1.0),
+                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.75, 1.0),
                         ),
                         VertexData::new(
                             Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.75, 1.0),
+                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.25, 1.0),
                         ),
                     ]
                     .to_bytes(),

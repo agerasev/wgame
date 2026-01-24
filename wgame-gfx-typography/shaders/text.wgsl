@@ -38,7 +38,7 @@ fn vertex_main(
     let tex_offset = instance.tex_rect.xy;
     let tex_size = instance.tex_rect.zw;
 
-    let local_coord = vec2<f32>(vertex.position.x, -vertex.position.y);
+    let local_coord = vec2<f32>(vertex.position.x, vertex.position.y);
     var output: VertexOutput;
     output.position = view_matrix * model_matrix * vertex.position;
     output.tex_coord = tex_offset + local_coord * tex_size;

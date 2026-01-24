@@ -64,9 +64,9 @@ impl TypographyState {
                 label: Some("glyph_vertices"),
                 contents: bytemuck::cast_slice(&[
                     Vec4::new(0.0, 0.0, 0.0, 1.0),
-                    Vec4::new(0.0, -1.0, 0.0, 1.0),
+                    Vec4::new(0.0, 1.0, 0.0, 1.0),
                     Vec4::new(1.0, 0.0, 0.0, 1.0),
-                    Vec4::new(1.0, -1.0, 0.0, 1.0),
+                    Vec4::new(1.0, 1.0, 0.0, 1.0),
                 ]),
                 usage: wgpu::BufferUsages::VERTEX,
             });

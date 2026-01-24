@@ -43,7 +43,7 @@ impl<'a, 'b> Frame<'a, 'b> {
     }
     pub fn physical_camera(&mut self) -> Camera {
         let (width, height) = self.owner.size();
-        let view = Mat4::orthographic_lh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+        let view = Mat4::orthographic_lh(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
         Camera::new(&self.owner.state, view)
     }
 
