@@ -54,6 +54,7 @@ hashbrown = { version = "0.16.1", features = ["core", "alloc"] }
 smallvec = { version = "1.15.1", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 derivative = { version = "2.2.0", features = ["use_core"] }
+derive_more = { version = "2.1.1", features = ["deref", "deref_mut"] }
 thiserror = { version = "2.0.18", default-features = false }
 anyhow = "1.0.100"
 log = "0.4.29"

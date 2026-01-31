@@ -22,12 +22,12 @@ pub struct ShaderConfig {
 }
 
 #[derive(Clone, Copy, Attribute)]
-pub struct VertexData {
+pub struct Vertex {
     pub pos: Vec4,
     pub local_coord: Vec3,
 }
 
-impl VertexData {
+impl Vertex {
     pub fn new(pos: Vec4, local_coord: Vec3) -> Self {
         Self { pos, local_coord }
     }

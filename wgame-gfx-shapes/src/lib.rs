@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod circle;
+pub mod geometry;
 mod pipeline;
 mod polygon;
 mod render;
@@ -19,6 +20,7 @@ use wgame_image::Image;
 use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
 
 pub use self::{
+    geometry::Mesh,
     polygon::Polygon,
     shape::{Shape, ShapeExt},
     textured::Textured,

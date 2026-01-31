@@ -7,14 +7,7 @@ use wgame_gfx_texture::TextureResource;
 use wgame_shader::{Attribute, BytesSink};
 use wgpu::util::DeviceExt;
 
-use crate::shader::InstanceData;
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct VertexBuffers {
-    pub count: u32,
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: Option<wgpu::Buffer>,
-}
+use crate::{Mesh, shader::InstanceData};
 
 #[derive(Derivative)]
 #[derivative(
@@ -27,7 +20,7 @@ pub struct VertexBuffers {
     Debug(bound = "")
 )]
 pub struct ShapeResource<T: Attribute> {
-    pub vertices: VertexBuffers,
+    pub vertices: Mesh,
     pub texture: TextureResource,
     pub uniforms: Option<wgpu::BindGroup>,
     pub pipeline: wgpu::RenderPipeline,
@@ -41,7 +34,7 @@ pub struct ShapeStorage<T: Attribute> {
 }
 
 pub struct ShapeRenderer {
-    vertices: VertexBuffers,
+    geometry: Mesh,
     instance_count: u32,
     instance_buffer: wgpu::Buffer,
     uniforms: SmallVec<[wgpu::BindGroup; 2]>,
@@ -83,7 +76,7 @@ impl<T: Attribute> Storage for ShapeStorage<T> {
                     usage: wgpu::BufferUsages::VERTEX,
                 });
         ShapeRenderer {
-            vertices: self.resource.vertices.clone(),
+            geometry: self.resource.vertices.clone(),
             instance_count,
             instance_buffer,
             uniforms: self.resource.uniforms().into_iter().collect(),
@@ -107,18 +100,18 @@ impl Renderer<Camera> for ShapeRenderer {
         for (i, bind_group) in [ctx.bind_group()].iter().chain(&self.uniforms).enumerate() {
             pass.set_bind_group(i as u32, bind_group, &[]);
         }
-        pass.set_vertex_buffer(0, self.vertices.vertex_buffer.slice(..));
-        if let Some(index_buffer) = &self.vertices.index_buffer {
+        pass.set_vertex_buffer(0, self.geometry.vertices().slice(..));
+        if let Some(index_buffer) = self.geometry.indices() {
             pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
         }
         pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
         pass.pop_debug_group();
 
         pass.insert_debug_marker("draw");
-        if self.vertices.index_buffer.is_some() {
-            pass.draw_indexed(0..self.vertices.count, 0, 0..self.instance_count);
+        if self.geometry.indices().is_some() {
+            pass.draw_indexed(0..self.geometry.count(), 0, 0..self.instance_count);
         } else {
-            pass.draw(0..self.vertices.count, 0..self.instance_count);
+            pass.draw(0..self.geometry.count(), 0..self.instance_count);
         }
     }
 }

@@ -2,7 +2,7 @@ use glam::Affine3A;
 use wgame_gfx::{modifiers::Transformable, types::Color};
 use wgame_shader::Attribute;
 
-use crate::{ShapesLibrary, ShapesState, Texture, Textured, render::VertexBuffers};
+use crate::{Mesh, ShapesLibrary, ShapesState, Texture, Textured};
 
 pub trait ElementVisitor {
     fn visit<T: Element>(&mut self, element: &T);
@@ -12,7 +12,7 @@ pub trait Element: Clone {
     type Attribute: Attribute;
 
     fn state(&self) -> &ShapesState;
-    fn vertices(&self) -> VertexBuffers;
+    fn vertices(&self) -> Mesh;
     fn uniforms(&self) -> Option<wgpu::BindGroup> {
         None
     }

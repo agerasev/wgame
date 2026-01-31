@@ -5,9 +5,8 @@ use wgame_gfx::{modifiers::Transformable, types::Transform};
 use wgame_shader::Attribute;
 
 use crate::{
-    Shape, ShapesLibrary, ShapesState,
+    Mesh, Shape, ShapesLibrary, ShapesState,
     pipeline::create_pipeline,
-    render::VertexBuffers,
     shader::ShaderConfig,
     shape::{Element, ElementVisitor},
 };
@@ -112,8 +111,7 @@ impl CircleLibrary {
 #[derive(Clone)]
 pub struct Circle {
     library: ShapesLibrary,
-    vertices: wgpu::Buffer,
-    indices: Option<wgpu::Buffer>,
+    geometry: Mesh,
     pipeline: wgpu::RenderPipeline,
     inner_radius: f32,
     segment_angle: f32,
@@ -143,12 +141,8 @@ impl Element for Circle {
         &self.library.state
     }
 
-    fn vertices(&self) -> VertexBuffers {
-        VertexBuffers {
-            count: 6,
-            vertex_buffer: self.vertices.clone(),
-            index_buffer: self.indices.clone(),
-        }
+    fn vertices(&self) -> Mesh {
+        self.geometry.clone()
     }
 
     fn attribute(&self) -> Self::Attribute {
@@ -189,8 +183,7 @@ impl ShapesLibrary {
     pub fn unit_ring(&self, inner_radius: f32) -> Circle {
         Circle {
             library: self.clone(),
-            vertices: self.polygon.quad_vertices.clone(),
-            indices: Some(self.polygon.quad_indices.clone()),
+            geometry: self.polygon.quad.clone(),
             pipeline: self.circle.ring_pipeline.clone(),
             inner_radius,
             segment_angle: 2.0 * PI,
@@ -201,8 +194,7 @@ impl ShapesLibrary {
     pub fn unit_circle(&self) -> Circle {
         Circle {
             library: self.clone(),
-            vertices: self.polygon.quad_vertices.clone(),
-            indices: Some(self.polygon.quad_indices.clone()),
+            geometry: self.polygon.quad.clone(),
             pipeline: self.circle.circle_pipeline.clone(),
             inner_radius: 0.0,
             segment_angle: 2.0 * PI,

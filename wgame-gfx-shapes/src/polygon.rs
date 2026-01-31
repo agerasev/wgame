@@ -5,110 +5,77 @@ use wgame_gfx::{
     modifiers::Transformable,
     types::{Position, Transform},
 };
-use wgame_shader::Attribute;
-use wgpu::util::DeviceExt;
 
 use crate::{
-    Shape, ShapesLibrary, ShapesState,
+    Mesh, Shape, ShapesLibrary, ShapesState,
     pipeline::create_pipeline,
-    render::VertexBuffers,
-    shader::VertexData,
+    shader::Vertex,
     shape::{Element, ElementVisitor},
 };
 
 #[derive(Clone)]
 pub struct PolygonLibrary {
-    pub triangle_vertices: wgpu::Buffer,
-    pub quad_vertices: wgpu::Buffer,
-    pub quad_indices: wgpu::Buffer,
-    pub hexagon_vertices: wgpu::Buffer,
-    pub hexagon_indices: wgpu::Buffer,
+    pub triangle: Mesh,
+    pub quad: Mesh,
+    pub hexagon: Mesh,
     pub pipeline: wgpu::RenderPipeline,
 }
 
 impl PolygonLibrary {
     pub fn new(state: &ShapesState) -> Self {
-        let triangle_vertices =
-            state
-                .device()
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("triangle_vertices"),
-                    contents: &[
-                        VertexData::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
-                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
-                        VertexData::new(Vec4::new(0.0, 0.0, 1.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
-                    ]
-                    .to_bytes(),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
-        let quad_vertices = state
-            .device()
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("quad_vertices"),
-                contents: &[
-                    VertexData::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
-                    VertexData::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
-                    VertexData::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
-                    VertexData::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 1.0, 1.0)),
-                ]
-                .to_bytes(),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        let quad_indices = state
-            .device()
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("quad_indices"),
-                contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 1, 3]),
-                usage: wgpu::BufferUsages::INDEX,
-            });
+        let triangle = Mesh::from_arrays(
+            state,
+            &[
+                Vertex::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
+                Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+                Vertex::new(Vec4::new(0.0, 0.0, 1.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
+            ],
+            None,
+        );
+        let quad = Mesh::from_arrays(
+            state,
+            &[
+                Vertex::new(Vec4::new(-1.0, -1.0, 0.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
+                Vertex::new(Vec4::new(1.0, -1.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
+                Vertex::new(Vec4::new(-1.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+                Vertex::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 1.0, 1.0)),
+            ],
+            Some(&[0, 1, 2, 2, 1, 3]),
+        );
 
         let sqrt_3_2 = 3.0f32.sqrt() / 2.0;
-        let hexagon_vertices =
-            state
-                .device()
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("hexagon_vertices"),
-                    contents: &[
-                        VertexData::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec3::new(0.5, 0.0, 1.0)),
-                        VertexData::new(
-                            Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.25, 1.0),
-                        ),
-                        VertexData::new(
-                            Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.75, 1.0),
-                        ),
-                        VertexData::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.5, 1.0, 1.0)),
-                        VertexData::new(
-                            Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
-                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.75, 1.0),
-                        ),
-                        VertexData::new(
-                            Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
-                            Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.25, 1.0),
-                        ),
-                    ]
-                    .to_bytes(),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
-        let hexagon_indices =
-            state
-                .device()
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("hexagon_indices"),
-                    contents: bytemuck::cast_slice::<u32, _>(&[0, 1, 2, 2, 3, 4, 4, 5, 0, 0, 2, 4]),
-                    usage: wgpu::BufferUsages::INDEX,
-                });
+        let hexagon = Mesh::from_arrays(
+            state,
+            &[
+                Vertex::new(Vec4::new(0.0, -1.0, 0.0, 1.0), Vec3::new(0.5, 0.0, 1.0)),
+                Vertex::new(
+                    Vec4::new(sqrt_3_2, -0.5, 0.0, 1.0),
+                    Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.25, 1.0),
+                ),
+                Vertex::new(
+                    Vec4::new(sqrt_3_2, 0.5, 0.0, 1.0),
+                    Vec3::new(0.5 + 0.5 * sqrt_3_2, 0.75, 1.0),
+                ),
+                Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.5, 1.0, 1.0)),
+                Vertex::new(
+                    Vec4::new(-sqrt_3_2, 0.5, 0.0, 1.0),
+                    Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.75, 1.0),
+                ),
+                Vertex::new(
+                    Vec4::new(-sqrt_3_2, -0.5, 0.0, 1.0),
+                    Vec3::new(0.5 - 0.5 * sqrt_3_2, 0.25, 1.0),
+                ),
+            ],
+            Some(&[0, 1, 2, 2, 3, 4, 4, 5, 0, 0, 2, 4]),
+        );
 
         let pipeline =
             create_pipeline(state, &Default::default()).expect("Failed to create polygon pipeline");
 
         Self {
-            triangle_vertices,
-            quad_vertices,
-            quad_indices,
-            hexagon_vertices,
-            hexagon_indices,
+            triangle,
+            quad,
+            hexagon,
             pipeline,
         }
     }
@@ -118,9 +85,7 @@ impl PolygonLibrary {
 #[derive(Clone)]
 pub struct Polygon {
     library: ShapesLibrary,
-    count: u32,
-    vertices: wgpu::Buffer,
-    indices: Option<wgpu::Buffer>,
+    geometry: Mesh,
     pipeline: wgpu::RenderPipeline,
     xform: Affine3A,
 }
@@ -132,12 +97,8 @@ impl Element for Polygon {
         &self.library.state
     }
 
-    fn vertices(&self) -> VertexBuffers {
-        VertexBuffers {
-            count: 3 * (self.count - 2),
-            vertex_buffer: self.vertices.clone(),
-            index_buffer: self.indices.clone(),
-        }
+    fn vertices(&self) -> Mesh {
+        self.geometry.clone()
     }
 
     fn attribute(&self) -> Self::Attribute {}
@@ -170,33 +131,22 @@ impl Transformable for Polygon {
 }
 
 impl ShapesLibrary {
-    fn polygon(
-        &self,
-        count: u32,
-        vertices: &wgpu::Buffer,
-        indices: Option<&wgpu::Buffer>,
-    ) -> Polygon {
+    fn polygon(&self, mesh: Mesh) -> Polygon {
         Polygon {
             library: self.clone(),
-            count,
-            vertices: vertices.clone(),
-            indices: indices.cloned(),
+            geometry: mesh,
             pipeline: self.polygon.pipeline.clone(),
             xform: Affine3A::IDENTITY,
         }
     }
 
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon {
-        self.polygon(3, &self.polygon.triangle_vertices, None)
+        self.polygon(self.polygon.triangle.clone())
             .transform(Mat3::from_cols(a.to_xyz(), b.to_xyz(), c.to_xyz()))
     }
 
     pub fn unit_quad(&self) -> Polygon {
-        self.polygon(
-            4,
-            &self.polygon.quad_vertices,
-            Some(&self.polygon.quad_indices),
-        )
+        self.polygon(self.polygon.quad.clone())
     }
 
     pub fn rectangle(&self, (min, max): (Vec2, Vec2)) -> Polygon {
@@ -210,16 +160,12 @@ impl ShapesLibrary {
     }
 
     pub fn unit_hexagon(&self) -> Polygon {
-        self.polygon(
-            6,
-            &self.polygon.hexagon_vertices,
-            Some(&self.polygon.hexagon_indices),
-        )
+        self.polygon(self.polygon.hexagon.clone())
     }
 }
 
 impl Debug for Polygon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Polygon<{}>", self.count)
+        write!(f, "Polygon<{}>", self.geometry.count())
     }
 }

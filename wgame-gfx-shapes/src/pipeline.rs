@@ -5,7 +5,7 @@ use wgame_shader::{Attribute, ShaderSource};
 
 use crate::{
     ShapesState,
-    shader::{InstanceData, ShaderConfig, VertexData},
+    shader::{InstanceData, ShaderConfig, Vertex},
 };
 
 pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgpu::RenderPipeline> {
@@ -33,7 +33,7 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
         immediate_size: 0,
     });
 
-    let vertex_attributes = VertexData::bindings();
+    let vertex_attributes = Vertex::bindings();
     let instance_attributes = InstanceData::<()>::bindings().chain(config.instance.clone());
     let vertex_buffers = [
         wgpu::VertexBufferLayout {

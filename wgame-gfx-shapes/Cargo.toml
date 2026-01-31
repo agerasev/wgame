@@ -18,4 +18,5 @@ rgb.workspace = true
 half.workspace = true
 smallvec.workspace = true
 derivative.workspace = true
+derive_more.workspace = true
 serde.workspace = true
