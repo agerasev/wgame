@@ -1,16 +1,22 @@
-use std::fmt::{self, Debug};
+use std::{
+    fmt::{self, Debug},
+    marker::PhantomData,
+};
 
 use glam::{Affine3A, Mat3, Vec2, Vec3, Vec4};
 use wgame_gfx::{
+    Camera, Instance, Object, delegate_transformable, impl_object_for_instance, impl_transformable,
     modifiers::Transformable,
     types::{Position, Transform},
 };
+use wgame_gfx_texture::Texture;
 
 use crate::{
-    Mesh, Shape, ShapesLibrary, ShapesState,
+    Mesh, Shape, ShapesLibrary, ShapesState, impl_textured,
     pipeline::create_pipeline,
-    shader::Vertex,
-    shape::{Element, ElementVisitor},
+    render::{ShapeResource, ShapeStorage},
+    shader::{InstanceData, Vertex},
+    shape::ShapeFill,
 };
 
 #[derive(Clone)]
@@ -18,7 +24,7 @@ pub struct PolygonLibrary {
     pub triangle: Mesh,
     pub quad: Mesh,
     pub hexagon: Mesh,
-    pub pipeline: wgpu::RenderPipeline,
+    pub fill: wgpu::RenderPipeline,
 }
 
 impl PolygonLibrary {
@@ -76,7 +82,7 @@ impl PolygonLibrary {
             triangle,
             quad,
             hexagon,
-            pipeline,
+            fill: pipeline,
         }
     }
 }
@@ -86,56 +92,75 @@ impl PolygonLibrary {
 pub struct Polygon {
     library: ShapesLibrary,
     geometry: Mesh,
-    pipeline: wgpu::RenderPipeline,
+    fill: wgpu::RenderPipeline,
     xform: Affine3A,
-}
-
-impl Element for Polygon {
-    type Attribute = ();
-
-    fn state(&self) -> &ShapesState {
-        &self.library.state
-    }
-
-    fn vertices(&self) -> Mesh {
-        self.geometry.clone()
-    }
-
-    fn attribute(&self) -> Self::Attribute {}
-
-    fn pipeline(&self) -> wgpu::RenderPipeline {
-        self.pipeline.clone()
-    }
-
-    fn xform(&self) -> Affine3A {
-        self.xform
-    }
 }
 
 impl Shape for Polygon {
     fn library(&self) -> &ShapesLibrary {
         &self.library
     }
-    fn for_each_element<V: ElementVisitor>(&self, visitor: &mut V) {
-        visitor.visit(self);
-    }
 }
 
-impl Transformable for Polygon {
-    fn transform<X: Transform>(&self, xform: X) -> Self {
-        Self {
-            xform: xform.to_affine3() * self.xform,
-            ..self.clone()
+impl ShapeFill for Polygon {
+    type Fill = PolygonFill;
+
+    fn fill_texture(&self, texture: &Texture) -> Self::Fill {
+        PolygonFill {
+            shape: self.clone(),
+            texture: texture.clone(),
         }
     }
 }
+
+impl_transformable!(Polygon, xform);
+
+#[must_use]
+#[derive(Clone)]
+pub struct PolygonFill {
+    shape: Polygon,
+    texture: Texture,
+}
+
+impl Instance for PolygonFill {
+    type Context = Camera;
+    type Resource = ShapeResource<()>;
+    type Storage = ShapeStorage<()>;
+
+    fn resource(&self) -> Self::Resource {
+        ShapeResource {
+            vertices: self.shape.geometry.clone(),
+            texture: self.texture.resource(),
+            uniforms: None,
+            pipeline: self.shape.fill.clone(),
+            device: self.shape.library.state().device().clone(),
+            _ghost: PhantomData,
+        }
+    }
+
+    fn new_storage(&self) -> Self::Storage {
+        ShapeStorage::new(self.resource())
+    }
+
+    fn store(&self, storage: &mut Self::Storage) {
+        storage.instances.push(InstanceData {
+            matrix: self.shape.xform.to_mat4(),
+            tex: self.texture.attribute(),
+            custom: (),
+        });
+    }
+}
+
+impl_object_for_instance!(PolygonFill);
+delegate_transformable!(PolygonFill, shape);
+impl_textured!(PolygonFill, texture);
 
 impl ShapesLibrary {
     fn polygon(&self, mesh: Mesh) -> Polygon {
         Polygon {
             library: self.clone(),
             geometry: mesh,
-            pipeline: self.polygon.pipeline.clone(),
+            fill: self.polygon.fill.clone(),
             xform: Affine3A::IDENTITY,
         }
     }

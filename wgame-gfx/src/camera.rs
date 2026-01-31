@@ -82,7 +82,7 @@ impl Transformable for Camera {
 }
 
 impl Colorable for Camera {
-    fn mul_color<C: Color>(&self, color: C) -> Self {
+    fn multiply_color<C: Color>(&self, color: C) -> Self {
         let x = self.color;
         let y = color.to_rgba();
         Self {

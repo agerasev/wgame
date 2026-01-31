@@ -28,3 +28,18 @@ impl<T: Object> Object for &T {
         (**self).for_each_instance(visitor);
     }
 }
+
+#[macro_export]
+macro_rules! impl_object_for_instance {
+    ($Self:ty) => {
+        impl Object for $Self {
+            type Context = <Self as $crate::Instance>::Context;
+            fn for_each_instance<V: $crate::InstanceVisitor<Self::Context>>(
+                &self,
+                visitor: &mut V,
+            ) {
+                visitor.visit(self);
+            }
+        }
+    };
+}

@@ -1,14 +1,19 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, marker::PhantomData};
 
-use glam::{Affine2, Affine3A};
-use wgame_gfx::{modifiers::Transformable, types::Transform};
+use glam::{Affine2, Affine3A, Vec3};
+use wgame_gfx::{
+    Camera, Instance, Object, delegate_transformable, impl_object_for_instance, impl_transformable,
+    prelude::Transformable, types::Transform,
+};
+use wgame_gfx_texture::Texture;
 use wgame_shader::Attribute;
 
 use crate::{
-    Mesh, Shape, ShapesLibrary, ShapesState,
+    Mesh, Shape, ShapesLibrary, ShapesState, impl_textured,
     pipeline::create_pipeline,
-    shader::ShaderConfig,
-    shape::{Element, ElementVisitor},
+    render::{ShapeResource, ShapeStorage},
+    shader::{InstanceData, ShaderConfig},
+    shape::{ShapeFill, ShapeStroke},
 };
 
 #[derive(Clone, Copy, Attribute)]
@@ -17,8 +22,8 @@ pub struct CircleAttrs {
     segment_angle: f32,
 }
 
-#[derive(Clone, Copy, Attribute)]
-pub struct RingVarying {
+#[derive(Attribute)]
+struct RingVarying {
     inner_radius: f32,
     segment_angle: f32,
     tex_xform: Affine2,
@@ -26,14 +31,14 @@ pub struct RingVarying {
 
 #[derive(Clone)]
 pub struct CircleLibrary {
-    circle_pipeline: wgpu::RenderPipeline,
-    ring_pipeline: wgpu::RenderPipeline,
+    fill: wgpu::RenderPipeline,
+    stroke: wgpu::RenderPipeline,
 }
 
 impl CircleLibrary {
     pub fn new(state: &ShapesState) -> Self {
         Self {
-            circle_pipeline: create_pipeline(
+            fill: create_pipeline(
                 state,
                 &ShaderConfig {
                     instance: CircleAttrs::bindings(),
@@ -61,7 +66,7 @@ impl CircleLibrary {
             )
             .expect("Failed to create circle pipeline"),
 
-            ring_pipeline: create_pipeline(
+            stroke: create_pipeline(
                 state,
                 &ShaderConfig {
                     instance: CircleAttrs::bindings(),
@@ -112,52 +117,33 @@ impl CircleLibrary {
 pub struct Circle {
     library: ShapesLibrary,
     geometry: Mesh,
-    pipeline: wgpu::RenderPipeline,
+    fill: wgpu::RenderPipeline,
+    stroke: wgpu::RenderPipeline,
     inner_radius: f32,
     segment_angle: f32,
     xform: Affine3A,
 }
 
 impl Circle {
-    pub fn inner_radius(self, inner_radius: f32) -> Self {
+    pub fn inner_radius(&self, inner_radius: f32) -> Self {
         Self {
             inner_radius,
-            ..self
+            ..self.clone()
         }
     }
 
-    pub fn segment(self, angle: f32) -> Self {
+    pub fn segment(&self, angle: f32) -> Self {
         Self {
             segment_angle: angle,
-            ..self
+            ..self.clone()
         }
     }
-}
 
-impl Element for Circle {
-    type Attribute = CircleAttrs;
-
-    fn state(&self) -> &ShapesState {
-        &self.library.state
-    }
-
-    fn vertices(&self) -> Mesh {
-        self.geometry.clone()
-    }
-
-    fn attribute(&self) -> Self::Attribute {
+    fn attribute(&self) -> CircleAttrs {
         CircleAttrs {
             inner_radius: self.inner_radius,
             segment_angle: self.segment_angle,
         }
-    }
-
-    fn pipeline(&self) -> wgpu::RenderPipeline {
-        self.pipeline.clone()
-    }
-
-    fn xform(&self) -> Affine3A {
-        self.xform
     }
 }
 
@@ -165,37 +151,147 @@ impl Shape for Circle {
     fn library(&self) -> &ShapesLibrary {
         &self.library
     }
-    fn for_each_element<V: ElementVisitor>(&self, visitor: &mut V) {
-        visitor.visit(self);
+}
+
+impl ShapeFill for Circle {
+    type Fill = CircleFill;
+
+    fn fill_texture(&self, texture: &Texture) -> Self::Fill {
+        CircleFill {
+            shape: self.clone(),
+            texture: texture.clone(),
+        }
     }
 }
 
-impl Transformable for Circle {
-    fn transform<X: Transform>(&self, xform: X) -> Self {
+impl ShapeStroke for Circle {
+    type Stroke = CircleStroke;
+
+    fn stroke_texture(&self, line_width: f32, texture: &Texture) -> Self::Stroke {
+        let half_width = line_width / 2.0;
+        CircleStroke {
+            shape: self
+                .inner_radius((1.0 - half_width) / (1.0 + half_width))
+                .transform(Affine3A::from_scale(Vec3::splat(1.0 + half_width))),
+            texture: texture.clone(),
+        }
+    }
+}
+
+impl_transformable!(Circle, xform);
+
+#[must_use]
+#[derive(Clone)]
+pub struct CircleFill {
+    shape: Circle,
+    texture: Texture,
+}
+
+impl CircleFill {
+    pub fn inner_radius(&self, inner_radius: f32) -> Self {
         Self {
-            xform: xform.to_affine3() * self.xform,
+            shape: self.shape.inner_radius(inner_radius),
+            ..self.clone()
+        }
+    }
+
+    pub fn segment(&self, angle: f32) -> Self {
+        Self {
+            shape: self.shape.segment(angle),
             ..self.clone()
         }
     }
 }
 
-impl ShapesLibrary {
-    pub fn unit_ring(&self, inner_radius: f32) -> Circle {
-        Circle {
-            library: self.clone(),
-            geometry: self.polygon.quad.clone(),
-            pipeline: self.circle.ring_pipeline.clone(),
-            inner_radius,
-            segment_angle: 2.0 * PI,
-            xform: Affine3A::IDENTITY,
+impl Instance for CircleFill {
+    type Context = Camera;
+    type Resource = ShapeResource<CircleAttrs>;
+    type Storage = ShapeStorage<CircleAttrs>;
+
+    fn resource(&self) -> Self::Resource {
+        ShapeResource {
+            vertices: self.shape.geometry.clone(),
+            texture: self.texture.resource(),
+            uniforms: None,
+            pipeline: self.shape.fill.clone(),
+            device: self.shape.library.state().device().clone(),
+            _ghost: PhantomData,
         }
     }
 
+    fn new_storage(&self) -> Self::Storage {
+        ShapeStorage::new(self.resource())
+    }
+
+    fn store(&self, storage: &mut Self::Storage) {
+        storage.instances.push(InstanceData {
+            matrix: self.shape.xform.to_mat4(),
+            tex: self.texture.attribute(),
+            custom: self.shape.attribute(),
+        });
+    }
+}
+
+impl_object_for_instance!(CircleFill);
+delegate_transformable!(CircleFill, shape);
+impl_textured!(CircleFill, texture);
+
+#[must_use]
+#[derive(Clone)]
+pub struct CircleStroke {
+    shape: Circle,
+    texture: Texture,
+}
+
+impl CircleStroke {
+    pub fn segment(&self, angle: f32) -> Self {
+        Self {
+            shape: self.shape.segment(angle),
+            ..self.clone()
+        }
+    }
+}
+
+impl Instance for CircleStroke {
+    type Context = Camera;
+    type Resource = ShapeResource<CircleAttrs>;
+    type Storage = ShapeStorage<CircleAttrs>;
+
+    fn resource(&self) -> Self::Resource {
+        ShapeResource {
+            vertices: self.shape.geometry.clone(),
+            texture: self.texture.resource(),
+            uniforms: None,
+            pipeline: self.shape.stroke.clone(),
+            device: self.shape.library.state().device().clone(),
+            _ghost: PhantomData,
+        }
+    }
+
+    fn new_storage(&self) -> Self::Storage {
+        ShapeStorage::new(self.resource())
+    }
+
+    fn store(&self, storage: &mut Self::Storage) {
+        storage.instances.push(InstanceData {
+            matrix: self.shape.xform.to_mat4(),
+            tex: self.texture.attribute(),
+            custom: self.shape.attribute(),
+        });
+    }
+}
+
+impl_object_for_instance!(CircleStroke);
+delegate_transformable!(CircleStroke, shape);
+impl_textured!(CircleStroke, texture);
+
+impl ShapesLibrary {
     pub fn unit_circle(&self) -> Circle {
         Circle {
             library: self.clone(),
             geometry: self.polygon.quad.clone(),
-            pipeline: self.circle.circle_pipeline.clone(),
+            fill: self.circle.fill.clone(),
+            stroke: self.circle.stroke.clone(),
             inner_radius: 0.0,
             segment_angle: 2.0 * PI,
             xform: Affine3A::IDENTITY,

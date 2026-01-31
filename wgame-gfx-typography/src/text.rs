@@ -117,7 +117,7 @@ impl Transformable for Text {
 }
 
 impl Colorable for Text {
-    fn mul_color<C: Color>(&self, color: C) -> Self {
+    fn multiply_color<C: Color>(&self, color: C) -> Self {
         Self {
             color: self.color.mul(color),
             ..self.clone()

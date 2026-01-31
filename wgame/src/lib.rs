@@ -33,6 +33,8 @@ pub use crate::{config::*, library::*, window::*};
 
 pub mod prelude {
     pub use wgame_gfx::prelude::*;
+    #[cfg(feature = "shapes")]
+    pub use wgame_gfx_shapes::prelude::*;
 }
 
 pub use glam;

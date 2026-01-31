@@ -15,7 +15,6 @@ use wgame::{
     gfx::types::color,
     glam::{Affine2, Vec2},
     prelude::*,
-    shapes::ShapeExt,
     texture::TextureSettings,
     typography::TextAlign,
     utils::PeriodicTimer,
@@ -41,7 +40,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             Vec2::new((2.0 * FRAC_PI_3).sin(), (2.0 * FRAC_PI_3).cos()),
             Vec2::new((4.0 * FRAC_PI_3).sin(), (4.0 * FRAC_PI_3).cos()),
         )
-        .with_texture(gfx.texturing().gradient2([
+        .fill_texture(&gfx.texturing().gradient2([
             [color::BLUE, color::RED],
             [color::GREEN, color::RED + color::GREEN - color::BLUE],
         ]));
@@ -49,7 +48,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let quad = &gfx
         .shapes()
         .rectangle((-Vec2::splat(0.5 * SQRT_2), Vec2::splat(0.5 * SQRT_2)))
-        .with_texture(texture);
+        .fill_texture(texture);
 
     let hexagon = &gfx
         .shapes()
@@ -59,31 +58,31 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             0.0,
             Vec2::ZERO,
         ))
-        .with_color(color::BLUE);
+        .fill_color(color::BLUE);
 
     let circle = &gfx
         .shapes()
         .unit_circle()
         .segment(2.0 * PI / 3.0)
-        .with_texture(texture)
-        .mul_color(color::YELLOW);
-    let mut ring0 = gfx
-        .shapes()
-        .unit_ring(0.75)
-        .with_texture(gfx.texturing().gradient2([[
-            color::RED,
-            color::MAGENTA,
-            color::BLUE,
-            color::RED,
-        ]]));
-    let ring1 = &gfx
-        .shapes()
-        .unit_ring(0.75)
-        .with_texture(gfx.texturing().gradient2([
-            [color::BLACK, color::BLACK, color::BLACK, color::BLACK],
-            [color::RED, color::GREEN, color::BLUE, color::RED],
-            [color::BLACK, color::BLACK, color::BLACK, color::BLACK],
-        ]));
+        .fill_texture(texture)
+        .multiply_color(color::YELLOW);
+    let mut ring0 = gfx.shapes().unit_circle().stroke_color(0.2, color::BLUE);
+    let ring1 = &gfx.shapes().unit_circle().stroke_texture(
+        0.5,
+        &gfx.texturing().gradient2([
+            [color::WHITE; 7],
+            [
+                color::RED,
+                color::YELLOW,
+                color::GREEN,
+                color::CYAN,
+                color::BLUE,
+                color::MAGENTA,
+                color::RED,
+            ],
+            [color::BLACK; 7],
+        ]),
+    );
 
     #[cfg(feature = "dump")]
     std::fs::File::create("dump/atlas.png")?.write_all(
@@ -166,7 +165,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 (a % (2.0 * PI), 0.0)
             }
         };
-        ring0.inner = ring0.inner.segment(seg_angle);
+        ring0 = ring0.segment(seg_angle);
         scene.add(&ring0.transform(Affine2::from_scale_angle_translation(
             0.8 * Vec2::new(scale, -scale),
             rot_angle - angle,

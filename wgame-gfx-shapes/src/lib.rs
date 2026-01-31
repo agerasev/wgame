@@ -7,7 +7,6 @@ mod polygon;
 mod render;
 pub mod shader;
 mod shape;
-mod textured;
 
 use core::ops::Deref;
 use wgame_gfx::{
@@ -20,11 +19,15 @@ use wgame_image::Image;
 use crate::{circle::CircleLibrary, polygon::PolygonLibrary};
 
 pub use self::{
+    circle::{Circle, CircleFill, CircleStroke},
     geometry::Mesh,
-    polygon::Polygon,
-    shape::{Shape, ShapeExt},
-    textured::Textured,
+    polygon::{Polygon, PolygonFill},
+    shape::{Shape, Textured},
 };
+
+pub mod prelude {
+    pub use crate::shape::{Shape, ShapeFill, ShapeStroke, Textured};
+}
 
 /// Library shared state
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]

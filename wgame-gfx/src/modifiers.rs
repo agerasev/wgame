@@ -14,5 +14,33 @@ pub trait Transformable: Sized {
 }
 
 pub trait Colorable: Sized {
-    fn mul_color<C: Color>(&self, color: C) -> Self;
+    fn multiply_color<C: Color>(&self, color: C) -> Self;
+}
+
+#[macro_export]
+macro_rules! impl_transformable {
+    ($self:ty, $field:ident) => {
+        impl $crate::modifiers::Transformable for $self {
+            fn transform<X: $crate::types::Transform>(&self, xform: X) -> Self {
+                Self {
+                    $field: xform.to_affine3() * self.$field,
+                    ..self.clone()
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! delegate_transformable {
+    ($self:ty, $inner:ident) => {
+        impl $crate::modifiers::Transformable for $self {
+            fn transform<X: $crate::types::Transform>(&self, xform: X) -> Self {
+                Self {
+                    $inner: $crate::modifiers::Transformable::transform(&self.$inner, xform),
+                    ..self.clone()
+                }
+            }
+        }
+    };
 }

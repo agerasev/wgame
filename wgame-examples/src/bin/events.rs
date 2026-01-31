@@ -8,7 +8,6 @@ use wgame::{
     gfx::types::color,
     glam::{Affine2, Vec2},
     prelude::*,
-    shapes::ShapeExt,
     typography::TextAlign,
     utils::PeriodicTimer,
 };
@@ -23,10 +22,9 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let mut fps_text = "".to_string();
     let mut mouse_text = "Move your mouse in the window".to_string();
 
-    let ring = &gfx
-        .shapes()
-        .unit_ring(0.5)
-        .with_texture(gfx.texturing().gradient2([[
+    let ring = &gfx.shapes().unit_circle().stroke_texture(
+        0.25,
+        &gfx.texturing().gradient([
             color::RED,
             color::YELLOW,
             color::GREEN,
@@ -34,7 +32,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             color::BLUE,
             color::MAGENTA,
             color::RED,
-        ]]));
+        ]),
+    );
 
     let mut input = window.input();
     let mut mouse_pos = Vec2::ZERO;

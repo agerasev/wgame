@@ -1,41 +1,56 @@
-use glam::Affine3A;
-use wgame_gfx::{modifiers::Transformable, types::Color};
-use wgame_shader::Attribute;
+use glam::Affine2;
+use wgame_gfx::{Object, modifiers::Transformable, prelude::Colorable, types::Color};
 
-use crate::{Mesh, ShapesLibrary, ShapesState, Texture, Textured};
+use crate::{ShapesLibrary, Texture};
 
-pub trait ElementVisitor {
-    fn visit<T: Element>(&mut self, element: &T);
-}
-
-pub trait Element: Clone {
-    type Attribute: Attribute;
-
-    fn state(&self) -> &ShapesState;
-    fn vertices(&self) -> Mesh;
-    fn uniforms(&self) -> Option<wgpu::BindGroup> {
-        None
-    }
-    fn attribute(&self) -> Self::Attribute;
-    fn pipeline(&self) -> wgpu::RenderPipeline;
-    fn xform(&self) -> Affine3A;
-}
-
-pub trait Shape: Transformable + Clone {
+pub trait Shape: Transformable {
     fn library(&self) -> &ShapesLibrary;
-    fn for_each_element<V: ElementVisitor>(&self, visitor: &mut V);
 }
 
-pub trait ShapeExt: Shape + Clone {
-    fn with_texture(&self, texture: impl AsRef<Texture>) -> Textured<Self> {
-        Textured::new(self.clone(), texture.as_ref().clone())
+pub trait ShapeFill: Shape {
+    type Fill: Object + Textured + Colorable + Transformable;
+
+    fn fill_texture(&self, texture: &Texture) -> Self::Fill;
+    fn fill_color(&self, color: impl Color) -> Self::Fill {
+        self.fill_texture(&self.library().white_texture.multiply_color(color))
     }
-    fn with_color(&self, color: impl Color) -> Textured<Self> {
-        Textured {
-            inner: self.clone(),
-            texture: self.library().white_texture.multiply_color(color),
+}
+
+pub trait ShapeStroke: Shape {
+    type Stroke: Object + Textured + Colorable + Transformable;
+
+    fn stroke_texture(&self, line_width: f32, texture: &Texture) -> Self::Stroke;
+    fn stroke_color(&self, line_width: f32, color: impl Color) -> Self::Stroke {
+        self.stroke_texture(
+            line_width,
+            &self.library().white_texture.multiply_color(color),
+        )
+    }
+}
+
+pub trait Textured: Colorable + Sized {
+    fn tranform_texcoord(&self, tex_xform: Affine2) -> Self;
+}
+
+#[macro_export]
+macro_rules! impl_textured {
+    ($self:ty, $texture:ident) => {
+        impl $crate::Textured for $self {
+            fn tranform_texcoord(&self, tex_xform: glam::Affine2) -> Self {
+                Self {
+                    $texture: self.$texture.transform_coord(tex_xform),
+                    ..self.clone()
+                }
+            }
         }
-    }
-}
 
-impl<T: Shape> ShapeExt for T {}
+        impl wgame_gfx::modifiers::Colorable for $self {
+            fn multiply_color<C: wgame_gfx::types::Color>(&self, color: C) -> Self {
+                Self {
+                    $texture: self.$texture.multiply_color(color),
+                    ..self.clone()
+                }
+            }
+        }
+    };
+}
