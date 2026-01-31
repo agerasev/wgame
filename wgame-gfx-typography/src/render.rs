@@ -6,7 +6,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{FontTexture, text::TextInstance};
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TextResource {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,

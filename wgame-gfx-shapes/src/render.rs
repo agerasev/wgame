@@ -14,8 +14,6 @@ use crate::{Mesh, shader::InstanceData};
     Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
-    PartialOrd(bound = ""),
-    Ord(bound = ""),
     Hash(bound = ""),
     Debug(bound = "")
 )]

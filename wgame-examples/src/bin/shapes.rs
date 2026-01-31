@@ -66,23 +66,31 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         .segment(2.0 * PI / 3.0)
         .fill_texture(texture)
         .multiply_color(color::YELLOW);
-    let mut ring0 = gfx.shapes().unit_circle().stroke_color(0.2, color::BLUE);
-    let ring1 = &gfx.shapes().unit_circle().stroke_texture(
-        0.5,
-        &gfx.texturing().gradient2([
-            [color::WHITE; 7],
-            [
-                color::RED,
-                color::YELLOW,
-                color::GREEN,
-                color::CYAN,
-                color::BLUE,
-                color::MAGENTA,
-                color::RED,
-            ],
-            [color::BLACK; 7],
-        ]),
-    );
+    let mut ring0 = gfx
+        .shapes()
+        .unit_circle()
+        .stroke_color(0.4, color::BLUE)
+        .scale(1.0 / 1.2);
+    let ring1 = &gfx
+        .shapes()
+        .unit_circle()
+        .stroke_texture(
+            2.0,
+            &gfx.texturing().gradient2([
+                [color::WHITE; 7],
+                [
+                    color::RED,
+                    color::YELLOW,
+                    color::GREEN,
+                    color::CYAN,
+                    color::BLUE,
+                    color::MAGENTA,
+                    color::RED,
+                ],
+                [color::BLACK; 7],
+            ]),
+        )
+        .scale(0.5);
 
     #[cfg(feature = "dump")]
     std::fs::File::create("dump/atlas.png")?.write_all(
@@ -174,7 +182,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
 
         scene.add(&ring1.transform(Affine2::from_scale_angle_translation(
             Vec2::splat(0.8 * scale),
-            -10.0 * angle,
+            -angle,
             Vec2::new(2.0 * scale, -scale),
         )));
 

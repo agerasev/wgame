@@ -1,12 +1,12 @@
 use std::{
     cell::{RefCell, RefMut},
-    cmp::Ordering,
     collections::vec_deque::VecDeque,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
     rc::Rc,
 };
 
+use derivative::Derivative;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
 use glam::{Affine2, Vec2, Vec4};
 use half::f16;
@@ -445,8 +445,20 @@ impl<T: Texel> Texture<T> {
     }
 }
 
-#[derive(Clone)]
+fn rc_ptr_hash<T, H: Hasher>(a: &Rc<T>, state: &mut H) {
+    Rc::as_ptr(a).hash(state);
+}
+
+#[derive(Derivative)]
+#[derivative(
+    Clone(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    Hash(bound = "")
+)]
 pub struct TextureResource<T: Texel = Rgba<f16>> {
+    #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))]
+    #[derivative(Hash(hash_with = "rc_ptr_hash"))]
     atlas: Rc<RefCell<InnerAtlas<T>>>,
     settings: TextureSettings,
 }
@@ -466,30 +478,6 @@ impl<T: Texel> TextureResource<T> {
         let instance = self.get_instance();
         let format = instance.texture.format();
         instance.state.bind_group_layout(format)
-    }
-}
-
-impl<T: Texel> PartialOrd for TextureResource<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-impl<T: Texel> Ord for TextureResource<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.atlas.as_ptr().cmp(&other.atlas.as_ptr())
-    }
-}
-
-impl<T: Texel> PartialEq for TextureResource<T> {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.atlas, &other.atlas)
-    }
-}
-impl<T: Texel> Eq for TextureResource<T> {}
-
-impl<T: Texel> Hash for TextureResource<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.atlas.as_ptr().hash(state);
     }
 }
 

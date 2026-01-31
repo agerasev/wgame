@@ -4,14 +4,14 @@ use wgpu::util::DeviceExt;
 
 use crate::{ShapesState, shader::Vertex};
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Deref)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Deref)]
 pub struct Vertices {
     count: u32,
     #[deref]
     buffer: wgpu::Buffer,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Deref)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Deref)]
 pub struct Indices {
     count: u32,
     num_vertices: u32,
@@ -75,7 +75,7 @@ impl Indices {
 }
 
 #[must_use]
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Mesh {
     vertices: Vertices,
     indices: Option<Indices>,

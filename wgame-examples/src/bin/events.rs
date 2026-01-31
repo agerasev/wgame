@@ -22,18 +22,22 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let mut fps_text = "".to_string();
     let mut mouse_text = "Move your mouse in the window".to_string();
 
-    let ring = &gfx.shapes().unit_circle().stroke_texture(
-        0.25,
-        &gfx.texturing().gradient([
-            color::RED,
-            color::YELLOW,
-            color::GREEN,
-            color::CYAN,
-            color::BLUE,
-            color::MAGENTA,
-            color::RED,
-        ]),
-    );
+    let ring = &gfx
+        .shapes()
+        .unit_circle()
+        .stroke_texture(
+            0.5,
+            &gfx.texturing().gradient([
+                color::RED,
+                color::YELLOW,
+                color::GREEN,
+                color::CYAN,
+                color::BLUE,
+                color::MAGENTA,
+                color::RED,
+            ]),
+        )
+        .scale(0.5);
 
     let mut input = window.input();
     let mut mouse_pos = Vec2::ZERO;
