@@ -19,13 +19,13 @@ use crate::{
 #[derive(Clone, Copy, Attribute)]
 pub struct CircleAttrs {
     inner_radius: f32,
-    segment_angle: f32,
+    sector_angle: f32,
 }
 
 #[derive(Attribute)]
 struct RingVarying {
     inner_radius: f32,
-    segment_angle: f32,
+    sector_angle: f32,
     tex_xform: Affine2,
 }
 
@@ -45,7 +45,7 @@ impl CircleLibrary {
                     varying: CircleAttrs::bindings(),
                     vertex_source: "
                         output.inner_radius = instance.inner_radius;
-                        output.segment_angle = instance.segment_angle;
+                        output.sector_angle = instance.sector_angle;
                     "
                     .to_string(),
                     fragment_color_source: "
@@ -55,7 +55,7 @@ impl CircleLibrary {
                         if (
                             l > 1.0 ||
                             l < input.inner_radius ||
-                            a > input.segment_angle
+                            a > input.sector_angle
                         ) {
                             discard;
                         }
@@ -73,7 +73,7 @@ impl CircleLibrary {
                     varying: RingVarying::bindings(),
                     vertex_source: "
                         output.inner_radius = instance.inner_radius;
-                        output.segment_angle = instance.segment_angle;
+                        output.sector_angle = instance.sector_angle;
                         output.tex_xform_m = instance.tex_xform_m;
                         output.tex_xform_v = instance.tex_xform_v;
                     "
@@ -88,7 +88,7 @@ impl CircleLibrary {
                         let l = 2.0 * length(c);
                         let a = atan2(c.y, c.x) + PI;
                         tex_coord = tex_xform * vec3(
-                            a / input.segment_angle,
+                            a / input.sector_angle,
                             (l - input.inner_radius) / (1.0 - input.inner_radius),
                             1.0,
                         );
@@ -98,7 +98,7 @@ impl CircleLibrary {
                         if (
                             l > 1.0 ||
                             l < input.inner_radius ||
-                            a > input.segment_angle
+                            a > input.sector_angle
                         ) {
                             discard;
                         }
@@ -120,7 +120,7 @@ pub struct Circle {
     fill: wgpu::RenderPipeline,
     stroke: wgpu::RenderPipeline,
     inner_radius: f32,
-    segment_angle: f32,
+    sector_angle: f32,
     xform: Affine3A,
 }
 
@@ -132,9 +132,9 @@ impl Circle {
         }
     }
 
-    pub fn segment(&self, angle: f32) -> Self {
+    pub fn sector(&self, angle: f32) -> Self {
         Self {
-            segment_angle: angle,
+            sector_angle: angle,
             ..self.clone()
         }
     }
@@ -142,7 +142,7 @@ impl Circle {
     fn attribute(&self) -> CircleAttrs {
         CircleAttrs {
             inner_radius: self.inner_radius,
-            segment_angle: self.segment_angle,
+            sector_angle: self.sector_angle,
         }
     }
 }
@@ -195,9 +195,9 @@ impl CircleFill {
         }
     }
 
-    pub fn segment(&self, angle: f32) -> Self {
+    pub fn sector(&self, angle: f32) -> Self {
         Self {
-            shape: self.shape.segment(angle),
+            shape: self.shape.sector(angle),
             ..self.clone()
         }
     }
@@ -244,9 +244,9 @@ pub struct CircleStroke {
 }
 
 impl CircleStroke {
-    pub fn segment(&self, angle: f32) -> Self {
+    pub fn sector(&self, angle: f32) -> Self {
         Self {
-            shape: self.shape.segment(angle),
+            shape: self.shape.sector(angle),
             ..self.clone()
         }
     }
@@ -293,7 +293,7 @@ impl ShapesLibrary {
             fill: self.circle.fill.clone(),
             stroke: self.circle.stroke.clone(),
             inner_radius: 0.0,
-            segment_angle: 2.0 * PI,
+            sector_angle: 2.0 * PI,
             xform: Affine3A::IDENTITY,
         }
     }

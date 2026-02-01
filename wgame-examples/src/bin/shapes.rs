@@ -63,7 +63,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let circle = &gfx
         .shapes()
         .unit_circle()
-        .segment(2.0 * PI / 3.0)
+        .sector(2.0 * PI / 3.0)
         .fill_texture(texture)
         .multiply_color(color::YELLOW);
     let mut ring0 = gfx
@@ -173,7 +173,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 (a % (2.0 * PI), 0.0)
             }
         };
-        ring0 = ring0.segment(seg_angle);
+        ring0 = ring0.sector(seg_angle);
         scene.add(&ring0.transform(Affine2::from_scale_angle_translation(
             0.8 * Vec2::new(scale, -scale),
             rot_angle - angle,
