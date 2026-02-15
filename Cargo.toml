@@ -38,14 +38,14 @@ wgame-shader = { version = "0.1.0", path = "wgame-shader" }
 wgame-shader-macros = { version = "0.1.0", path = "wgame-shader-macros" }
 wgame-utils = { version = "0.1.0", path = "wgame-utils" }
 wgame-macros = { version = "0.1.0", path = "wgame-macros" }
-futures = { version = "0.3.31", default-features = false, features = [
+futures = { version = "0.3.32", default-features = false, features = [
     "std",
     "async-await",
 ] }
 winit = { version = "0.30.12", default-features = false, features = ["rwh_06"] }
 wgpu = { version = "28.0.0", default-features = false, features = ["wgsl"] }
-bytemuck = "1.24.0"
-glam = { version = "0.31.0", features = ["bytemuck"] }
+bytemuck = "1.25.0"
+glam = { version = "0.32.0", features = ["bytemuck"] }
 rgb = { version = "0.8.52", default-features = false, features = ["bytemuck"] }
 half = { version = "2.7.1", default-features = false, features = ["bytemuck"] }
 euclid = { version = "0.22.13", default-features = false }
@@ -56,7 +56,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 derivative = { version = "2.2.0", features = ["use_core"] }
 derive_more = { version = "2.1.1", features = ["deref", "deref_mut"] }
 thiserror = { version = "2.0.18", default-features = false }
-anyhow = "1.0.100"
+anyhow = "1.0.101"
 log = "0.4.29"
 wasm-bindgen = "0.2.108"
 wasm-bindgen-futures = "0.4.58"
@@ -64,5 +64,5 @@ web-sys = "0.3.85"
 web-time = "1.1.0"
 js-sys = "0.3.85"
 proc-macro2 = "1.0.106"
-syn = { version = "2.0.114", features = ["full"] }
+syn = { version = "2.0.115", features = ["full"] }
 quote = "1.0.44"

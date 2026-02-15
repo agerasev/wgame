@@ -1,5 +1,5 @@
 use rand::{
-    Rng, SeedableRng,
+    RngExt, SeedableRng,
     distr::{Bernoulli, Uniform},
     rngs::SmallRng,
     seq::IteratorRandom,
@@ -8,8 +8,8 @@ use std::{
     fs::File,
     io::{Read, Write},
 };
-use wgame_typography::{Font, FontAtlas};
 use wgame_image::{Atlas, Encoding, ImageReadExt};
+use wgame_typography::{Font, FontAtlas};
 
 const CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890";
 
@@ -36,7 +36,7 @@ fn main() {
             let mut chars = (0..(rng.sample(Uniform::new(0, CHARS.len()).unwrap())) + 1)
                 .map(|_| char::default())
                 .collect::<Vec<_>>();
-            CHARS.chars().choose_multiple_fill(&mut rng, &mut chars);
+            CHARS.chars().sample_fill(&mut rng, &mut chars);
             style.add_chars(chars);
             styles.push(style);
         } else {
