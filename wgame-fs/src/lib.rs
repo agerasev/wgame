@@ -1,42 +1,22 @@
-//! File system utilities for wgame.
+//! Cross-platform file reading utilities.
 //!
-//! This crate provides cross-platform file reading operations that work on both
-//! desktop (with std) and web platforms (with WebAssembly). It abstracts away
-//! the differences between synchronous file I/O on desktop and asynchronous
-//! fetch operations on the web.
+//! Provides async file reading for both desktop (std) and web platforms.
 //!
-//! # Features
+//! # Examples
 //!
-//! - `std` - Enables file reading on desktop platforms using `async-fs`
-//! - `web` - Enables file reading on web platforms using `fetch` API
+//! ```rust
+//! use wgame_fs::{read_bytes, read_string};
 //!
-//! # Platform Support
-//!
-//! ## Desktop (`std` feature)
-//!
-//! Uses `async-fs` for async file I/O operations. The file system is accessed
-//! relative to the current working directory.
-//!
-//! ## Web (`web` feature)
-//!
-//! Uses the browser's `fetch` API to load files. Files must be served with
-//! proper CORS headers. The fetch requests use `RequestMode::Cors`.
-//!
-//! # Usage
-//!
-//! ```ignore
-//! // Read bytes from a file
-//! let bytes = wgame_fs::read_bytes("assets/image.png").await?;
-//!
-//! // Read string from a file
-//! let text = wgame_fs::read_string("assets/config.json").await?;
+//! async fn example() -> anyhow::Result<()> {
+//!     // Read file as bytes
+//!     let bytes = read_bytes("assets/image.png").await?;
+//!     
+//!     // Read file as string
+//!     let text = read_string("assets/config.json").await?;
+//!     
+//!     Ok(())
+//! }
 //! ```
-//!
-//! # Error Handling
-//!
-//! - On desktop: Returns `anyhow::Error` for any I/O errors
-//! - On web: Returns `anyhow::Error` for network errors, non-200 responses, or
-//!   conversion errors
 
 #![forbid(unsafe_code)]
 
@@ -44,52 +24,12 @@ pub type Path = str;
 pub type PathBuf = String;
 
 /// Reads a file and returns its contents as bytes.
-///
-/// # Platform-specific behavior:
-/// - **Desktop (`std` feature)**: Uses `async-fs::read` for file I/O
-/// - **Web (`web` feature)**: Uses `fetch` API to retrieve the file
-///
-/// # Arguments
-/// * `path` - The path to the file relative to the working directory (desktop)
-///   or the URL/base path (web)
-///
-/// # Returns
-/// * `Ok(Vec<u8>)` - The file contents as bytes
-/// * `Err(anyhow::Error)` - An error if the file couldn't be read
-///
-/// # Examples
-/// ```ignore
-/// # async fn example() -> anyhow::Result<()> {
-/// let bytes = wgame_fs::read_bytes("assets/image.png").await?;
-/// # Ok(())
-/// # }
-/// ```
 #[cfg(feature = "std")]
 pub async fn read_bytes(path: impl AsRef<Path>) -> anyhow::Result<Vec<u8>> {
     Ok(async_fs::read(path.as_ref()).await?)
 }
 
 /// Reads a file and returns its contents as a string.
-///
-/// # Platform-specific behavior:
-/// - **Desktop (`std` feature)**: Uses `async-fs::read_to_string` for file I/O
-/// - **Web (`web` feature)**: Uses `fetch` API to retrieve the file
-///
-/// # Arguments
-/// * `path` - The path to the file relative to the working directory (desktop)
-///   or the URL/base path (web)
-///
-/// # Returns
-/// * `Ok(String)` - The file contents as a string
-/// * `Err(anyhow::Error)` - An error if the file couldn't be read
-///
-/// # Examples
-/// ```ignore
-/// # async fn example() -> anyhow::Result<()> {
-/// let text = wgame_fs::read_string("assets/config.json").await?;
-/// # Ok(())
-/// # }
-/// ```
 #[cfg(feature = "std")]
 pub async fn read_string(path: impl AsRef<Path>) -> anyhow::Result<String> {
     Ok(async_fs::read_to_string(path.as_ref()).await?)
@@ -169,9 +109,6 @@ mod web {
     }
 
     /// Reads a file and returns its contents as bytes on web platforms.
-    ///
-    /// Uses the browser's `fetch` API to retrieve the file. The file must be
-    /// served with proper CORS headers.
     pub async fn read_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>> {
         request_bytes(path.as_ref())
             .await
@@ -179,9 +116,6 @@ mod web {
     }
 
     /// Reads a file and returns its contents as a string on web platforms.
-    ///
-    /// Uses the browser's `fetch` API to retrieve the file. The file must be
-    /// served with proper CORS headers.
     pub async fn read_string(path: impl AsRef<Path>) -> Result<String> {
         request_string(path.as_ref())
             .await

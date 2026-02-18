@@ -1,67 +1,6 @@
-//! Graphics rendering utilities for wgame.
+//! GPU rendering framework built on wgpu.
 //!
-//! This crate provides a GPU rendering framework built on top of `wgpu`, offering
-//! abstractions for rendering 2D and 3D content. It includes types for managing
-//! rendering contexts, scenes, objects, and instances.
-//!
-//! # Core Concepts
-//!
-//! ## Renderer Architecture
-//!
-//! The rendering system is built around a few key traits:
-//! - [`Renderer`] - A trait for objects that can render themselves given a context
-//! - [`Context`] - A trait that provides binding groups for shader access
-//! - [`Object`] - An object that can produce one or more instances for rendering
-//! - [`Instance`] - A single renderable entity with a specific resource and storage
-//!
-//! ## Scene Management
-//!
-//! The [`Scene`] type collects all renderable objects and organizes them by
-//! resource type. It automatically batches objects that share the same resource
-//! for efficient rendering.
-//!
-//! ## Auto-Scenes
-//!
-//! The [`AutoScene`] is a convenience wrapper that automatically renders all
-//! objects added to it when it's dropped. This simplifies the common case of
-//! rendering a collection of objects in a single frame.
-//!
-//! # Usage
-//!
-//! ```
-//! # use wgame_gfx::{Renderer, Context};
-//! # struct MyContext;
-//! # impl Context for MyContext { fn bind_group(&self) -> wgpu::BindGroup { unimplemented!() } }
-//! # struct MyRenderer;
-//! # impl<C: Context> Renderer<C> for MyRenderer {
-//! #     fn render(&self, _ctx: &C, _pass: &mut wgpu::RenderPass<'_>) {}
-//! # }
-//! # fn example() -> anyhow::Result<()> {
-//! // In a real application, you would:
-//! // 1. Create a Surface with wgpu
-//! // 2. Get a Frame from the Surface
-//! // 3. Create a Camera (which is the default Context)
-//! // 4. Add objects to the scene
-//! // 5. Render using the frame
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! # Modules
-//!
-//! - [`auto`] - Auto-scene management with [`AutoScene`]
-//! - [`camera`] - Camera context for rendering with [`Camera`]
-//! - [`frame`] - Frame management with [`Frame`]
-//! - [`instance`] - Instance and storage definitions
-//! - [`modifiers`] - Transform and color modifiers
-//! - [`object`] - Object trait and instance visitor
-//! - [`order`] - Ordered rendering with [`Ordered`]
-//! - [`renderer`] - Renderer and context traits
-//! - [`resource`] - Resource definitions for batching
-//! - [`scene`] - Scene management with [`Scene`]
-//! - [`state`] - Graphics state with [`Graphics`]
-//! - [`types`] - Basic types like [`Color`], [`Position`], [`Transform`]
-//! - [`utils`] - Utility traits and functions
+//! Provides abstractions for rendering 2D content with scene management, batching, and camera support.
 
 #![forbid(unsafe_code)]
 
@@ -94,13 +33,7 @@ pub use self::{
 pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
-/// Prelude module for easy imports.
-///
-/// This module re-exports commonly used types from the crate for convenience.
-/// It includes:
-/// - [`Object`] - For objects that can be rendered
-/// - [`Renderer`] - For renderers that can draw objects
-/// - All modifiers from [`modifiers`] module for transform and color operations
+/// Commonly used types and traits.
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{Object, Renderer, modifiers::*};
