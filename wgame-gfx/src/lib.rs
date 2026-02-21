@@ -1,4 +1,4 @@
-//! GPU rendering framework built on wgpu.
+//! GPU rendering framework built on WGPU.
 //!
 //! Provides abstractions for rendering 2D content with scene management, batching, and camera support.
 

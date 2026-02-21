@@ -1,4 +1,4 @@
-//! GPU-accelerated text rendering utilities.
+//! Text rendering utilities.
 //!
 //! Provides font rasterization and text rendering with wgpu integration.
 

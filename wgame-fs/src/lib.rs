@@ -108,14 +108,14 @@ mod web {
         Ok(string)
     }
 
-    /// Reads a file and returns its contents as bytes on web platforms.
+    /// Reads a file and returns its contents as bytes.
     pub async fn read_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>> {
         request_bytes(path.as_ref())
             .await
             .context("Request bytes error")
     }
 
-    /// Reads a file and returns its contents as a string on web platforms.
+    /// Reads a file and returns its contents as a string.
     pub async fn read_string(path: impl AsRef<Path>) -> Result<String> {
         request_string(path.as_ref())
             .await

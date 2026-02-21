@@ -1,6 +1,6 @@
 //! Font rasterization and text layout utilities.
 //!
-//! Provides font loading, glyph rasterization, and text metrics using swash.
+//! Provides font loading, glyph rasterization, and text metrics.
 
 #![forbid(unsafe_code)]
 
@@ -43,7 +43,7 @@ impl Font {
         TextMetrics::new(self, size, text)
     }
 
-    /// Returns a font reference for use with `swash`.
+    /// Returns a font reference.
     pub fn as_ref(&'_ self) -> FontRef<'_> {
         FontRef {
             data: &self.contents,

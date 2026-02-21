@@ -26,5 +26,6 @@ pub use endec::Encoding;
 
 /// Commonly used traits.
 pub mod prelude {
+    #[doc(no_inline)]
     pub use crate::traits::*;
 }

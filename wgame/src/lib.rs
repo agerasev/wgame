@@ -1,7 +1,6 @@
-//! High-level graphics application framework built on wgpu.
+//! High-level graphics application framework built on WGPU and Winit.
 //!
 //! Provides window management, rendering, input handling, and resource loading for 2D graphics applications.
-//! Supports both desktop and web platforms with optional features for shapes, text, images, and file operations.
 
 #![forbid(unsafe_code)]
 

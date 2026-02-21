@@ -4,17 +4,23 @@
 //!
 //! # Examples
 //!
+//! Single window application:
+//!
+//! ```rust
+//! #[window(width = 800, height = 600)]
+//! fn main() {
+//!     // Window logic
+//! }
+//! ```
+//!
+//! Just application, windows need to be created manually:
+//!
 //! ```rust
 //! use wgame_macros::{app, window};
 //!
 //! #[app]
 //! fn main() {
 //!     // Application logic
-//! }
-//!
-//! #[window(width = 800, height = 600)]
-//! fn main() {
-//!     // Window logic
 //! }
 //! ```
 

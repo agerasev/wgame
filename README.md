@@ -1,25 +1,25 @@
 # wgame
 
-A modular graphics framework for building 2D applications with Rust and wgpu.
+A modular framework for building graphics applications.
 
 ## Overview
 
 wgame provides a layered architecture for creating cross-platform graphics applications:
 
-- **Core**: Window management, async runtime, and application lifecycle
+- **Application**: Window management, async runtime, and application lifecycle
 - **Graphics**: GPU rendering abstractions, scene management, and camera support
-- **Shapes**: 2D primitives (circles, polygons) with fill, stroke, and texture support
+- **Shapes**: Geometry primitives with fill, stroke, and texture support
 - **Typography**: Font rasterization and text rendering
 - **Utilities**: Cross-platform file I/O, input handling, and timing utilities
 
 ## Crates
 
-- [`wgame`](wgame/) - Main crate with window management and application entry points
-- [`wgame-app`](wgame-app/) - Async application runtime and executor
+- [`wgame`](wgame/) - Main crate
+- [`wgame-app`](wgame-app/) - Application entry points, window management, async application runtime and executor
 - [`wgame-gfx`](wgame-gfx/) - GPU rendering framework with scene management
-- [`wgame-gfx-shapes`](wgame-gfx-shapes/) - 2D shape rendering (circles, polygons)
+- [`wgame-gfx-shapes`](wgame-gfx-shapes/) - Geometry shape rendering
 - [`wgame-gfx-texture`](wgame-gfx-texture/) - Texture handling and atlas management
-- [`wgame-gfx-typography`](wgame-gfx-typography/) - GPU-accelerated text rendering
+- [`wgame-gfx-typography`](wgame-gfx-typography/) - Text rendering
 - [`wgame-image`](wgame-image/) - Image processing and texture atlas utilities
 - [`wgame-typography`](wgame-typography/) - Font rasterization and text metrics
 - [`wgame-shader`](wgame-shader/) - Shader utilities for bridging Rust types with GPU shaders
@@ -46,6 +46,7 @@ fn main() {
 
 - **Desktop**: Windows, macOS, Linux via winit and wgpu
 - **Web**: WebAssembly via wasm-bindgen and WebGPU
+- Any other supported by WGPU and Winit, but not tested
 
 ## License
 

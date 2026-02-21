@@ -114,7 +114,7 @@ impl Default for State {
 }
 
 impl State {
-    /// Default event capacity (1024 events).
+    /// Default event capacity.
     pub const DEFAULT_CAPACITY: Option<NonZero<usize>> = Some(NonZero::new(1024).unwrap());
 
     fn push_event(&self, event: Event) {

@@ -25,7 +25,7 @@ mod attribute;
 use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
 
-/// Derives the `Attribute` trait for a struct with global (unprefixed) bindings.
+/// Derives the `Attribute` trait for a struct.
 #[proc_macro_derive(AttributeGlobal)]
 pub fn attribute_global(input: TokenStream) -> TokenStream {
     match attribute::derive(input.into(), quote!(wgame::shader)) {
@@ -35,7 +35,7 @@ pub fn attribute_global(input: TokenStream) -> TokenStream {
     .into()
 }
 
-/// Derives the `Attribute` trait for a struct with prefixed bindings.
+/// Derives the `Attribute` trait for a struct (for internal usage).
 #[proc_macro_derive(Attribute)]
 pub fn attribute(input: TokenStream) -> TokenStream {
     match attribute::derive(input.into(), quote!(wgame_shader)) {

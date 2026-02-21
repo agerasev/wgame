@@ -1,6 +1,6 @@
 //! GPU-accelerated 2D shape rendering.
 //!
-//! Provides circle and polygon primitives with fill, stroke, and texture support.
+//! Provides geometry primitives with fill, stroke, and texture support.
 
 #![forbid(unsafe_code)]
 
