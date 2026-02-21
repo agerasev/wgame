@@ -1,3 +1,7 @@
+//! Texture handling and rendering utilities.
+//!
+//! Provides texture atlases, filtering, gradients, and coordinate transformations.
+
 #![forbid(unsafe_code)]
 
 mod state;
@@ -18,6 +22,7 @@ pub use self::{
     },
 };
 
+/// A library for managing textures.
 #[derive(Clone)]
 pub struct TexturingLibrary {
     state: TexturingState,
@@ -25,6 +30,7 @@ pub struct TexturingLibrary {
 }
 
 impl TexturingLibrary {
+    /// Creates a new texture library.
     pub fn new(state: &Graphics) -> Self {
         let state = TexturingState::new(state);
         Self {
@@ -37,20 +43,24 @@ impl TexturingLibrary {
         }
     }
 
+    /// Returns the texturing state.
     pub fn state(&self) -> &TexturingState {
         &self.state
     }
 
+    /// Creates a texture from an image.
     pub fn texture(&self, image: &Image<Rgba<f16>>, settings: TextureSettings) -> Texture {
         let texture = self.default_atlas.allocate(image.size(), settings);
         texture.update(|mut dst| dst.copy_from(image));
         texture
     }
 
+    /// Creates a 1D gradient texture from an array of colors.
     pub fn gradient<T: Color, const N: usize>(&self, colors: [T; N]) -> Texture {
         self.gradient2([colors])
     }
 
+    /// Creates a 2D gradient texture from a 2D array of colors.
     pub fn gradient2<T: Color, const M: usize, const N: usize>(
         &self,
         colors: [[T; M]; N],

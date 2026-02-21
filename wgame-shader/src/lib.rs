@@ -1,3 +1,7 @@
+//! Shader utilities for bridging Rust types with GPU shaders.
+//!
+//! Provides attribute traits, binding definitions, and shader templates for WGSL.
+
 #![forbid(unsafe_code)]
 
 mod attribute;

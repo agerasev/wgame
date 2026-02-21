@@ -1,3 +1,8 @@
+//! Async application framework for windowed graphics applications.
+//!
+//! Provides window management, event handling, task spawning, and timers built on winit.
+//! Supports both desktop and web platforms.
+
 #![forbid(unsafe_code)]
 
 #[cfg(all(feature = "std", feature = "web"))]
@@ -25,6 +30,7 @@ pub mod input {
 
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
+/// Trait for main function return types.
 pub trait MainResult {
     fn try_unwrap(self);
 }
@@ -39,6 +45,7 @@ impl<E: Debug> MainResult for Result<(), E> {
     }
 }
 
+/// Runs an application with the given async function.
 pub fn run_app<R, F>(app_fn: F)
 where
     R: MainResult + 'static,
@@ -55,6 +62,7 @@ where
         .try_unwrap();
 }
 
+/// Runs an application with a single window.
 #[allow(clippy::await_holding_refcell_ref)]
 pub async fn app_with_single_window<R, F>(window_fn: F) -> R
 where
@@ -86,6 +94,7 @@ where
     }
 }
 
+/// Entry point for standard library builds.
 #[cfg(feature = "std")]
 #[allow(clippy::unit_arg)]
 pub fn entry<R, F>(app_fn: F)
@@ -98,6 +107,7 @@ where
     run_app(app_fn).try_unwrap();
 }
 
+/// Entry point for web builds.
 #[cfg(feature = "web")]
 #[allow(clippy::unit_arg)]
 pub fn entry<R, F>(app_fn: F)
@@ -111,8 +121,9 @@ where
     run_app(app_fn).try_unwrap();
 }
 
+/// Entry point for builds without either `std` or `web` feature.
 #[cfg(all(not(feature = "std"), not(feature = "web")))]
-pub fn entry<R, F>(app_fn: F)
+pub fn entry<R, F>(_app_fn: F)
 where
     R: MainResult + 'static,
     F: AsyncFnOnce() -> R + 'static,
@@ -120,6 +131,7 @@ where
     #![error("Neither `std` nor `web` feature enabled")]
 }
 
+/// Macro to generate a main function for an application.
 #[macro_export]
 macro_rules! app_main {
     ($app_fn:expr) => {
@@ -129,6 +141,7 @@ macro_rules! app_main {
     };
 }
 
+/// Macro to generate a main function for a windowed application.
 #[macro_export]
 macro_rules! window_main {
     ($window_fn:expr) => {

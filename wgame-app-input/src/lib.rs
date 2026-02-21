@@ -1,3 +1,7 @@
+//! Input event multiplexer for window events.
+//!
+//! Provides event distribution to multiple consumers with configurable capacity.
+
 #![forbid(unsafe_code)]
 
 use std::{
@@ -15,12 +19,13 @@ pub use winit::{
     keyboard,
 };
 
-/// Event multiplexer
+/// Event multiplexer that distributes events to multiple input streams.
 #[derive(Default)]
 pub struct EventHandler {
     states: Vec<Weak<State>>,
 }
 
+/// A stream of window events that can be polled asynchronously.
 pub struct Input {
     state: Rc<State>,
 }
@@ -32,6 +37,7 @@ struct State {
 }
 
 impl EventHandler {
+    /// Push an event to all registered input streams.
     pub fn push(&mut self, event: Event) {
         self.states.retain_mut(|state| match state.upgrade() {
             Some(state) => {
@@ -45,10 +51,12 @@ impl EventHandler {
         });
     }
 
+    /// Terminate all input streams by clearing all registered states.
     pub fn terminate(&mut self) {
         self.states.clear();
     }
 
+    /// Create a new input stream from this handler.
     pub fn input(&mut self) -> Input {
         self.states.retain(|state| state.strong_count() > 0);
         let state = Rc::new(State::default());
@@ -58,18 +66,22 @@ impl EventHandler {
 }
 
 impl Input {
-    /// If number of unhandled events exceed this value then the most recent events will overwrite the least recent ones.
+    /// Get the current event capacity for this input stream.
     pub fn capacity(&self) -> Option<NonZero<usize>> {
         self.state.capacity.get()
     }
+
+    /// Set the event capacity for this input stream.
     pub fn set_capacity(&mut self, capacity: Option<NonZero<usize>>) {
         self.state.capacity.set(capacity);
     }
 
+    /// Try to get the next event from the buffer without waiting.
     pub fn try_next(&mut self) -> Option<Event> {
         self.state.pop_event()
     }
 
+    /// Check if this input stream has been terminated.
     pub fn is_terminated(&self) -> bool {
         Rc::weak_count(&self.state) == 0
     }
@@ -102,6 +114,7 @@ impl Default for State {
 }
 
 impl State {
+    /// Default event capacity.
     pub const DEFAULT_CAPACITY: Option<NonZero<usize>> = Some(NonZero::new(1024).unwrap());
 
     fn push_event(&self, event: Event) {

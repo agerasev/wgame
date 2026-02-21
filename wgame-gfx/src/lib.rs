@@ -1,3 +1,7 @@
+//! GPU rendering framework built on WGPU.
+//!
+//! Provides abstractions for rendering 2D content with scene management, batching, and camera support.
+
 #![forbid(unsafe_code)]
 
 mod auto;
@@ -29,6 +33,7 @@ pub use self::{
 pub use anyhow::Error;
 pub use wgpu::PresentMode;
 
+/// Commonly used types and traits.
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{Object, Renderer, modifiers::*};

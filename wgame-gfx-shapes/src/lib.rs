@@ -1,3 +1,7 @@
+//! GPU-accelerated 2D shape rendering.
+//!
+//! Provides geometry primitives with fill, stroke, and texture support.
+
 #![forbid(unsafe_code)]
 
 mod circle;
@@ -25,17 +29,19 @@ pub use self::{
     shape::{Shape, Textured},
 };
 
+/// Commonly used shape traits.
 pub mod prelude {
     pub use crate::shape::{Shape, ShapeFill, ShapeStroke, Textured};
 }
 
-/// Library shared state
+/// Shared state for shape rendering.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ShapesState {
     texture: TexturingState,
 }
 
 impl ShapesState {
+    /// Returns a reference to the texture state.
     pub fn texture(&self) -> &TexturingState {
         &self.texture
     }
@@ -48,7 +54,7 @@ impl Deref for ShapesState {
     }
 }
 
-/// 2D graphics library
+/// 2D graphics library for rendering shapes.
 #[derive(Clone)]
 pub struct ShapesLibrary {
     state: ShapesState,
@@ -58,6 +64,7 @@ pub struct ShapesLibrary {
 }
 
 impl ShapesLibrary {
+    /// Creates a new shapes library.
     pub fn new(state: &Graphics, texture: &TexturingLibrary) -> Self {
         assert_eq!(state, &**texture.state());
         let state = ShapesState {
@@ -74,6 +81,7 @@ impl ShapesLibrary {
         }
     }
 
+    /// Returns a reference to the shapes state.
     pub fn state(&self) -> &ShapesState {
         &self.state
     }

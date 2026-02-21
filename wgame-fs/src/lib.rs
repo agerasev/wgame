@@ -1,13 +1,35 @@
+//! Cross-platform file reading utilities.
+//!
+//! Provides async file reading for both desktop (std) and web platforms.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use wgame_fs::{read_bytes, read_string};
+//!
+//! async fn example() -> anyhow::Result<()> {
+//!     // Read file as bytes
+//!     let bytes = read_bytes("assets/image.png").await?;
+//!     
+//!     // Read file as string
+//!     let text = read_string("assets/config.json").await?;
+//!     
+//!     Ok(())
+//! }
+//! ```
+
 #![forbid(unsafe_code)]
 
 pub type Path = str;
 pub type PathBuf = String;
 
+/// Reads a file and returns its contents as bytes.
 #[cfg(feature = "std")]
 pub async fn read_bytes(path: impl AsRef<Path>) -> anyhow::Result<Vec<u8>> {
     Ok(async_fs::read(path.as_ref()).await?)
 }
 
+/// Reads a file and returns its contents as a string.
 #[cfg(feature = "std")]
 pub async fn read_string(path: impl AsRef<Path>) -> anyhow::Result<String> {
     Ok(async_fs::read_to_string(path.as_ref()).await?)
@@ -86,12 +108,14 @@ mod web {
         Ok(string)
     }
 
+    /// Reads a file and returns its contents as bytes.
     pub async fn read_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>> {
         request_bytes(path.as_ref())
             .await
             .context("Request bytes error")
     }
 
+    /// Reads a file and returns its contents as a string.
     pub async fn read_string(path: impl AsRef<Path>) -> Result<String> {
         request_string(path.as_ref())
             .await

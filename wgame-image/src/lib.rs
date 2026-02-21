@@ -1,3 +1,7 @@
+//! 2D image processing and texture atlas utilities.
+//!
+//! Provides image containers, pixel formats, slicing operations, and texture atlasing.
+
 #![forbid(unsafe_code)]
 
 pub mod atlas;
@@ -20,6 +24,8 @@ pub use crate::{
 #[cfg(feature = "image")]
 pub use endec::Encoding;
 
+/// Commonly used traits.
 pub mod prelude {
+    #[doc(no_inline)]
     pub use crate::traits::*;
 }
