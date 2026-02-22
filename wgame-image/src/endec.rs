@@ -50,13 +50,7 @@ impl TryFrom<image::DynamicImage> for Image<Rgba<f16>> {
     fn try_from(image: image::DynamicImage) -> Result<Self> {
         let data: Vec<f16> = {
             // TODO: Convert directly to f16
-            let mut image = image.to_rgba32f();
-            // Convert to sRGB
-            for pix in image.pixels_mut() {
-                for ch in &mut pix.0[0..3] {
-                    *ch = ch.powf(2.2);
-                }
-            }
+            let image = image.to_rgba32f();
             image.into_vec().into_iter().map(f16::from_f32).collect()
         };
 
@@ -97,7 +91,7 @@ impl ImageSlice<'_, Rgba<f16>> {
         let Size2D { width, height, .. } = self.size();
         let data: Vec<Rgba<f32>> = self
             .rows()
-            .flat_map(|(_, row)| row.iter().map(|c| c.map(|v| f32::from(v).powf(1.0 / 2.2))))
+            .flat_map(|(_, row)| row.iter().map(|c| c.map(f32::from)))
             .collect();
         let image = DynamicImage::from(
             Rgba32FImage::from_vec(width, height, bytemuck::cast_vec(data))
