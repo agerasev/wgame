@@ -43,7 +43,9 @@ impl<'a> Surface<'a> {
             .context("Failed to create device")?;
 
         let caps = surface.get_capabilities(&adapter);
-        let format = caps.formats[0];
+        let format = (caps.formats.iter().copied())
+            .find(|format| !format.is_srgb())
+            .unwrap_or_else(|| caps.formats[0]);
 
         let this = Self {
             config,
@@ -68,6 +70,7 @@ impl<'a> Surface<'a> {
         self.surface.configure(
             self.state.device(),
             &wgpu::SurfaceConfiguration {
+                format: self.state.format(),
                 present_mode: self.config.present_mode,
                 ..surface_config
             },
