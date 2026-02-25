@@ -37,6 +37,7 @@ pub async fn read_string(path: impl AsRef<Path>) -> anyhow::Result<String> {
 
 #[cfg(feature = "web")]
 mod web {
+    use crate::Path;
     use anyhow::{Context, Error, Result, anyhow, bail};
     use js_sys::{ArrayBuffer, Uint8Array};
     use wasm_bindgen::prelude::*;
