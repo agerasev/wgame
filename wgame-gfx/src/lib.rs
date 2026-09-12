@@ -10,6 +10,7 @@ mod frame;
 mod instance;
 pub mod modifiers;
 mod object;
+mod offscreen;
 mod order;
 mod renderer;
 mod resource;
@@ -26,10 +27,11 @@ pub use self::{
     frame::Frame,
     instance::{AnyStorage, Instance, Storage},
     object::{InstanceVisitor, Object},
+    offscreen::Offscreen,
     order::Ordered,
     renderer::{Context, Renderer},
     resource::{AnyResource, Resource},
-    scene::Scene,
+    scene::{BakedScene, Scene},
     state::Graphics,
     surface::Surface,
     target::Target,

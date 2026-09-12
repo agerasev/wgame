@@ -18,9 +18,9 @@ mod windowed_task;
 
 pub use crate::{
     app::App,
-    runtime::{Runtime, Task, sleep, spawn},
+    runtime::{Runtime, ScopedTask, Task, TaskHandle, sleep, spawn},
     window::Window,
-    windowed_task::{WindowError, WindowedTask, create_windowed_task},
+    windowed_task::{WindowError, WindowTaskHandle, WindowedTask, create_windowed_task},
 };
 pub use wgame_app_input::{Event, Input};
 pub use winit::{dpi::PhysicalSize as Size, window::WindowAttributes};
@@ -128,7 +128,7 @@ where
     R: MainResult + 'static,
     F: AsyncFnOnce() -> R + 'static,
 {
-    #![error("Neither `std` nor `web` feature enabled")]
+    compile_error!("Enable a native backend (x11/wayland/android/std) or web");
 }
 
 /// Macro to generate a main function for an application.

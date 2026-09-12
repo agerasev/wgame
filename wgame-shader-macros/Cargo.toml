@@ -11,3 +11,8 @@ proc-macro = true
 proc-macro2.workspace = true
 syn.workspace = true
 quote.workspace = true
+
+[dev-dependencies]
+wgame = { workspace = true, features = ["desktop"] }
+wgame-shader.workspace = true
+glam.workspace = true

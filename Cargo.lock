@@ -2534,6 +2534,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
+ "futures",
  "glam",
  "half",
  "log",
@@ -2692,6 +2693,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.115",
+ "wgame",
 ]
 
 [[package]]
@@ -2715,9 +2717,12 @@ dependencies = [
 name = "wgame-shader-macros"
 version = "0.1.0"
 dependencies = [
+ "glam",
  "proc-macro2",
  "quote",
  "syn 2.0.115",
+ "wgame",
+ "wgame-shader",
 ]
 
 [[package]]

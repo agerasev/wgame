@@ -12,8 +12,7 @@ pub struct Frame<'a, 'b> {
 impl<'a, 'b> Frame<'a, 'b> {
     pub(crate) fn new(owner: &'b mut Surface<'a>) -> Result<Self> {
         let surface = owner
-            .inner()
-            .get_current_texture()
+            .take_texture()
             .context("Failed to acquire next swap chain texture")?;
         let view = surface
             .texture

@@ -91,15 +91,67 @@ impl Runtime {
     }
 }
 
-/// Task is **not** terminated on handle drop.
-#[derive(Clone)]
+/// Single-consumer result. Dropping the result detaches the task.
+/// Clone [`Task::handle`] for cancellation access.
 pub struct Task<T> {
     task: TaskId,
     executor: Rc<RefCell<ExecutorProxy>>,
     output: CallOutput<Result<T, Terminated>>,
 }
 
+/// Clonable cancellation access without access to the task result.
+#[derive(Clone)]
+pub struct TaskHandle {
+    task: TaskId,
+    executor: Rc<RefCell<ExecutorProxy>>,
+}
+impl TaskHandle {
+    pub fn id(&self) -> TaskId {
+        self.task
+    }
+    /// Cancel at the next scheduler boundary. Repeated calls are harmless.
+    pub fn terminate(&self) {
+        self.executor.borrow_mut().terminate(self.task);
+    }
+}
+/// Task cancelled when its owner leaves scope, including window suspension.
+pub struct ScopedTask<T> {
+    task: Task<T>,
+}
+impl<T> ScopedTask<T> {
+    pub fn handle(&self) -> TaskHandle {
+        self.task.handle()
+    }
+}
+impl<T> Drop for ScopedTask<T> {
+    fn drop(&mut self) {
+        self.task.terminate();
+    }
+}
+impl<T> Future for ScopedTask<T> {
+    type Output = Result<T, Terminated>;
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.task.poll_unpin(cx)
+    }
+}
+impl<T> FusedFuture for ScopedTask<T> {
+    fn is_terminated(&self) -> bool {
+        self.task.is_terminated()
+    }
+}
 impl<T> Task<T> {
+    /// Opt into cancellation when this handle is dropped.
+    pub fn cancel_on_drop(self) -> ScopedTask<T> {
+        ScopedTask { task: self }
+    }
+
+    pub fn handle(&self) -> TaskHandle {
+        TaskHandle {
+            task: self.task,
+            executor: self.executor.clone(),
+        }
+    }
+
     pub fn id(&self) -> TaskId {
         self.task
     }
@@ -139,4 +191,31 @@ where
     F: Future<Output: 'static> + 'static,
 {
     Runtime::current().create_task(future)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::executor::Executor;
+    #[test]
+    fn handle_cancels_result_and_drop_detaches() {
+        let mut executor = Executor::with_waker_factory(|_| std::task::Waker::noop().clone());
+        let rt = Runtime {
+            state: Default::default(),
+            executor: executor.proxy(),
+            timers: Default::default(),
+            callbacks: Default::default(),
+        };
+        let task = rt.create_task(std::future::pending::<u32>());
+        task.handle().clone().terminate();
+        assert!(executor.poll().is_ready());
+        assert!(matches!(task.output().try_take(), Some(Err(Terminated))));
+        let ran = Rc::new(std::cell::Cell::new(false));
+        let marker = ran.clone();
+        drop(rt.create_task(async move {
+            marker.set(true);
+        }));
+        assert!(executor.poll().is_ready());
+        assert!(ran.get());
+    }
 }

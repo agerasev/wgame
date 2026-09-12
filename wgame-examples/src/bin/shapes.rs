@@ -192,7 +192,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             let dur = periodic.elapsed_periods();
             if !dur.is_zero() {
                 log::info!(
-                    "FPS: {},\tRPasses per frame: {}",
+                    "FPS: {},\tBatches per frame: {}",
                     n_frames as f32 / dur.as_secs_f32(),
                     n_passes as f32 / n_frames as f32,
                 );

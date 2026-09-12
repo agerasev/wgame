@@ -29,14 +29,18 @@ pub trait ShapeStroke: Shape {
 }
 
 pub trait Textured: Colorable + Sized {
-    fn tranform_texcoord(&self, tex_xform: Affine2) -> Self;
+    fn transform_texcoord(&self, tex_xform: Affine2) -> Self;
+    #[deprecated(note = "use transform_texcoord")]
+    fn tranform_texcoord(&self, tex_xform: Affine2) -> Self {
+        self.transform_texcoord(tex_xform)
+    }
 }
 
 #[macro_export]
 macro_rules! impl_textured {
     ($self:ty, $texture:ident) => {
         impl $crate::Textured for $self {
-            fn tranform_texcoord(&self, tex_xform: glam::Affine2) -> Self {
+            fn transform_texcoord(&self, tex_xform: glam::Affine2) -> Self {
                 Self {
                     $texture: self.$texture.transform_coord(tex_xform),
                     ..self.clone()

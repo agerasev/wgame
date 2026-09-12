@@ -1,13 +1,3 @@
 # wgame-typography
 
-Font rasterization and text layout utilities.
-
-Provides font loading, glyph rasterization, and text metrics using swash.
-
-## Features
-
-- Font loading from TTF/OTF files
-- Glyph rasterization to image atlases
-- Text metrics and layout calculations
-- Integration with wgame-image for atlas management
-
+Font loading, shaping metrics, and cached monochrome glyph rasterization using swash. Font sizes must be finite and positive. See [typography limitations](../docs/GUIDE.md#typography).

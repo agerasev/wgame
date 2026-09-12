@@ -5,6 +5,8 @@
 #![forbid(unsafe_code)]
 
 pub mod atlas;
+/// Geometry types used by image and atlas APIs.
+pub use euclid;
 #[cfg(feature = "image")]
 mod endec;
 mod image;

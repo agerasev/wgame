@@ -308,12 +308,20 @@ impl<T: Texel> Texture<T> {
         F: FnOnce(ImageSliceMut<T>) -> R,
     {
         let size = self.size();
+        assert!(
+            rect.origin.x <= size.width
+                && rect.origin.y <= size.height
+                && rect.size.width <= size.width - rect.origin.x
+                && rect.size.height <= size.height - rect.origin.y
+        );
         let box_ = rect.to_box2d();
-        assert!(box_.max.x <= size.width && box_.max.y <= size.height);
         let inner_rect = Rect {
             origin: rect.origin + Vector2D::new(1, 1),
             size: rect.size,
         };
+        if rect.size.width == 0 || rect.size.height == 0 {
+            return self.image.update_part(f, inner_rect);
+        }
         let outer_box = Box2D {
             min: Point2D::new(
                 if box_.min.x < 1 { 0 } else { box_.min.x + 1 },
@@ -335,61 +343,39 @@ impl<T: Texel> Texture<T> {
 
         self.image.update_part(
             |mut img| {
-                // Update inner image
-                let r = f(img.slice_mut(inner_rect));
-
-                // Update borders if needed
-                if box_.min.x < 1 {
-                    img.copy_within(
-                        Rect {
-                            origin: Point2D::new(1, 1),
-                            size: Size2D::new(1, rect.size.height),
-                        },
-                        Point2D::new(0, 1),
-                    );
-                }
-                if box_.min.y < 1 {
-                    img.copy_within(
-                        Rect {
-                            origin: Point2D::new(1, 1),
-                            size: Size2D::new(rect.size.width, 1),
-                        },
-                        Point2D::new(1, 0),
-                    );
-                }
-                if box_.max.x >= size.width {
-                    img.copy_within(
-                        Rect {
-                            origin: Point2D::new(rect.size.width, 1),
-                            size: Size2D::new(1, rect.size.height),
-                        },
-                        Point2D::new(rect.size.width + 1, 1),
-                    );
-                }
-                if box_.max.y >= size.height {
-                    img.copy_within(
-                        Rect {
-                            origin: Point2D::new(1, rect.size.height),
-                            size: Size2D::new(rect.size.width, 1),
-                        },
-                        Point2D::new(1, rect.size.height + 1),
-                    );
-                }
-                // Update corners is needed
-                if box_.min.x < 1 && box_.min.y < 1 {
-                    *img.get_mut(Point2D::new(0, 0)) = *img.get(Point2D::new(1, 1));
-                }
-                if box_.min.x < 1 && box_.max.y >= size.height {
-                    *img.get_mut(Point2D::new(0, rect.size.height + 1)) =
-                        *img.get(Point2D::new(1, rect.size.height));
-                }
-                if box_.max.x >= size.width && box_.min.y < 1 {
-                    *img.get_mut(Point2D::new(rect.size.width + 1, 0)) =
-                        *img.get(Point2D::new(rect.size.width, 1));
-                }
-                if box_.max.x >= size.width && box_.max.y >= size.height {
-                    *img.get_mut(Point2D::new(rect.size.width + 1, rect.size.height + 1)) =
-                        *img.get(Point2D::new(rect.size.width, rect.size.height));
+                // `img` is relative to the dirty outer rectangle, not the image.
+                let local_rect = Rect {
+                    origin: inner_rect.origin - outer_box.min.to_vector(),
+                    size: rect.size,
+                };
+                let r = f(img.slice_mut(local_rect));
+                let extent = img.size();
+                // Duplicate touched edge texels into the one-pixel filtering border.
+                // Each source coordinate lies inside this dirty slice.
+                let mut copy_border = |x: u32, y: u32| {
+                    let global = Point2D::new(outer_box.min.x + x, outer_box.min.y + y);
+                    if global.x == 0
+                        || global.y == 0
+                        || global.x == size.width + 1
+                        || global.y == size.height + 1
+                    {
+                        let source = Point2D::new(
+                            global.x.clamp(1, size.width) - outer_box.min.x,
+                            global.y.clamp(1, size.height) - outer_box.min.y,
+                        );
+                        let pixel = *img.get(source);
+                        *img.get_mut(Point2D::new(x, y)) = pixel;
+                    }
+                };
+                if extent.width > 0 && extent.height > 0 {
+                    for x in 0..extent.width {
+                        copy_border(x, 0);
+                        copy_border(x, extent.height - 1);
+                    }
+                    for y in 0..extent.height {
+                        copy_border(0, y);
+                        copy_border(extent.width - 1, y);
+                    }
                 }
 
                 r
@@ -399,7 +385,20 @@ impl<T: Texel> Texture<T> {
     }
 
     pub fn resize(&self, new_size: impl Into<Size2D<u32>>) {
-        self.image.resize(new_size.into() + Size2D::new(2, 2));
+        let new_size = new_size.into();
+        assert!(
+            new_size.width > 0 && new_size.height > 0,
+            "Texture size must be positive"
+        );
+        let old = self.with(|src| src.to_image());
+        self.image.resize(new_size + Size2D::new(2, 2));
+        self.update(|mut dst| {
+            for (_, pixel) in dst.pixels_mut() {
+                *pixel = T::default();
+            }
+            let common = Rect::from_size(new_size.min(old.size()));
+            dst.slice_mut(common).copy_from(old.slice(common));
+        });
     }
 
     pub fn coord_xform(&self) -> Affine2 {

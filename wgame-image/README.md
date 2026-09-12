@@ -1,13 +1,3 @@
 # wgame-image
 
-2D image processing and texture atlas utilities.
-
-Provides image containers, pixel formats, slicing operations, and texture atlasing.
-
-## Features
-
-- Image containers with multiple pixel formats (u8, f16, RGBA)
-- Texture atlas for efficient image packing
-- Image slicing and manipulation operations
-- PNG encoding/decoding support (with `image` feature)
-
+CPU images, slices, pixel types, and growing atlases. `png` enables PNG decoding/encoding by default. Atlas handles preserve pixel data through growth and resizing. `euclid` is re-exported for rectangle and size arguments. See [textures and files](../docs/GUIDE.md#textures-and-files).

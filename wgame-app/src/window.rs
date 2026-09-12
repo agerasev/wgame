@@ -57,6 +57,9 @@ impl WindowState {
     pub fn terminate(&mut self) {
         self.terminated = true;
         self.handler.terminate();
+        if let Some(waker) = self.waker.take() {
+            waker.wake();
+        }
     }
 }
 
@@ -101,15 +104,31 @@ where
 {
     let handle = event_loop.create_window(update_attributes(attributes))?;
     let id = handle.id();
-    let state = Rc::new(RefCell::new(WindowState::default()));
+    let state = Rc::new(RefCell::new(WindowState {
+        size: handle.inner_size(),
+        resized: true,
+        ..Default::default()
+    }));
     let weak = Rc::downgrade(&state);
+    struct Registration {
+        app: Runtime,
+        id: winit::window::WindowId,
+    }
+    impl Drop for Registration {
+        fn drop(&mut self) {
+            self.app.state.borrow_mut().remove_window(self.id);
+        }
+    }
+    // Construct outside the future so cancellation before its first poll also cleans up.
+    let registration = Registration {
+        app: app.clone(),
+        id,
+    };
     let task = app.create_task({
-        let app = app.clone();
         async move {
+            let _registration = registration;
             let window = Window::new(&handle, state.clone());
-            let result = window_main(window).await;
-            app.state.borrow_mut().remove_window(id);
-            result
+            window_main(window).await
         }
     });
     app.state.borrow_mut().insert_window(id, task.id(), weak);
@@ -147,7 +166,7 @@ pub struct WaitRedraw<'a, 'b> {
 }
 
 impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
-    type Output = Option<Redraw<'b>>;
+    type Output = Option<Redraw<'a>>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let owner = &mut self.owner;
@@ -163,12 +182,13 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
         }
 
         let result = if state.redraw_requested && state.redraw_ready {
-            (state.redraw_requested, state.redraw_ready) = (false, false);
+            state.redraw_ready = false;
             if let size @ ((0, _) | (_, 0)) = owner.size() {
                 log::warn!("Redraw requested but window size is zero: {size:?}");
                 owner.handle.request_redraw();
                 Poll::Pending
             } else {
+                state.redraw_requested = false;
                 Poll::Ready(Some(Redraw {
                     handle: owner.handle,
                     size: state.size,

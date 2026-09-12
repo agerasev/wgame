@@ -19,6 +19,8 @@ impl<T> Default for State<T> {
     }
 }
 
+/// Shared single-consumption output. Clones share one result and one waiter.
+/// Use one consumer; polling after consumption panics.
 pub struct CallOutput<T>(Rc<Cell<State<T>>>);
 
 impl<T> Clone for CallOutput<T> {
@@ -34,6 +36,13 @@ impl<T> Default for CallOutput<T> {
 }
 
 impl<T> CallOutput<T> {
+    pub(crate) fn with_ready(&self, f: impl FnOnce(&T)) {
+        let state = self.0.take();
+        if let State::Ready(value) = &state {
+            f(value);
+        }
+        self.0.set(state);
+    }
     pub fn try_take(&self) -> Option<T> {
         match self.0.replace(State::Taken) {
             State::Pending(waker) => {
@@ -75,12 +84,37 @@ impl<T> FusedFuture for CallOutput<T> {
 
 impl<T> CallOutput<T> {
     pub fn set_ready(&self, value: T) {
-        if let State::Pending(Some(waker)) = self.0.take() {
-            waker.wake();
+        let previous = self.0.replace(State::Ready(value));
+        match previous {
+            State::Pending(Some(waker)) => waker.wake(),
+            State::Pending(None) => (),
+            other => {
+                self.0.set(other);
+                panic!("Call output completed more than once");
+            }
         }
-        self.0.set(State::Ready(value));
     }
 }
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
 pub struct Terminated;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn completion_before_poll_is_consumed_once() {
+        let output = CallOutput::default();
+        output.set_ready(42);
+        assert!(!output.is_terminated());
+        assert_eq!(output.try_take(), Some(42));
+        assert!(output.is_terminated());
+    }
+    #[test]
+    #[should_panic(expected = "completed more than once")]
+    fn double_completion_is_rejected() {
+        let output = CallOutput::default();
+        output.set_ready(1);
+        output.set_ready(2);
+    }
+}

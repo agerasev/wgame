@@ -84,8 +84,8 @@ impl Text {
                             ),
                             Quat::IDENTITY,
                             Vec3::new(
-                                glyph_image.placement.left as f32 + offset,
-                                -glyph_image.placement.top as f32,
+                                glyph_image.placement.left as f32 + offset + glyph.x,
+                                -glyph_image.placement.top as f32 - glyph.y,
                                 0.0,
                             ),
                         ))

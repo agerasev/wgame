@@ -6,21 +6,18 @@
 //!
 //! Single window application:
 //!
-//! ```rust
-//! #[window(width = 800, height = 600)]
-//! fn main() {
-//!     // Window logic
+//! ```no_run
+//! #[wgame::app]
+//! async fn main() {
+//!     // Start tasks or create windows here.
 //! }
 //! ```
 //!
-//! Just application, windows need to be created manually:
-//!
-//! ```rust
-//! use wgame_macros::{app, window};
-//!
-//! #[app]
-//! fn main() {
-//!     // Application logic
+//! ```no_run
+//! #[wgame::window(size = (800, 600))]
+//! async fn main(mut window: wgame::Window<'_>) -> wgame::Result<()> {
+//!     while let Some(_frame) = window.next_frame().await? {}
+//!     Ok(())
 //! }
 //! ```
 

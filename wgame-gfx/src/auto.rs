@@ -17,6 +17,13 @@ impl<'a, T: Target + ?Sized, C: Context> AutoScene<'a, T, C> {
         }
     }
 
+    /// Render now and consume the scene. Drop also renders unless unwinding.
+    pub fn render(mut self) {
+        let items = std::mem::take(&mut self.items);
+        if !items.is_empty() {
+            self.target.render_iter(&self.camera, items.iter());
+        }
+    }
     pub fn discard(mut self) {
         self.items = Scene::default();
     }
@@ -37,7 +44,7 @@ impl<T: Target + ?Sized, C: Context> DerefMut for AutoScene<'_, T, C> {
 
 impl<T: Target + ?Sized, C: Context> Drop for AutoScene<'_, T, C> {
     fn drop(&mut self) {
-        if !self.items.is_empty() {
+        if !std::thread::panicking() && !self.items.is_empty() {
             self.target.render_iter(&self.camera, self.items.iter());
         }
     }

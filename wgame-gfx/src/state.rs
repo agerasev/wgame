@@ -11,7 +11,9 @@ pub struct Graphics {
 }
 
 impl Graphics {
-    pub(crate) fn new(
+    /// Wrap an existing device and its adapter/queue. The format must support
+    /// rendering and match every target used with this graphics context.
+    pub fn new(
         adapter: wgpu::Adapter,
         device: wgpu::Device,
         queue: wgpu::Queue,

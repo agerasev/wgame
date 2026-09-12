@@ -1,12 +1,3 @@
 # wgame-utils
 
-Utility types and functions for wgame.
-
-Provides periodic timer for handling regular intervals.
-
-## Features
-
-- `PeriodicTimer` for fixed-frequency updates
-- Time dilation handling for missed periods
-- Integration with wgame-app timing utilities
-
+`PeriodicTimer` preserves its deadline phase when ticks are missed. `elapsed_periods` returns the duration of whole elapsed periods; a zero period is invalid. See [timing](../docs/GUIDE.md#input-and-timing).

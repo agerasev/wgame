@@ -36,6 +36,10 @@ pub struct FontAtlas {
 impl FontAtlas {
     pub fn new(atlas: &Atlas<u8>, font: &Font, settings: impl Into<RasterSettings>) -> Self {
         let RasterSettings { size } = settings.into();
+        assert!(
+            size.is_finite() && size > 0.0,
+            "Font size must be finite and positive"
+        );
         let init_dim = ((4.0 * size).ceil().clamp(u32::MIN as f32, i32::MAX as f32) as u32)
             .next_power_of_two();
         let image = atlas.allocate(Size2D::new(init_dim, init_dim));

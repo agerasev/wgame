@@ -82,6 +82,10 @@ impl TimerQueue {
     fn wake(&mut self) {
         let now = Instant::now();
         while let Some(peek) = self.queue.peek_mut() {
+            if peek.0.waker.strong_count() == 0 {
+                PeekMut::pop(peek);
+                continue;
+            }
             if peek.0.timestamp <= now {
                 log::trace!("timer fired: {:?}", peek.0.timestamp);
                 if let Some(waker) = PeekMut::pop(peek).0.waker.upgrade() {
@@ -125,5 +129,29 @@ impl Future for Timer {
 impl FusedFuture for Timer {
     fn is_terminated(&self) -> bool {
         Instant::now() >= self.timestamp
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn dropped_timers_do_not_schedule_spurious_wakes() {
+        let mut queue = TimerQueue::default();
+        let timer = queue.insert(Instant::now() + std::time::Duration::from_secs(60));
+        assert!(matches!(queue.poll(), ControlFlow::WaitUntil(_)));
+        drop(timer);
+        assert!(matches!(queue.poll(), ControlFlow::Wait));
+    }
+    #[test]
+    fn past_deadline_completes_on_first_poll() {
+        let mut queue = TimerQueue::default();
+        let mut timer = queue.insert(Instant::now());
+        assert!(
+            Pin::new(&mut timer)
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_ready()
+        );
+        assert!(matches!(queue.poll(), ControlFlow::Wait));
     }
 }

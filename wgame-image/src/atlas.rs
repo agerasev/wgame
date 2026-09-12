@@ -60,6 +60,13 @@ pub struct AtlasImage<P: Pixel> {
 
 impl<P: Pixel> InnerAtlas<P> {
     fn alloc_item(&mut self, size: Size2D<u32>, id: Option<ItemId>) -> ItemId {
+        assert!(
+            size.width > 0
+                && size.height > 0
+                && size.width <= i32::MAX as u32
+                && size.height <= i32::MAX as u32,
+            "Image size must fit positive i32 dimensions"
+        );
         let mut atlas_size = self.allocator.size();
         let mut items_to_alloc = SmallVec::<[(ItemId, Size2D<i32>); 1]>::new();
         let id = id.unwrap_or_else(|| {
@@ -170,8 +177,10 @@ impl<P: Pixel> InnerAtlas<P> {
             let rect = match rect {
                 Some(rect) => {
                     assert!(
-                        rect.size.width <= item_rect.size.width
-                            && rect.size.height <= item_rect.size.height
+                        rect.origin.x <= item_rect.size.width
+                            && rect.origin.y <= item_rect.size.height
+                            && rect.size.width <= item_rect.size.width - rect.origin.x
+                            && rect.size.height <= item_rect.size.height - rect.origin.y
                     );
                     Rect {
                         origin: item_rect.origin + rect.origin.to_vector(),
@@ -195,6 +204,13 @@ impl<P: Pixel> Atlas<P> {
     const INITIAL_SIZE: Size2D<u32> = Size2D::new(16, 16);
 
     pub fn with_size(size: Size2D<u32>) -> Self {
+        assert!(
+            size.width > 0
+                && size.height > 0
+                && size.width <= i32::MAX as u32
+                && size.height <= i32::MAX as u32,
+            "Atlas size must fit positive i32 dimensions"
+        );
         Self {
             inner: Rc::new(RefCell::new(InnerAtlas {
                 allocator: AtlasAllocator::new(size.cast()),

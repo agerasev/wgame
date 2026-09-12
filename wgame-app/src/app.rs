@@ -57,8 +57,13 @@ impl AppState {
                 state.borrow_mut().terminate();
             }
         } else {
-            log::warn!("Cannot remove window from resumed: {id:?} not found");
+            log::trace!("Window already removed: {id:?}");
         }
+    }
+
+    fn suspend(&mut self) -> Vec<(TaskId, Weak<RefCell<WindowState>>)> {
+        self.resumed = false;
+        self.windows.drain().map(|(_, item)| item).collect()
     }
 
     pub fn is_resumed(&self) -> bool {
@@ -132,6 +137,7 @@ impl App {
 impl ApplicationHandler<UserEvent> for AppHandler {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         log::debug!("resumed");
+        self.state.borrow_mut().resumed = true;
         self.call_buffer
             .append(&mut self.callbacks.borrow_mut().on_resume);
         for call in self.call_buffer.drain(..) {
@@ -142,12 +148,7 @@ impl ApplicationHandler<UserEvent> for AppHandler {
 
     fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
         log::debug!("suspended");
-        let mut state = self.state.borrow_mut();
-        state.resumed = false;
-        for (id, (task, _window)) in state.windows.drain() {
-            self.state.borrow_mut().remove_window(id);
-            self.executor.terminate_task(task);
-        }
+        self.suspend_windows();
     }
 
     fn window_event(&mut self, _event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
@@ -158,6 +159,7 @@ impl ApplicationHandler<UserEvent> for AppHandler {
                     if event != WindowEvent::Destroyed {
                         window.borrow_mut().push_event(event);
                     } else {
+                        window.borrow_mut().terminate();
                         entry.remove();
                     }
                 } else {
@@ -185,10 +187,12 @@ impl ApplicationHandler<UserEvent> for AppHandler {
             Poll::Ready(()) => event_loop.exit(),
         }
 
-        let mut callbacks = self.callbacks.borrow_mut();
-        self.call_buffer.append(&mut callbacks.next_poll);
-        if self.state.borrow().is_resumed() {
-            self.call_buffer.append(&mut callbacks.on_resume);
+        {
+            let mut callbacks = self.callbacks.borrow_mut();
+            self.call_buffer.append(&mut callbacks.next_poll);
+            if self.state.borrow().is_resumed() {
+                self.call_buffer.append(&mut callbacks.on_resume);
+            }
         }
         for call in self.call_buffer.drain(..) {
             call(event_loop);
@@ -196,5 +200,49 @@ impl ApplicationHandler<UserEvent> for AppHandler {
 
         let next_poll = self.timers.borrow_mut().poll();
         event_loop.set_control_flow(next_poll);
+    }
+}
+
+impl AppHandler {
+    fn suspend_windows(&mut self) {
+        let windows = self.state.borrow_mut().suspend();
+        for (task, window) in windows {
+            if let Some(window) = window.upgrade() {
+                window.borrow_mut().terminate();
+            }
+            self.executor.terminate_task(task);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn suspension_drains_registered_windows_and_can_repeat() {
+        let mut handler = AppHandler {
+            state: Default::default(),
+            executor: Executor::with_waker_factory(|_| std::task::Waker::noop().clone()),
+            timers: Default::default(),
+            callbacks: Default::default(),
+            call_buffer: Vec::new(),
+        };
+        let window = Rc::new(RefCell::new(WindowState::default()));
+        let task = handler
+            .executor
+            .proxy()
+            .borrow_mut()
+            .spawn(std::future::pending(), || {});
+        // The OS can suspend after creation but before the task is first polled.
+        handler.state.borrow_mut().resumed = true;
+        handler
+            .state
+            .borrow_mut()
+            .insert_window(WindowId::from(1), task, Rc::downgrade(&window));
+        handler.suspend_windows();
+        assert!(!handler.state.borrow().is_resumed());
+        assert!(handler.state.borrow().windows.is_empty());
+        assert!(handler.executor.poll().is_ready());
+        handler.suspend_windows();
     }
 }

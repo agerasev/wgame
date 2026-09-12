@@ -4,7 +4,7 @@ use etagere::{Allocation, AtlasAllocator};
 use euclid::default::{Rect, Size2D};
 use swash::{
     GlyphId,
-    scale::{Render, Scaler, Source, StrikeWith},
+    scale::{Render, Scaler, Source},
     zeno::Placement,
 };
 use wgame_image::{AtlasImage, Image, prelude::*};
@@ -28,11 +28,7 @@ impl InnerAtlas {
             allocator: AtlasAllocator::new(image.size().cast()),
             mapping: BTreeMap::default(),
             image,
-            render: Render::new(&[
-                Source::ColorOutline(0),
-                Source::ColorBitmap(StrikeWith::BestFit),
-                Source::Outline,
-            ]),
+            render: Render::new(&[Source::Outline]),
         }
     }
 

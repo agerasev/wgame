@@ -1,53 +1,87 @@
 # wgame
 
-A modular framework for building graphics applications.
+A modular Rust framework for 2D graphics applications, built on winit and wgpu.
+It provides an async window loop, composable shapes, texture atlases, and text.
 
-## Overview
+## Run an example
 
-wgame provides a layered architecture for creating cross-platform graphics applications:
+From the repository root:
 
-- **Application**: Window management, async runtime, and application lifecycle
-- **Graphics**: GPU rendering abstractions, scene management, and camera support
-- **Shapes**: Geometry primitives with fill, stroke, and texture support
-- **Typography**: Font rasterization and text rendering
-- **Utilities**: Cross-platform file I/O, input handling, and timing utilities
+```sh
+cargo run -p wgame-examples --bin playground
+```
 
-## Crates
+Move the mouse to move the ring; press Space to pause animation. The example
+embeds its assets, handles resizing, and runs a background task that is cancelled
+when the window ends. `-- --smoke` exits after twelve frames on desktop.
 
-- [`wgame`](wgame/) - Main crate
-- [`wgame-app`](wgame-app/) - Application entry points, window management, async application runtime and executor
-- [`wgame-gfx`](wgame-gfx/) - GPU rendering framework with scene management
-- [`wgame-gfx-shapes`](wgame-gfx-shapes/) - Geometry shape rendering
-- [`wgame-gfx-texture`](wgame-gfx-texture/) - Texture handling and atlas management
-- [`wgame-gfx-typography`](wgame-gfx-typography/) - Text rendering
-- [`wgame-image`](wgame-image/) - Image processing and texture atlas utilities
-- [`wgame-typography`](wgame-typography/) - Font rasterization and text metrics
-- [`wgame-shader`](wgame-shader/) - Shader utilities for bridging Rust types with GPU shaders
-- [`wgame-shader-macros`](wgame-shader-macros/) - Procedural macros for deriving shader attributes
-- [`wgame-macros`](wgame-macros/) - Macros for application and window entry points
-- [`wgame-app-input`](wgame-app-input/) - Input event multiplexer for window events
-- [`wgame-fs`](wgame-fs/) - Cross-platform file reading utilities
-- [`wgame-utils`](wgame-utils/) - Utility types and functions
+The [examples guide](wgame-examples/README.md) includes desktop and web commands.
 
-## Getting Started
+## Use the library
 
-See [`wgame-examples`](wgame-examples/) for usage examples.
+Until a release is published, point your application's Cargo.toml at the `wgame`
+crate inside this checkout:
 
-```rust
-use wgame_macros::window;
+```toml
+[dependencies]
+wgame = { path = "/path/to/checkout/wgame" }
+```
 
-#[window(width = 800, height = 600)]
-fn main() {
-    // Your application logic here
+Put this in `src/main.rs`:
+
+```rust,no_run
+use wgame::{Window, prelude::*, gfx::types::color};
+
+#[wgame::window(size = (800, 600), title = "Hello wgame")]
+async fn main(mut window: Window<'_>) -> wgame::Result<()> {
+    while let Some(mut frame) = window.next_frame().await? {
+        frame.clear(color::BLACK);
+        frame.present();
+    }
+    Ok(())
 }
 ```
 
-## Platform Support
+`next_frame` returns `None` when the window closes. Present explicitly, or let
+normal scope exit present the frame. `frame.discard()` drops unfinished work.
 
-- **Desktop**: Windows, macOS, Linux via winit and wgpu
-- **Web**: WebAssembly via wasm-bindgen and WebGPU
-- Any other supported by WGPU and Winit, but not tested
+## Learn and contribute
+
+- [Usage guide](docs/GUIDE.md): coordinates, input, timing, assets, text, ordering,
+  custom rendering, and lifecycle contracts.
+- [Migration notes](docs/MIGRATION.md): API and behavior changes in stabilization.
+- [Validation](docs/VALIDATION.md): supported build matrix, tests, and limitations.
+- [Performance](docs/PERFORMANCE.md): benchmark workloads and results.
+- [Roadmap](docs/ROADMAP.md): implementation progress.
+
+## Crates
+
+| Layer | Crates |
+| --- | --- |
+| Application | `wgame`, `wgame-app`, `wgame-app-input`, `wgame-macros` |
+| Rendering | `wgame-gfx`, `wgame-gfx-shapes`, `wgame-gfx-texture`, `wgame-gfx-typography` |
+| CPU resources | `wgame-image`, `wgame-typography`, `wgame-fs` |
+| Shader attributes | `wgame-shader`, `wgame-shader-macros` |
+| Timing helpers and examples | `wgame-utils`, `wgame-examples` |
+
+## Platform and feature support
+
+Default features select `desktop`, `shapes`, `fs`, `image`, `typography`, and
+`utils`. Each optional content feature can be enabled independently.
+`Library::load_texture` needs both `fs` and `image`; `Library::load_font` needs
+both `fs` and `typography`.
+
+The `desktop` feature enables native windowing and Vulkan/GLES/Metal/DX12
+backends as appropriate for the target. The `web` feature selects WebGL2;
+disable default features when selecting it. Desktop and web cannot be enabled
+together. WebGPU is available at the lower `wgame-gfx` layer but is not the
+high-level `web` feature's backend.
+
+Linux is locally tested, including Mesa software Vulkan rendering and an Xvfb
+window smoke test. CI is configured for Linux, Windows, and macOS compilation
+and tests. WebAssembly compilation is checked separately; browser and other
+platform limitations are recorded in the validation guide.
 
 ## License
 
-MIT
+MIT. Example font and image assets are used only by examples and tests.

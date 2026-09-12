@@ -9,7 +9,8 @@ use smallvec::SmallVec;
 
 /// Shared resource required to draw an instance.
 ///
-/// Equality of the instances' resource means that they can be draw in single render pass.
+/// Equal resources may share an instance batch when their storage types match.
+/// Ordering still constrains which instances can be combined.
 pub trait Resource: Any + Eq + Hash + Clone + Sized {
     fn order(&self) -> impl Iterator<Item = i32> {
         iter::empty()

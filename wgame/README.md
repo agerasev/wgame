@@ -1,12 +1,3 @@
 # wgame
 
-Main crate for the wgame graphics framework.
-
-Provides window management, application lifecycle, and integration with the wgame ecosystem.
-
-## Features
-
-- Window creation and configuration
-- Application entry points via `#[app]` and `#[window]` macros
-- Integration with wgpu for GPU rendering
-- Cross-platform support (desktop and web)
+High-level window, graphics, and asset helpers. Start with the [quickstart](../README.md) and [usage guide](../docs/GUIDE.md). Optional content features can be selected independently; loading helpers require the relevant file and content features.

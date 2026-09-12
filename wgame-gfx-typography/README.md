@@ -1,13 +1,3 @@
 # wgame-gfx-typography
 
-Text rendering utilities.
-
-Provides WGPU integration.
-
-## Features
-
-- Font rasterization to GPU textures
-- Text rendering with alignment support
-- Integration with wgame-gfx rendering pipeline
-- Efficient glyph caching and reuse
-
+GPU text rendering with alignment and glyph caching. Uses monochrome outline rasterization; color emoji, font fallback, and paragraph layout are not implemented. See [typography](../docs/GUIDE.md#typography).

@@ -7,8 +7,11 @@ license.workspace = true
 [features]
 default = ["desktop", "shapes", "fs", "image", "typography", "utils"]
 desktop = [
+    "wgame-app/std",
     "wgame-app/x11",
     "wgame-app/wayland",
+    "wgame-gfx/metal",
+    "wgame-gfx/dx12",
     "wgame-gfx/vulkan",
     "wgame-gfx/gles",
     "wgame-fs?/std",
@@ -43,7 +46,12 @@ anyhow.workspace = true
 log.workspace = true
 
 [dev-dependencies]
+futures = { workspace = true, features = ["executor"] }
 winit = { workspace = true, default-features = true }
 wgpu = { workspace = true, default-features = true }
 bytemuck.workspace = true
 glam.workspace = true
+
+[[example]]
+name = "render_bench"
+required-features = ["shapes", "image", "typography"]

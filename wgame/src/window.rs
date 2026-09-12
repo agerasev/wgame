@@ -36,13 +36,19 @@ where
 pub struct Window<'a> {
     gfx: gfx::Surface<'a>,
     app: app::Window<'a>,
+    pending_resize: Option<(u32, u32)>,
 }
 
 impl<'a> Window<'a> {
     async fn new(app: app::Window<'a>, gfx_cfg: gfx::Config) -> Result<Self> {
         let mut gfx = gfx::Surface::new(gfx_cfg, app.raw()).await?;
         gfx.resize(app.size());
-        Ok(Self { app, gfx })
+        let pending_resize = Some(app.size());
+        Ok(Self {
+            app,
+            gfx,
+            pending_resize,
+        })
     }
 
     pub fn input(&self) -> Input {
@@ -50,17 +56,22 @@ impl<'a> Window<'a> {
     }
 
     pub async fn next_frame(&mut self) -> Result<Option<Frame<'a, '_>>> {
-        match self.app.request_redraw().await {
-            None => Ok(None),
-            Some(redraw) => {
-                if let Some(size) = redraw.resized() {
-                    self.gfx.resize(size);
-                }
-                Ok(Some(Frame {
-                    app: redraw,
-                    gfx: Some(self.gfx.frame()?),
-                }))
+        loop {
+            let Some(redraw) = self.app.request_redraw().await else {
+                return Ok(None);
+            };
+            if let Some(size) = redraw.resized() {
+                self.gfx.resize(size);
+                self.pending_resize = Some(size);
             }
+            if !self.gfx.prepare_frame()? {
+                continue;
+            }
+            return Ok(Some(Frame {
+                app: redraw,
+                gfx: Some(self.gfx.frame()?),
+                resized: self.pending_resize.take(),
+            }));
         }
     }
 
@@ -72,6 +83,7 @@ impl<'a> Window<'a> {
 pub struct Frame<'a, 'b> {
     gfx: Option<gfx::Frame<'a, 'b>>,
     app: app::window::Redraw<'b>,
+    resized: Option<(u32, u32)>,
 }
 
 impl<'a, 'b> Deref for Frame<'a, 'b> {
@@ -89,17 +101,33 @@ impl DerefMut for Frame<'_, '_> {
 
 impl Drop for Frame<'_, '_> {
     fn drop(&mut self) {
-        self.app.pre_present();
-        self.gfx.take().unwrap().present();
+        if !std::thread::panicking() {
+            self.present_inner();
+        }
     }
 }
 
 impl Frame<'_, '_> {
+    fn present_inner(&mut self) {
+        if let Some(frame) = self.gfx.take() {
+            self.app.pre_present();
+            frame.present();
+        }
+    }
+    /// Submit and present now. Dropping a frame also presents unless unwinding.
+    pub fn present(mut self) {
+        self.present_inner();
+    }
+    /// Drop encoded commands without submitting or presenting them.
+    pub fn discard(mut self) {
+        self.gfx.take();
+    }
+
     pub fn size(&self) -> (u32, u32) {
         self.app.size()
     }
 
     pub fn resized(&self) -> Option<(u32, u32)> {
-        self.app.resized()
+        self.resized
     }
 }

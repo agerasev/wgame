@@ -1,13 +1,3 @@
 # wgame-gfx
 
-GPU rendering framework built on wgpu.
-
-Provides abstractions for rendering 2D content with scene management, batching, and camera support.
-
-## Features
-
-- Scene management with object batching
-- Camera and viewport support
-- Resource management for GPU objects
-- Renderer with configurable present modes
-
+Rendering contexts, targets, ordered scenes, and immutable renderer snapshots. Equal-order objects preserve painter order; only adjacent compatible instances batch together. `Offscreen` supports windowless rendering. See [ordering](../docs/GUIDE.md#drawing-order-and-batching) and [performance](../docs/PERFORMANCE.md).

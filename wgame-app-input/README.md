@@ -1,13 +1,3 @@
 # wgame-app-input
 
-Input event multiplexer for window events.
-
-Provides event distribution to multiple consumers with configurable capacity.
-
-## Features
-
-- Event multiplexing to multiple input streams
-- Configurable event buffer capacity
-- Stream interface for async event polling
-- Window event handling from winit
-
+Independent buffered input streams. Overflow drops the oldest event. Termination wakes consumers, drains buffered events, and then ends the stream. Redraw events are handled separately by the window loop. See [input and timing](../docs/GUIDE.md#input-and-timing).

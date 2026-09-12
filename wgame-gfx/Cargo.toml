@@ -5,6 +5,8 @@ edition.workspace = true
 license.workspace = true
 
 [features]
+metal = ["wgpu/metal"]
+dx12 = ["wgpu/dx12"]
 vulkan = ["wgpu/vulkan"]
 gles = ["wgpu/gles"]
 webgpu = ["wgpu/webgpu"]

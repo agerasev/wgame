@@ -106,7 +106,7 @@ macro_rules! impl_attributes_pod {
 }
 
 impl_attributes_pod!(glam::Mat4, (0..4).map(|_| binding_type!(F32, 4)));
-impl_attributes_pod!(glam::Mat3, (0..3).map(|_| binding_type!(F32, 4)));
+impl_attributes_pod!(glam::Mat3, (0..3).map(|_| binding_type!(F32, 3)));
 impl_attributes_pod!(glam::Mat2, [binding_type!(F32, 4)]);
 impl_attributes_pod!(glam::Vec4, [binding_type!(F32, 4)]);
 impl_attributes_pod!(glam::Vec3, [binding_type!(F32, 3)]);
@@ -135,5 +135,34 @@ impl Attribute for glam::Affine2 {
     fn store(&self, dst: &mut BytesSink) {
         dst.push_bytes(bytemuck::bytes_of(&self.matrix2));
         dst.push_bytes(bytemuck::bytes_of(&self.translation));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn check<T: Attribute>(value: T) {
+        assert_eq!(T::SIZE, value.to_bytes().len());
+        assert_eq!(T::bindings().size() as usize, T::SIZE);
+        let layout = T::bindings().layout(0).unwrap();
+        assert_eq!(
+            layout
+                .last()
+                .map(|a| a.offset + a.format.size())
+                .unwrap_or(0) as usize,
+            T::SIZE
+        );
+    }
+    #[test]
+    fn shader_layout_matches_serialization() {
+        check(glam::Mat2::IDENTITY);
+        check(glam::Mat3::IDENTITY);
+        check(glam::Mat4::IDENTITY);
+        check(glam::Affine2::IDENTITY);
+        check(glam::Vec2::ZERO);
+        check(glam::Vec3::ZERO);
+        check(glam::Vec4::ZERO);
+        check([glam::Vec3::ONE; 2]);
+        check(1.0f32);
     }
 }

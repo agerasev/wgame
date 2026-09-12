@@ -13,7 +13,7 @@ fn impl_(item: TokenStream, run_macro: Ident, args: TokenStream) -> Result<Token
 
     Ok(quote! {
         #amain
-        wgame::#run_macro!(#main, #ident, #args);
+        wgame::#run_macro!(#main, #ident #args);
     })
 }
 
@@ -34,5 +34,9 @@ pub fn impl_window(attr: TokenStream, item: TokenStream) -> Result<TokenStream> 
         config = quote! { #config.#key(#value) };
     }
 
-    impl_(item, Ident::new("run_window", Span::call_site()), config)
+    impl_(
+        item,
+        Ident::new("run_window", Span::call_site()),
+        quote! { , #config },
+    )
 }

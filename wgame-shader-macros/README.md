@@ -1,13 +1,8 @@
 # wgame-shader-macros
 
-Procedural macros for deriving shader attribute implementations.
+Derive vertex/instance attribute serialization for named and tuple structs.
+`Attribute` uses the `wgame_shader` dependency path; `AttributeGlobal` uses
+`wgame::shader`. Both prefix binding names with their field names.
 
-Provides `#[derive(Attribute)]` and `#[derive(AttributeGlobal)]` for structs.
-
-## Features
-
-- `Attribute` derive for regular shader attributes with prefixed bindings
-- `AttributeGlobal` derive for global uniforms without prefixing
-- Automatic binding generation for struct fields
-- Support for glam and primitive types
-
+See [shader attributes](../docs/GUIDE.md#custom-rendering-and-shader-attributes)
+for layout rules and limitations. These are not uniform-buffer packing derives.

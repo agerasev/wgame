@@ -1,7 +1,4 @@
-//! High-level graphics application framework built on WGPU and Winit.
-//!
-//! Provides window management, rendering, input handling, and resource loading for 2D graphics applications.
-
+#![doc = include_str!("../../README.md")]
 #![forbid(unsafe_code)]
 
 mod config;
@@ -124,4 +121,9 @@ where
             },
         }
     }
+}
+
+/// Task-oriented usage guide.
+pub mod guide {
+    #![doc = include_str!("../../docs/GUIDE.md")]
 }

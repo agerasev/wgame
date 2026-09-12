@@ -59,8 +59,27 @@ pub trait Target {
         ctx: &C,
         renderers: I,
     ) {
+        let mut renderers = renderers.peekable();
+        if renderers.peek().is_none() {
+            return;
+        }
+        let view = self.view().clone();
+        let mut pass = self
+            .encoder()
+            .begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
         for renderer in renderers {
-            self.render(ctx, renderer);
+            renderer.render(ctx, &mut pass);
         }
     }
 

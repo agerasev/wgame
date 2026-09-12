@@ -20,7 +20,10 @@ pub fn derive(input: TokenStream, mod_: TokenStream) -> Result<TokenStream> {
 
                 let (prefix, expr) = match field.ident {
                     Some(ident) => (ident.to_string(), quote! { self.#ident }),
-                    None => (format!("{i}"), quote! { self.#i }),
+                    None => {
+                        let index = syn::Index::from(i);
+                        (format!("{i}"), quote! { self.#index })
+                    }
                 };
 
                 bindings = quote! {
