@@ -6,7 +6,6 @@ use std::{
 use euclid::default::{Point2D, Rect, Size2D};
 use guillotiere::{Allocation, AtlasAllocator};
 use hashbrown::HashMap;
-use smallvec::SmallVec;
 
 use crate::{Image, ImageSlice, ImageSliceMut, Pixel, prelude::*};
 
@@ -36,10 +35,15 @@ struct InnerAtlas<P: Pixel> {
     allocator: AtlasAllocator,
     items: HashMap<ItemId, Allocation>,
     counter: ItemId,
+    generation: u64,
     image: Image<P>,
     tracker: Weak<Tracker>,
 }
 
+/// Shared image atlas with append-only allocation generations.
+/// Dropped/resized rectangles stay occupied until live items are repacked. On
+/// exhaustion, at most 50% live area (including the pending allocation) permits
+/// a same-size compaction attempt before growth. Handles follow relocation.
 #[derive(Clone)]
 pub struct Atlas<P: Pixel> {
     inner: Rc<RefCell<InnerAtlas<P>>>,
@@ -67,86 +71,83 @@ impl<P: Pixel> InnerAtlas<P> {
                 && size.height <= i32::MAX as u32,
             "Image size must fit positive i32 dimensions"
         );
-        let mut atlas_size = self.allocator.size();
-        let mut items_to_alloc = SmallVec::<[(ItemId, Size2D<i32>); 1]>::new();
         let id = id.unwrap_or_else(|| {
             let id = self.counter;
-            self.counter += 1;
+            self.counter = self.counter.checked_add(1).expect("Atlas item ID overflow");
             id
         });
-        items_to_alloc.push((id, size.cast()));
-        let mut init_items = None;
-
-        loop {
-            items_to_alloc.retain(|(id, size)| match self.allocator.allocate(*size) {
-                Some(alloc) => {
-                    assert!(self.items.insert(*id, alloc).is_none());
-                    false
-                }
-                None => true,
-            });
-            if items_to_alloc.is_empty() {
-                break;
-            }
-
-            if atlas_size.height < atlas_size.width {
-                atlas_size.height = atlas_size
-                    .height
-                    .checked_mul(2)
-                    .expect("Atlas size overflow");
-            } else {
-                atlas_size.width = atlas_size
-                    .width
-                    .checked_mul(2)
-                    .expect("Atlas size overflow");
-            }
-
-            // TODO: Rearrange only if needed
-            let change_list = self.allocator.resize_and_rearrange(atlas_size);
-            let alloc_to_id = self
-                .items
-                .iter()
-                .map(|(id, alloc)| (alloc.id, *id))
-                .collect::<HashMap<_, _>>();
-            assert_eq!(self.items.len(), alloc_to_id.len());
-            if init_items.is_none() {
-                init_items = Some(self.items.clone());
-            }
-
-            for failure in change_list.failures {
-                let id = alloc_to_id[&failure.id];
-                self.items.remove_entry(&id).unwrap();
-                items_to_alloc.push((id, failure.rectangle.size()));
-            }
-            for change in change_list.changes {
-                let id = alloc_to_id[&change.old.id];
-                *self.items.get_mut(&id).unwrap() = change.new;
-            }
+        if let Some(alloc) = self.allocator.allocate(size.cast()) {
+            self.items.insert(id, alloc);
+        } else {
+            self.repack(id, size.cast());
         }
-
-        if let Some(old_items) = init_items {
-            let mut new_image = Image::new(atlas_size.cast());
-            for (id, old_item) in old_items {
-                new_image
-                    .slice_mut(self.items[&id].rectangle.cast())
-                    .copy_from(self.image.slice(old_item.rectangle.cast()));
-            }
-            self.image = new_image;
-
-            if let Some(tracker) = self.tracker.upgrade() {
-                tracker.clear();
-                tracker.add(Rect::from_size(atlas_size.cast()));
-            }
-        }
-
         self.track_update(id, None);
         id
     }
 
-    fn dealloc_item(&mut self, id: ItemId) -> Rect<u32> {
-        let alloc = self.items.remove(&id).unwrap();
-        self.allocator.deallocate(alloc.id);
-        alloc.rectangle.to_rect().cast()
+    fn repack(&mut self, id: ItemId, size: Size2D<i32>) {
+        // Dead and resized allocations remain occupied in the current generation.
+        // Only live items, plus the requested replacement, enter the next one.
+        let mut requests: Vec<_> = self
+            .items
+            .iter()
+            .filter(|(item_id, _)| **item_id != id)
+            .map(|(id, alloc)| (*id, alloc.rectangle.size()))
+            .chain([(id, size)])
+            .collect();
+        let area = |size: Size2D<i32>| size.width as u64 * size.height as u64;
+        let live_area: u64 = requests.iter().map(|(_, size)| area(*size)).sum();
+        requests.sort_unstable_by_key(|(id, size)| (std::cmp::Reverse(area(*size)), *id));
+        let mut atlas_size = self.allocator.size();
+        let grow = |size: &mut Size2D<i32>| {
+            let side = if size.height < size.width {
+                &mut size.height
+            } else {
+                &mut size.width
+            };
+            *side = side.checked_mul(2).expect("Atlas size overflow");
+        };
+        // Area includes the pending item and any padding supplied by the caller.
+        // Even below this threshold, fragmentation or dimensions can require growth.
+        if live_area > area(atlas_size) / 2 {
+            grow(&mut atlas_size);
+        }
+        let (allocator, items) = loop {
+            let mut allocator = AtlasAllocator::new(atlas_size);
+            let items: Option<HashMap<_, _>> = requests
+                .iter()
+                .map(|(id, size)| allocator.allocate(*size).map(|alloc| (*id, alloc)))
+                .collect();
+            if let Some(items) = items {
+                break (allocator, items);
+            }
+            grow(&mut atlas_size);
+        };
+        let mut image = Image::new(atlas_size.cast());
+        for (old_id, old_alloc) in &self.items {
+            if *old_id != id {
+                image
+                    .slice_mut(items[old_id].rectangle.cast())
+                    .copy_from(self.image.slice(old_alloc.rectangle.cast()));
+            }
+        }
+        self.allocator = allocator;
+        self.items = items;
+        self.image = image;
+        self.generation = self
+            .generation
+            .checked_add(1)
+            .expect("Atlas generation overflow");
+        if let Some(tracker) = self.tracker.upgrade() {
+            tracker.clear();
+            tracker.add(Rect::from_size(atlas_size.cast()));
+        }
+    }
+
+    fn remove_item(&mut self, id: ItemId) {
+        // Do not return this rectangle to the allocator or clear its pixels:
+        // baked/encoded draws may still reference it in this GPU generation.
+        self.items.remove(&id).unwrap();
     }
 
     fn item_rect(&self, id: ItemId) -> Rect<u32> {
@@ -162,7 +163,7 @@ impl<P: Pixel> InnerAtlas<P> {
     fn resize_item(&mut self, id: ItemId, new_size: Size2D<u32>) {
         let image = self.item_image(id).to_image();
 
-        self.dealloc_item(id);
+        // Allocate before replacing the live mapping; the old rectangle is never reused.
         self.alloc_item(new_size, Some(id));
 
         let common_size = new_size.min(image.size());
@@ -216,6 +217,7 @@ impl<P: Pixel> Atlas<P> {
                 allocator: AtlasAllocator::new(size.cast()),
                 items: HashMap::new(),
                 counter: 0,
+                generation: 0,
                 image: Image::new(size),
                 tracker: Weak::default(),
             })),
@@ -249,6 +251,12 @@ impl<P: Pixel> Atlas<P> {
         self.inner.borrow().allocator.size().cast()
     }
 
+    /// Changes whenever live items are repacked into a replacement atlas, even
+    /// when its dimensions stay the same. GPU mirrors must replace their texture.
+    pub fn generation(&self) -> u64 {
+        self.inner.borrow().generation
+    }
+
     pub fn with_data<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&Image<P>) -> R,
@@ -259,7 +267,7 @@ impl<P: Pixel> Atlas<P> {
 
 impl<P: Pixel> Drop for AtlasItem<P> {
     fn drop(&mut self) {
-        self.atlas.borrow_mut().dealloc_item(self.id);
+        self.atlas.borrow_mut().remove_item(self.id);
     }
 }
 
@@ -313,8 +321,10 @@ impl<P: Pixel> AtlasImage<P> {
         f(atlas.item_image_mut(this.id).slice_mut(rect))
     }
 
+    /// Allocate a replacement rectangle and preserve overlapping pixels.
+    /// Cloned handles follow the new rectangle; the old one remains untouched
+    /// within its generation for previously baked or encoded drawing.
     pub fn resize(&self, new_size: impl Into<Size2D<u32>>) {
-        // TODO: Reserve 1px border
         self.inner.borrow_mut().resize(new_size.into());
     }
 
@@ -328,6 +338,7 @@ impl<P: Pixel> AtlasImage<P> {
             image,
             items: [(0, alloc)].into_iter().collect(),
             counter: 1,
+            generation: 0,
             tracker: Weak::default(),
         }));
         Self {

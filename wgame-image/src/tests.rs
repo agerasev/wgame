@@ -164,3 +164,79 @@ fn atlas_tracker_unions_partial_updates() {
     );
     assert_eq!(tracker.take_next(), None);
 }
+
+#[test]
+fn atlas_drop_and_resize_abandon_rectangles_until_replacement() {
+    let atlas = crate::Atlas::<u8>::with_size((16, 16).into());
+    let first = atlas.allocate((4, 4));
+    first.update(|mut dst| dst.copy_from(Image::with_color((4, 4), 7)));
+    let abandoned = first.rect();
+    drop(first);
+    let second = atlas.allocate((4, 4));
+    assert_eq!(atlas.generation(), 0);
+    assert!(!abandoned.intersects(&second.rect()));
+    second.update(|mut dst| dst.copy_from(Image::with_color((4, 4), 9)));
+    let before_resize = second.rect();
+    second.resize((5, 5));
+    assert_eq!(atlas.generation(), 0);
+    assert!(!before_resize.intersects(&second.rect()));
+    second.with(|src| assert!(src.slice((..4, ..4)).pixels().all(|(_, p)| *p == 9)));
+    atlas.with_data(|src| {
+        assert!(src.slice(abandoned).pixels().all(|(_, p)| *p == 7));
+        assert!(src.slice(before_resize).pixels().all(|(_, p)| *p == 9));
+    });
+}
+
+#[test]
+fn atlas_compacts_at_same_size_and_preserves_live_items() {
+    let mut atlas = crate::Atlas::<u8>::with_size((16, 16).into());
+    let tracker = std::rc::Rc::new(crate::atlas::Tracker::default());
+    atlas.subscribe(std::rc::Rc::downgrade(&tracker));
+    let live = atlas.allocate((8, 8));
+    live.update(|mut dst| dst.copy_from(Image::with_color((8, 8), 42)));
+    for _ in 0..3 {
+        drop(atlas.allocate((8, 8)));
+    }
+    tracker.clear();
+    let next = atlas.allocate((8, 8));
+    assert_eq!(atlas.size(), Size2D::new(16, 16));
+    assert_eq!(atlas.generation(), 1);
+    assert!(!live.rect().intersects(&next.rect()));
+    live.with(|src| assert!(src.pixels().all(|(_, p)| *p == 42)));
+    assert_eq!(tracker.take_next(), Some(euclid::rect(0, 0, 16, 16)));
+}
+
+#[test]
+fn atlas_compaction_falls_back_to_growth_for_long_items() {
+    let atlas = crate::Atlas::<u8>::with_size((16, 16).into());
+    drop(atlas.allocate((16, 16)));
+    // Below half the area, but too wide for a same-size replacement.
+    let wide = atlas.allocate((20, 1));
+    assert_eq!(atlas.generation(), 1);
+    assert!(atlas.size().width >= 20);
+    assert_eq!(wide.size(), Size2D::new(20, 1));
+}
+
+#[test]
+fn atlas_repeated_compaction_does_not_grow_for_dead_items() {
+    let atlas = crate::Atlas::<u8>::with_size((16, 16).into());
+    for _ in 0..40 {
+        drop(atlas.allocate((8, 8)));
+    }
+    assert_eq!(atlas.size(), Size2D::new(16, 16));
+    assert!(atlas.generation() > 1);
+}
+
+#[test]
+fn atlas_resize_compacts_using_replacement_area_and_copies_pixels() {
+    let atlas = crate::Atlas::<u8>::with_size((16, 16).into());
+    let item = atlas.allocate((16, 16));
+    item.update(|mut dst| dst.copy_from(Image::with_color((16, 16), 17)));
+    let alias = item.clone();
+    // The replaced allocation is excluded from the live-area calculation.
+    item.resize((8, 8));
+    assert_eq!(atlas.generation(), 1);
+    assert_eq!(atlas.size(), Size2D::new(16, 16));
+    assert_eq!(alias.size(), Size2D::new(8, 8));
+    alias.with(|src| assert!(src.pixels().all(|(_, p)| *p == 17)));
+}

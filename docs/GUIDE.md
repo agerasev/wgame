@@ -128,12 +128,23 @@ Textures in one atlas can share GPU resources. `Texture::update` and
 `update_part` refresh pixels and the one-pixel border used by linear filtering.
 Use these methods, rather than mutating the backing `AtlasImage` directly, to
 maintain the border. `nearest()` keeps hard texel edges; `linear()` interpolates.
-Atlas handles remain valid when an atlas grows and moves its contents.
-Create/grow resources before adding objects to a scene: adding an object can
-capture its current atlas coordinates. Rebuild a scene from its original objects
-after atlas layout changes. Borrowed
-image views must not outlive their callback, and callbacks must not reenter the
-same atlas. Dimensions must be positive and fit the allocator/device limits.
+Atlas handles remain valid when an atlas grows or compacts. Allocations are
+append-only within a generation: dropping an item removes it from the live set,
+but leaves its rectangle and pixels untouched. Resizing allocates a new rectangle
+and copies overlapping pixels; cloned handles follow the resized item.
+
+When unused space runs out, the allocator packs live items plus the pending
+allocation into a replacement generation. At up to 50% live area it first tries
+the same dimensions; otherwise, or if packing fails, it grows. This area includes
+texture filtering borders. Every replacement creates a new GPU texture, even
+when dimensions stay the same. Existing baked renderers and encoded commands
+retain their old texture and matching coordinates. Dead space is reclaimed only
+by replacement; long-lived baked renderers can retain older GPU generations.
+
+Built-in shape/text scenes retain handles and resolve coordinates when baking,
+so adding an object before atlas relocation is safe. Borrowed image views must
+not outlive their callback, and callbacks must not reenter the same atlas.
+Dimensions must be positive and fit the allocator/device limits.
 
 ## Typography
 
@@ -182,9 +193,17 @@ names in the dependency graph.
 
 Build a `Scene` and call `scene.bake()` to upload immutable instance data once.
 Render the resulting `BakedScene` with different cameras without allocating new
-instance buffers each frame. Rebuild the source scene from its objects and bake again when object data changes
-or an atlas it references grows/rearranges. A baked scene is a snapshot; it does not observe
-later scene edits. Grow/populate shared atlases before baking static content.
+instance buffers each frame. A baked scene fixes its instance data and resource
+bindings; it does not observe later scene edits. Dropping/resizing source textures
+or growing/compacting their atlas does not invalidate existing baked drawing.
+Rebake the existing scene to resolve current texture/glyph locations; rebuild the
+source scene from its objects when object data changes.
+
+Baking does not freeze texture pixels. Explicit updates become visible to baked
+drawing when synchronized into the GPU generation it references. After the atlas
+is replaced or an item is resized, older baked drawing retains the old contents.
+Bake again to follow the current allocation. Populate resources before baking
+long-lived static content to reduce the number of retained GPU generations.
 For dynamic objects, continue to build scenes normally.
 
 The benchmark separates rebuilding with multiple passes, rebuilding with one

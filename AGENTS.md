@@ -54,10 +54,15 @@ Read [README.md](README.md) for features and the quickstart,
   zero padding. Equal-order insertion order is stable. Batch only adjacent
   compatible instances within an order: interleaved A/B/A resources must retain
   their transparent compositing order. `Scene::len()` counts batches.
-- Atlas handles survive relocation, but adding objects to a scene can capture
-  current UV coordinates. Populate/grow atlases before building scenes. After
-  layout changes, rebuild from the original objects before baking again;
-  rebaking a stale scene is insufficient. `BakedScene` is an immutable snapshot.
+- Atlas generations are append-only: dropping/resizing items must not reuse or
+  clear old rectangles. On exhaustion, repack live items plus the pending item
+  into a new generation; try the same dimensions at up to 50% live area, otherwise
+  grow. GPU mirrors must replace textures on generation changes, even at the
+  same dimensions. Baked/encoded drawing retains its matching old GPU texture.
+- Built-in shape/text scenes retain handles and resolve atlas coordinates when
+  baking. Rebaking an existing scene follows relocation; rebuilding source
+  objects is needed for object-data changes. Baked instance buffers and bindings
+  are fixed, but explicit pixel updates to their GPU generation remain mutable.
 - Texture updates must maintain the one-pixel filtering border, including partial
   updates and resize. Direct backing-atlas edits bypass this maintenance.
 - Shader attributes describe vertex/instance buffers, not uniform packing.

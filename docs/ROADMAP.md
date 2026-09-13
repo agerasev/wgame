@@ -37,3 +37,12 @@ claimed as local passes. No browser is exposed to this session's automation.
 See [performance](PERFORMANCE.md) for the recorded baseline. Dynamic buffer
 pooling is a possible subsequent optimization, subject to measurements; retained
 snapshots already eliminate repeated instance uploads for unchanged content.
+
+## Atlas lifetime follow-up
+
+Implemented append-only atlas generations with same-size compaction at up to
+50% live area before growth. Drop/resize cannot recycle rectangles referenced by
+baked or encoded drawing. Same-size replacements advance the generation and
+replace the GPU texture. Added CPU/GPU regressions and corrected scene-rebaking
+guidance; see [migration notes](MIGRATION.md#append-only-atlas-generations) and
+[validation results](VALIDATION.md#atlas-generation-follow-up-2026-09-13).

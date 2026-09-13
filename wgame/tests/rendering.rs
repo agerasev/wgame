@@ -59,10 +59,11 @@ fn atlas_growth_and_updates_render_correctly() {
         .shapes()
         .rectangle((Vec2::ZERO, Vec2::splat(64.0)))
         .fill_texture(&tex);
+    let mut scene = Scene::default();
+    scene.add(&shape);
+    let baked = scene.bake();
     let render = |target: &mut Offscreen| {
         target.clear(color::BLACK);
-        let mut scene = Scene::default();
-        scene.add(&shape);
         target.render_iter(&camera, scene.iter());
         support::pixels(target)
     };
@@ -77,6 +78,9 @@ fn atlas_growth_and_updates_render_correctly() {
     );
     let after = render(&mut target);
     assert_eq!(before, after);
+    target.clear(color::BLACK);
+    target.render(&camera, &baked);
+    assert_eq!(before, support::pixels(&mut target));
     tex.update(|mut dst| {
         use wgame::image::ImageWriteMut;
         for (_, p) in dst.pixels_mut() {
@@ -169,4 +173,222 @@ fn partial_texture_updates_preserve_neighbors_and_filtering_border() {
     tex.resize((2, 2));
     tex.image()
         .with(|img| assert_eq!(img.get((3, 3).into()), img.get((2, 2).into())));
+}
+
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn baked_and_encoded_draws_survive_dropped_atlas_items() {
+    use wgame::{
+        image::{Atlas, ImageWriteMut},
+        texture::TextureAtlas,
+    };
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    // Append within one generation, compact at the same size, and grow.
+    for (old_size, new_size, generation, atlas_size) in [
+        (6, 6, 0, (16, 16)),
+        (14, 6, 1, (16, 16)),
+        (14, 14, 1, (32, 16)),
+    ] {
+        for encoded in [false, true] {
+            let atlas = TextureAtlas::new(
+                lib.texturing().state(),
+                Atlas::with_size((16, 16).into()),
+                wgpu::TextureFormat::Rgba16Float,
+            );
+            let tex = atlas.allocate((old_size, old_size), Default::default());
+            tex.update(|mut dst| {
+                for (_, p) in dst.pixels_mut() {
+                    *p = color::RED.to_rgba_f16();
+                }
+            });
+            let shape = lib
+                .shapes()
+                .rectangle((Vec2::ZERO, Vec2::splat(16.0)))
+                .fill_texture(&tex);
+            let mut scene = Scene::default();
+            scene.add(&shape);
+            let baked = scene.bake();
+            let mut target = Offscreen::new(&gfx, (16, 16));
+            let camera = target.physical_camera();
+            target.clear(color::BLACK);
+            let baked = if encoded {
+                target.render(&camera, &baked);
+                drop(baked);
+                None
+            } else {
+                Some(baked)
+            };
+            drop(scene);
+            drop(shape);
+            drop(tex);
+            let replacement = atlas.allocate((new_size, new_size), Default::default());
+            assert_eq!(atlas.inner().generation(), generation);
+            assert_eq!(atlas.inner().size(), atlas_size.into());
+            replacement.update(|mut dst| {
+                for (_, p) in dst.pixels_mut() {
+                    *p = color::BLUE.to_rgba_f16();
+                }
+            });
+            let mut replacement_scene = Scene::default();
+            replacement_scene.add(
+                &lib.shapes()
+                    .rectangle((Vec2::ZERO, Vec2::splat(16.0)))
+                    .fill_texture(&replacement),
+            );
+            let mut other_target = Offscreen::new(&gfx, (16, 16));
+            other_target.clear(color::BLACK);
+            other_target.render_iter(&camera, replacement_scene.iter());
+            let blue = support::pixels(&mut other_target);
+            assert!(
+                blue.as_chunks::<4>()
+                    .0
+                    .iter()
+                    .all(|p| *p == [0, 0, 255, 255])
+            );
+            if let Some(baked) = baked {
+                target.render(&camera, &baked);
+            }
+            let red = support::pixels(&mut target);
+            assert!(
+                red.as_chunks::<4>()
+                    .0
+                    .iter()
+                    .all(|p| *p == [255, 0, 0, 255]),
+                "old size {old_size}, new size {new_size}, encoded {encoded}"
+            );
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn resizing_keeps_baked_pixels_and_rebaking_resolves_new_coordinates() {
+    use wgame::{
+        image::{Atlas, ImageWriteMut},
+        texture::TextureAtlas,
+    };
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    let atlas = TextureAtlas::new(
+        lib.texturing().state(),
+        Atlas::with_size((32, 32).into()),
+        wgpu::TextureFormat::Rgba16Float,
+    );
+    let tex = atlas.allocate((4, 4), Default::default());
+    tex.update(|mut dst| {
+        for (_, p) in dst.pixels_mut() {
+            *p = color::RED.to_rgba_f16();
+        }
+    });
+    let mut scene = Scene::default();
+    scene.add(
+        &lib.shapes()
+            .rectangle((Vec2::ZERO, Vec2::splat(16.0)))
+            .fill_texture(&tex),
+    );
+    let baked = scene.bake();
+    let old_rect = tex.image().rect();
+    tex.resize((6, 6));
+    assert_eq!(atlas.inner().generation(), 0);
+    assert!(!old_rect.intersects(&tex.image().rect()));
+    tex.update(|mut dst| {
+        for (_, p) in dst.pixels_mut() {
+            *p = color::BLUE.to_rgba_f16();
+        }
+    });
+    let fresh = scene.bake();
+    let mut target = Offscreen::new(&gfx, (16, 16));
+    let camera = target.physical_camera();
+    for (renderer, expected) in [(&baked, [255, 0, 0, 255]), (&fresh, [0, 0, 255, 255])] {
+        target.clear(color::BLACK);
+        target.render(&camera, renderer);
+        assert!(
+            support::pixels(&mut target)
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .all(|p| *p == expected)
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn baked_text_survives_glyph_repacking_without_outer_atlas_growth() {
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    let font = lib.make_font(
+        &wgame::typography::FontData::new(
+            include_bytes!("../../wgame-examples/assets/free-sans-bold.ttf").to_vec(),
+            0,
+        )
+        .unwrap(),
+    );
+    let raster = font.rasterize(20.0);
+    let outer = raster.inner().atlas().inner();
+    // Leave room for several font-local reallocations in the same GPU texture.
+    drop(outer.allocate((1024, 1024)));
+    let text = raster.text("Ag").scale(20.0).move_to(Vec2::new(4.0, 26.0));
+    let mut scene = Scene::default();
+    scene.add(&text);
+    let baked = scene.bake();
+    let mut target = Offscreen::new(&gfx, (64, 64));
+    let camera = target.physical_camera();
+    target.clear(color::BLACK);
+    target.render(&camera, &baked);
+    let before = support::pixels(&mut target);
+    assert!(before.as_chunks::<4>().0.iter().any(|p| p[0] > 100));
+    let generation = outer.generation();
+    let old_rect = raster.image().rect();
+    raster.add_chars(32u32..2000);
+    assert_eq!(outer.generation(), generation);
+    assert_ne!(raster.image().rect().size, old_rect.size);
+    assert!(!raster.image().rect().intersects(&old_rect));
+    // Reuse the original scene: glyph coordinates are resolved at bake time.
+    let fresh = scene.bake();
+    drop(scene);
+    drop(text);
+    drop(raster);
+    drop(font);
+    for renderer in [&fresh, &baked] {
+        target.clear(color::BLACK);
+        target.render(&camera, renderer);
+        assert_eq!(before, support::pixels(&mut target));
+    }
+}
+
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn populated_cpu_atlas_is_uploaded_on_first_gpu_use() {
+    use wgame::{
+        image::AtlasImage,
+        texture::{Texture, TextureAtlas},
+    };
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    let image = AtlasImage::from_single(Image::with_color((16, 16), color::RED.to_rgba_f16()));
+    let atlas = TextureAtlas::new(
+        lib.texturing().state(),
+        image.atlas(),
+        wgpu::TextureFormat::Rgba16Float,
+    );
+    let tex = Texture::new(&atlas, image, Default::default());
+    let mut scene = Scene::default();
+    scene.add(
+        &lib.shapes()
+            .rectangle((Vec2::ZERO, Vec2::splat(16.0)))
+            .fill_texture(&tex),
+    );
+    let mut target = Offscreen::new(&gfx, (16, 16));
+    let camera = target.physical_camera();
+    target.clear(color::BLACK);
+    target.render_iter(&camera, scene.iter());
+    assert!(
+        support::pixels(&mut target)
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .all(|p| *p == [255, 0, 0, 255])
+    );
 }

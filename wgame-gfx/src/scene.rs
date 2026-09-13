@@ -75,9 +75,11 @@ impl<C: Context> Scene<C> {
         });
         self.batches += 1;
     }
-    /// Bake immutable GPU buffers once for unchanged content. Rebuild this snapshot
-    /// after changing objects or growing/repacking any atlas used by the scene:
-    /// construct a fresh Scene from the source objects, then bake it.
+    /// Bake fixed instance buffers and resource bindings for repeated rendering.
+    /// Built-in shape/text storage resolves current atlas coordinates here. Existing
+    /// baked drawing survives atlas relocation and source texture drop/resize;
+    /// rebake this scene to follow current allocations. Rebuild the source scene
+    /// when object data changes. Explicit texture pixel updates are not frozen.
     pub fn bake(&self) -> BakedScene<C> {
         BakedScene {
             renderers: self.iter().map(|storage| storage.bake_dyn()).collect(),
@@ -105,8 +107,9 @@ impl<C: Context> InstanceVisitor<C> for Scene<C> {
     }
 }
 
-/// Immutable renderer snapshot. Rebuild the source Scene and bake it again after
-/// resource layout changes.
+/// Renderer snapshot with fixed instance buffers and resource bindings.
+/// Built-in renderers retain their GPU atlas generation across relocation;
+/// explicit updates to pixels in that generation remain mutable.
 pub struct BakedScene<C: Context = Camera> {
     renderers: Vec<Rc<dyn crate::Renderer<C>>>,
 }

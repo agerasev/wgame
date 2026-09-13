@@ -28,3 +28,17 @@ Changes relative to `40c70e6`:
 
 New capabilities: an offscreen render target, immutable baked scenes, a
 representative playground example, headless regression tests, and a benchmark.
+
+## Append-only atlas generations
+
+Atlas drop/resize no longer returns rectangles to the current allocator. Dead
+space is reclaimed by repacking live items into a replacement generation. With
+live area (including the pending allocation and padding) at most half the atlas
+area, same-size packing is attempted before growth. GPU mirrors must compare
+`Atlas::generation()`, not only dimensions, and fully upload each replacement.
+
+Built-in shape/text scenes resolve UVs when baking. Earlier documentation saying
+that `Scene::add` froze atlas coordinates was incorrect: rebaking an existing
+scene follows relocation. Baked/encoded drawing now safely retains old contents
+across source drop/resize and atlas replacement. Explicit pixel updates remain
+mutable within the GPU generation being updated.

@@ -1,6 +1,5 @@
 use std::{
     cell::{RefCell, RefMut},
-    collections::vec_deque::VecDeque,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
     rc::Rc,
@@ -34,6 +33,7 @@ pub(crate) struct InnerAtlas<T: Texel> {
     state: TexturingState,
     format: wgpu::TextureFormat,
     dst: Option<TextureInstance>,
+    dst_generation: u64,
     src: Atlas<T>,
     tracker: Rc<Tracker>,
 }
@@ -202,37 +202,38 @@ impl<T: Texel> Drop for InnerAtlas<T> {
 impl<T: Texel> InnerAtlas<T> {
     fn new(state: &TexturingState, mut src: Atlas<T>, format: wgpu::TextureFormat) -> Self {
         assert!(T::is_format_supported(format));
-        let mut updates = VecDeque::new();
-        updates.push_back(Rect::from_size(src.size()));
         let tracker = Rc::new(Tracker::default());
         src.subscribe(Rc::downgrade(&tracker));
         Self {
             state: state.clone(),
             format,
             dst: None,
+            dst_generation: 0,
             src,
             tracker,
         }
     }
 
-    fn sync(&mut self) -> TextureInstance {
-        self.dst.take_if(|texture| {
-            Size2D::new(texture.extent.width, texture.extent.height) != self.src.size()
-        });
-        let dst = match &mut self.dst {
-            Some(dst) => dst,
-            dst @ None => {
-                let texture = TextureInstance::new(&self.state, self.src.size(), self.format);
-                dst.insert(texture)
-            }
-        };
-
-        while let Some(rect) = self.tracker.take_next() {
-            self.src
-                .with_data(|image| dst.write(image.slice(rect), rect.origin))
+    fn sync(&mut self) {
+        let generation = self.src.generation();
+        if self.dst_generation != generation {
+            self.dst = None;
         }
-
-        dst.clone()
+        if let Some(dst) = &self.dst {
+            while let Some(rect) = self.tracker.take_next() {
+                self.src
+                    .with_data(|image| dst.write(image.slice(rect), rect.origin));
+            }
+        } else {
+            let texture = TextureInstance::new(&self.state, self.src.size(), self.format);
+            // A replacement needs a complete upload, including a populated atlas
+            // first attached to the GPU and same-size compaction generations.
+            self.src
+                .with_data(|image| texture.write(image.slice((.., ..)), Point2D::zero()));
+            self.tracker.clear();
+            self.dst = Some(texture);
+            self.dst_generation = generation;
+        }
     }
 }
 

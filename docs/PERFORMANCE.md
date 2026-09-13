@@ -49,8 +49,12 @@ consolidating passes should not materially improve that workload.
 
 Use normal scenes for changing content. Keep geometry, textures, font rasters,
 and unchanged text outside the frame loop. Use `Scene::bake()` for static content;
-rebuild the source scene and snapshot after changing objects or growing/repacking
-referenced atlases.
+rebuild the source scene and snapshot after changing object data. Atlas relocation
+alone does not invalidate baked drawing; rebaking the existing scene resolves
+current resource locations. Append-only atlas generations trade unused rectangles
+for stable baked/encoded drawing. At exhaustion, up to 50% live area triggers a
+same-size compaction attempt before growth. Long-lived baked renderers may retain
+older GPU textures, so populate resources before baking static content when practical.
 The offscreen regression tests compare retained and rebuilt pixels to ensure
 that the optimization preserves compositing.
 
@@ -58,3 +62,11 @@ The immediate path still creates an instance buffer per batch per frame. A
 persistent dynamic buffer allocator may help workloads with many changing
 batches, but requires a separate measured design and lifetime/synchronization
 contract. It is not necessary for unchanged content, which can use baked scenes.
+
+## Atlas generation follow-up
+
+The same release benchmark was rerun on 2026-09-13 using the same llvmpipe Vulkan
+adapter after introducing append-only atlas generations.
+[Raw CSV](benchmarks/llvmpipe-atlas-generations.csv) records the completed run.
+These workloads do not measure repeated atlas compaction or peak retained GPU
+memory, so this run does not establish their cost or a performance improvement.
