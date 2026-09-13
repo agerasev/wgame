@@ -404,3 +404,60 @@ fn populated_cpu_atlas_is_uploaded_on_first_gpu_use() {
             .all(|p| *p == [255, 0, 0, 255])
     );
 }
+
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn lines_preserve_width_endpoints_and_camera_picking() {
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    let mut target = Offscreen::new(&gfx, (64, 64));
+    let camera = target.physical_camera();
+    assert!(
+        (camera
+            .screen_to_world(Vec2::new(12.0, 20.0), (64, 64))
+            .unwrap()
+            - Vec2::new(12.0, 20.0))
+        .length()
+            < 0.001
+    );
+    let mut scene = Scene::default();
+    scene.add(
+        &lib.shapes()
+            .line(Vec2::new(8.0, 12.0), Vec2::new(32.0, 12.0), 8.0)
+            .fill_color(color::RED),
+    );
+    scene.add(
+        &lib.shapes()
+            .line(Vec2::new(48.0, 8.0), Vec2::new(48.0, 32.0), 8.0)
+            .fill_color(color::GREEN),
+    );
+    scene.add(
+        &lib.shapes()
+            .line(Vec2::new(8.0, 40.0), Vec2::new(24.0, 56.0), 6.0)
+            .fill_color(color::BLUE),
+    );
+    scene.add(
+        &lib.shapes()
+            .line(Vec2::splat(60.0), Vec2::splat(60.0), 12.0)
+            .fill_color(color::WHITE),
+    );
+    target.clear(color::BLACK);
+    target.render_iter(&camera, scene.iter());
+    let data = support::pixels(&mut target);
+    let pixel = |x: usize, y: usize| &data[(y * 64 + x) * 4..(y * 64 + x) * 4 + 4];
+    for (x, y, expected) in [
+        (8, 8, [255, 0, 0, 255]),
+        (31, 15, [255, 0, 0, 255]),
+        (7, 12, [0, 0, 0, 255]),
+        (32, 12, [0, 0, 0, 255]),
+        (20, 16, [0, 0, 0, 255]),
+        (44, 8, [0, 255, 0, 255]),
+        (51, 31, [0, 255, 0, 255]),
+        (52, 20, [0, 0, 0, 255]),
+        (16, 48, [0, 0, 255, 255]),
+        (20, 44, [0, 0, 0, 255]),
+        (60, 60, [0, 0, 0, 255]),
+    ] {
+        assert_eq!(pixel(x, y), expected, "at {x},{y}");
+    }
+}

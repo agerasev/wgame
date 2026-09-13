@@ -58,8 +58,9 @@ pub use wgame_gfx_texture as texture;
 /// Macro re-exports for application and window creation.
 pub use wgame_macros::{app, window};
 
-/// Shader utilities and types.
 pub mod shader {
+    //! Shader utilities and types.
+    //!
     //! The facade's `Attribute` derive selects the `wgame::shader` path.
     //! For layout rules, see [`trait@wgame_shader::Attribute`].
     //!
@@ -176,8 +177,9 @@ where
     }
 }
 
-/// Navigation to the contracts documented by each owning API.
 pub mod guide {
+    //! Navigation to the contracts documented by each owning API.
+    //!
     //! - Window ownership and presentation: [`crate::Window`], [`crate::Frame`].
     //! - Tasks and cancellation: [`mod@crate::app`].
     //! - Input streams: [`crate::Input`].

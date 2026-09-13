@@ -3,7 +3,7 @@ use std::{
     marker::PhantomData,
 };
 
-use glam::{Affine3A, Mat3, Vec2, Vec3, Vec4};
+use glam::{Affine2, Affine3A, Mat3, Vec2, Vec3, Vec4};
 use wgame_gfx::{
     Camera, Instance, Object, delegate_transformable, impl_object_for_instance, impl_transformable,
     modifiers::Transformable,
@@ -184,6 +184,25 @@ impl ShapesLibrary {
         self.unit_quad().transform(affine)
     }
 
+    /// A 2D line segment with flat ends and the given full width in world units.
+    /// Fill and transform it like any other polygon. A zero width or coincident
+    /// endpoints draws nothing. No vertex buffers are allocated per line.
+    ///
+    /// ```
+    /// # fn draw(shapes: &wgame_gfx_shapes::ShapesLibrary, scene: &mut wgame_gfx::Scene) {
+    /// use wgame_gfx_shapes::prelude::*;
+    /// let line = shapes.line(glam::Vec2::ZERO, glam::Vec2::new(30.0, 20.0), 2.0);
+    /// scene.add(&line.fill_color(wgame_gfx::types::color::WHITE));
+    /// # }
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if endpoints or width are non-finite, or width is negative.
+    pub fn line(&self, start: Vec2, end: Vec2, width: f32) -> Polygon {
+        self.unit_quad()
+            .transform(line_transform(start, end, width))
+    }
+
     pub fn unit_hexagon(&self) -> Polygon {
         self.polygon(self.polygon.hexagon.clone())
     }
@@ -192,5 +211,56 @@ impl ShapesLibrary {
 impl Debug for Polygon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Polygon<{}>", self.geometry.count())
+    }
+}
+
+fn line_transform(start: Vec2, end: Vec2, width: f32) -> Affine2 {
+    assert!(
+        start.is_finite() && end.is_finite(),
+        "line endpoints must be finite"
+    );
+    assert!(
+        width.is_finite() && width >= 0.0,
+        "line width must be finite and nonnegative"
+    );
+    let half = 0.5 * end - 0.5 * start;
+    Affine2::from_cols(
+        half,
+        half.normalize_or_zero().perp() * (0.5 * width),
+        0.5 * start + 0.5 * end,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::line_transform;
+    use glam::Vec2;
+
+    #[test]
+    fn line_has_flat_ends_and_full_width_in_every_direction() {
+        for end in [
+            Vec2::new(14.0, 4.0),
+            Vec2::new(4.0, 14.0),
+            Vec2::new(-2.0, -4.0),
+        ] {
+            let start = Vec2::splat(4.0);
+            for (start, end) in [(start, end), (end, start)] {
+                let transform = line_transform(start, end, 6.0);
+                assert!((transform.transform_point2(Vec2::NEG_X) - start).length() < 0.0001);
+                assert!((transform.transform_point2(Vec2::X) - end).length() < 0.0001);
+                let width = transform.transform_vector2(Vec2::Y * 2.0);
+                assert!((width.length() - 6.0).abs() < 0.0001);
+                assert!(width.dot(end - start).abs() < 0.0001);
+            }
+        }
+    }
+
+    #[test]
+    fn empty_lines_have_finite_degenerate_geometry() {
+        for (end, width) in [(Vec2::ZERO, 8.0), (Vec2::X, 0.0)] {
+            let transform = line_transform(Vec2::ZERO, end, width);
+            assert!(transform.is_finite());
+            assert_eq!(transform.matrix2.determinant(), 0.0);
+        }
     }
 }
