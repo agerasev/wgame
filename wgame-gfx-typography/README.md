@@ -1,3 +1,6 @@
 # wgame-gfx-typography
 
-GPU text rendering with alignment and glyph caching. Uses monochrome outline rasterization; color emoji, font fallback, and paragraph layout are not implemented. See [typography](../docs/GUIDE.md#typography).
+GPU text rendering with shared font rasters.
+
+See the [crate documentation](src/lib.rs) for usage and contracts, and the
+[workspace README](../README.md) for building the documentation.

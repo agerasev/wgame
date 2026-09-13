@@ -1,8 +1,6 @@
 # wgame-shader-macros
 
-Derive vertex/instance attribute serialization for named and tuple structs.
-`Attribute` uses the `wgame_shader` dependency path; `AttributeGlobal` uses
-`wgame::shader`. Both prefix binding names with their field names.
+Derives for vertex/instance attribute serialization.
 
-See [shader attributes](../docs/GUIDE.md#custom-rendering-and-shader-attributes)
-for layout rules and limitations. These are not uniform-buffer packing derives.
+See the [crate documentation](src/lib.rs) for usage and contracts, and the
+[workspace README](../README.md) for building the documentation.

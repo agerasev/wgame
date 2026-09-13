@@ -4,7 +4,7 @@
 //!
 //! # Examples
 //!
-//! Single window application:
+//! Application entry point, followed by a single-window entry point:
 //!
 //! ```no_run
 //! #[wgame::app]

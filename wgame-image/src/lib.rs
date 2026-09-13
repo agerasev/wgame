@@ -1,6 +1,12 @@
-//! 2D image processing and texture atlas utilities.
+//! CPU images, slices, pixel types, and append-only atlas generations.
 //!
-//! Provides image containers, pixel formats, slicing operations, and texture atlasing.
+//! [`Image`] owns pixels; [`ImageSlice`] and [`ImageSliceMut`] provide borrowed views.
+//! [`Atlas`] shares storage between [`AtlasImage`] handles; see its allocation and
+//! relocation contracts before integrating a GPU mirror.
+//!
+//! The default `png` feature enables PNG decoding and encoding. Pixel values are
+//! passed through without automatic sRGB-to-linear conversion. [`euclid`] is
+//! re-exported for rectangle and size arguments.
 
 #![forbid(unsafe_code)]
 

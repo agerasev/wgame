@@ -1,4 +1,43 @@
-#![doc = include_str!("../../README.md")]
+//! A modular framework for async 2D graphics applications.
+//!
+//! # Getting started
+//!
+//! Until a release is published, use a path dependency on the `wgame` crate in
+//! this checkout:
+//!
+//! ```toml
+//! [dependencies]
+//! wgame = { path = "/path/to/checkout/wgame" }
+//! ```
+//!
+//! ```no_run
+//! use wgame::{Window, prelude::*, gfx::types::color};
+//!
+//! #[wgame::window(size = (800, 600), title = "Hello wgame")]
+//! async fn main(mut window: Window<'_>) -> wgame::Result<()> {
+//!     while let Some(mut frame) = window.next_frame().await? {
+//!         frame.clear(color::BLACK);
+//!         frame.present();
+//!     }
+//!     Ok(())
+//! }
+//! ```
+//!
+//! [`Window`] owns the graphics surface; each [`Frame`] borrows it. Create a
+//! [`Library`] outside the frame loop to reuse graphics resources. See [`guide`]
+//! for links to ownership, drawing, resource, and input contracts.
+//!
+//! # Features and platforms
+//!
+//! Defaults select `desktop`, `shapes`, `fs`, `image`, `typography`, and `utils`.
+//! Optional content features are independently usable. `Library::load_texture`
+//! requires `fs` + `image`; `Library::load_font` requires `fs` + `typography`.
+//!
+//! `desktop` enables native windowing and the Vulkan/GLES/Metal/DX12 backends as
+//! appropriate for the target. `web` selects WebGL2: disable default features when
+//! using it. Native and web runtime features cannot be combined. WebGPU is available
+//! at the lower [`gfx`] layer but is not selected by the facade's `web` feature.
+
 #![forbid(unsafe_code)]
 
 mod config;
@@ -21,6 +60,20 @@ pub use wgame_macros::{app, window};
 
 /// Shader utilities and types.
 pub mod shader {
+    //! The facade's `Attribute` derive selects the `wgame::shader` path.
+    //! For layout rules, see [`trait@wgame_shader::Attribute`].
+    //!
+    //! ```
+    //! use wgame::shader::Attribute;
+    //! #[derive(wgame::shader::Attribute)]
+    //! struct InstanceData {
+    //!     transform: wgame::glam::Mat4,
+    //!     tint: wgame::glam::Vec4,
+    //! }
+    //! let layout = InstanceData::bindings().layout(0).unwrap();
+    //! assert_eq!(layout.len(), 5); // four matrix columns plus tint
+    //! assert_eq!(InstanceData::SIZE, 80);
+    //! ```
     pub use wgame_shader::AttributeGlobal as Attribute;
     pub use wgame_shader::*;
 }
@@ -123,7 +176,12 @@ where
     }
 }
 
-/// Task-oriented usage guide.
+/// Navigation to the contracts documented by each owning API.
 pub mod guide {
-    #![doc = include_str!("../../docs/GUIDE.md")]
+    //! - Window ownership and presentation: [`crate::Window`], [`crate::Frame`].
+    //! - Tasks and cancellation: [`mod@crate::app`].
+    //! - Input streams: [`crate::Input`].
+    //! - Drawing order and retained rendering: [`crate::gfx`].
+    //! - Assets and shared helpers: [`crate::Library`], [`crate::texture`].
+    //! - Vertex/instance byte layouts: [`crate::shader`].
 }

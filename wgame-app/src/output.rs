@@ -20,7 +20,8 @@ impl<T> Default for State<T> {
 }
 
 /// Shared single-consumption output. Clones share one result and one waiter.
-/// Use one consumer; polling after consumption panics.
+/// Use one consumer; this is not a broadcast channel. Polling after consumption
+/// or completing the output twice is a programming error and panics.
 pub struct CallOutput<T>(Rc<Cell<State<T>>>);
 
 impl<T> Clone for CallOutput<T> {

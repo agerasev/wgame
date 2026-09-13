@@ -1,4 +1,16 @@
 //! Offscreen pixel reference checks; run explicitly on a GPU or Mesa lavapipe.
+//!
+//! ```sh
+//! cargo test --locked -p wgame --test rendering -- --ignored
+//! ```
+//!
+//! These tests are ignored by the ordinary suite so CPU-only machines can run it.
+//! Explicit execution requires an adapter and fails if none is available. The
+//! helper renders into an offscreen texture and reads pixels back without a
+//! window; Xvfb is only needed for the separate playground smoke check.
+//! On headless Linux, install Mesa Vulkan and set `WGPU_BACKEND=vulkan`.
+//! Pixel checks use analytic expectations or comparisons, not a complete visual
+//! gallery or a guarantee of typography completeness and driver portability.
 #![cfg(all(feature = "shapes", feature = "image", feature = "typography"))]
 mod support;
 use wgame::gfx::types::Color;

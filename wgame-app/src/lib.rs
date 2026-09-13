@@ -1,7 +1,16 @@
-//! Async application framework for windowed graphics applications.
+//! A cooperative event-loop runtime for windows, tasks, and timers.
 //!
-//! Provides window management, event handling, task spawning, and timers built on winit.
-//! Supports both desktop and web platforms.
+//! Work runs on the event-loop thread: blocking CPU work also blocks input and
+//! rendering. Awaiting file I/O or timers yields control. A [`Runtime`] handle is
+//! local to this thread.
+//!
+//! [`spawn`] creates a single-consumer [`Task`]. Use [`Task::handle`] for shared
+//! cancellation and [`Task::cancel_on_drop`] for work owned by a window or scope.
+//! [`WindowedTask`] similarly separates its result from its cancellation handle.
+//! See those types for cancellation and suspension behavior.
+//!
+//! Native builds require an appropriate backend (`x11`/`wayland` on Linux, `std` on
+//! Windows/macOS). Native and `web` runtime features cannot be enabled together.
 
 #![forbid(unsafe_code)]
 

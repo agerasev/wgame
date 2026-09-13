@@ -91,8 +91,12 @@ impl Runtime {
     }
 }
 
-/// Single-consumer result. Dropping the result detaches the task.
-/// Clone [`Task::handle`] for cancellation access.
+/// Single-consumer task result; clone [`Self::handle`] for cancellation access.
+///
+/// Dropping a plain task or its control handle detaches it. The application waits
+/// for remaining tasks to finish. Cancellation takes effect at a scheduler boundary
+/// and resolves the result to `Err(Terminated)`. Repeated cancellation, including
+/// after completion, is harmless. See [`Self::cancel_on_drop`] for scoped ownership.
 pub struct Task<T> {
     task: TaskId,
     executor: Rc<RefCell<ExecutorProxy>>,
@@ -140,7 +144,18 @@ impl<T> FusedFuture for ScopedTask<T> {
     }
 }
 impl<T> Task<T> {
-    /// Opt into cancellation when this handle is dropped.
+    /// Cancel when this owner leaves scope, including window suspension.
+    ///
+    /// ```no_run
+    /// async fn background_work() {
+    ///     let task = wgame_app::spawn(async {
+    ///         loop { wgame_app::sleep(std::time::Duration::from_secs(1)).await; }
+    ///     }).cancel_on_drop();
+    ///     let handle = task.handle();
+    ///     handle.terminate();
+    ///     let _ = task.await;
+    /// }
+    /// ```
     pub fn cancel_on_drop(self) -> ScopedTask<T> {
         ScopedTask { task: self }
     }

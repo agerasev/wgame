@@ -44,6 +44,11 @@ struct InnerAtlas<P: Pixel> {
 /// Dropped/resized rectangles stay occupied until live items are repacked. On
 /// exhaustion, at most 50% live area (including the pending allocation) permits
 /// a same-size compaction attempt before growth. Handles follow relocation.
+/// Caller-supplied padding, such as texture filtering borders, counts toward area.
+/// Every replacement advances [`Self::generation`], including same-size compaction.
+///
+/// Borrowed views must not escape their callback, and callbacks must not reenter
+/// the same atlas. Dimensions must be positive and fit the allocator limits.
 #[derive(Clone)]
 pub struct Atlas<P: Pixel> {
     inner: Rc<RefCell<InnerAtlas<P>>>,

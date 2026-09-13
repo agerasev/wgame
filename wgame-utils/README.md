@@ -1,3 +1,6 @@
 # wgame-utils
 
-`PeriodicTimer` preserves its deadline phase when ticks are missed. `elapsed_periods` returns the duration of whole elapsed periods; a zero period is invalid. See [timing](../docs/GUIDE.md#input-and-timing).
+Periodic timers for the wgame runtime.
+
+See the [crate documentation](src/lib.rs) for usage and contracts, and the
+[workspace README](../README.md) for building the documentation.

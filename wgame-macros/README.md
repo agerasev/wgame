@@ -1,3 +1,6 @@
 # wgame-macros
 
-Async `#[app]` and `#[window]` entry points. Window configuration uses `size = (800, 600)`. See the executable [quickstart](../README.md) and [migration notes](../docs/MIGRATION.md).
+Async application and window entry-point macros.
+
+See the [crate documentation](src/lib.rs) for usage and contracts, and the
+[workspace README](../README.md) for building the documentation.

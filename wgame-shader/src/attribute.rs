@@ -22,6 +22,17 @@ impl BytesSink {
     }
 }
 
+/// Serialization and vertex/instance attribute bindings for a Rust type.
+///
+/// The derive serializes fields in declaration order and derives attribute
+/// locations and offsets. `Mat3` occupies 36 bytes (three `Float32x3` columns).
+/// Arrays concatenate element attributes: `[f32; 3]` occupies three scalar
+/// locations, whereas `Vec3` occupies one vector location. These layouts are for
+/// vertex/instance buffers, not general WGSL uniform-buffer packing.
+///
+/// `Attribute` derives use the `wgame_shader` dependency path; `AttributeGlobal`
+/// selects `wgame::shader`. Both prefix binding names with field names and require
+/// canonical crate names in the dependency graph.
 pub trait Attribute: 'static {
     fn bindings() -> BindingList;
 

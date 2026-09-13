@@ -37,8 +37,19 @@ struct Batch<C: Context> {
     storage: Box<dyn AnyStorage<C>>,
 }
 
-/// Painter-ordered scene. Lower explicit orders render first; equal orders preserve
-/// insertion order. Only adjacent compatible instances within an order are batched.
+/// Painter-ordered collection of drawing instances.
+///
+/// Lower explicit orders draw first. Equal-order objects preserve insertion order,
+/// so the last translucent object is composited on top. Nested orders compare
+/// lexicographically with missing components treated as zero.
+///
+/// Only adjacent compatible instances within an order are batched. Interleaved
+/// A/B/A resources remain three batches when B differs; merging both A objects
+/// would change transparent compositing. [`Self::len`] counts batches, not objects
+/// or render passes. [`crate::Target::render_iter`] draws them in one pass.
+///
+/// Built-in shape/text storage retains texture handles and resolves their current
+/// atlas coordinates when baking. Adding objects before atlas relocation is safe.
 pub struct Scene<C: Context = Camera> {
     layers: BTreeMap<OrderKey, Vec<Batch<C>>>,
     batches: usize,
@@ -108,8 +119,18 @@ impl<C: Context> InstanceVisitor<C> for Scene<C> {
 }
 
 /// Renderer snapshot with fixed instance buffers and resource bindings.
-/// Built-in renderers retain their GPU atlas generation across relocation;
-/// explicit updates to pixels in that generation remain mutable.
+///
+/// Created by [`Scene::bake`], this reuses immutable instance buffers across frames
+/// and cameras without observing subsequent scene edits. Built-in renderers retain
+/// their GPU atlas generation across source texture drop/resize or atlas relocation.
+/// Rebake the existing scene to resolve current texture/glyph locations; rebuild
+/// the source scene from its objects when object data changes.
+///
+/// Baking does not freeze texture pixels. Explicit updates become visible when
+/// synchronized into the GPU generation this renderer references. After atlas
+/// replacement or item resize, older drawing retains the old contents.
+/// Populate resources before baking long-lived static content to reduce retained
+/// GPU generations. Use ordinary scenes for changing content.
 pub struct BakedScene<C: Context = Camera> {
     renderers: Vec<Rc<dyn crate::Renderer<C>>>,
 }

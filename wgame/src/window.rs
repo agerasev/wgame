@@ -33,6 +33,17 @@ where
     create_windowed_task(&Runtime::current(), config, window_fn).await??
 }
 
+/// A window with an async drawing loop and its graphics surface.
+///
+/// Use `#[wgame::window(size = (800, 600))]` on an async function taking a
+/// `Window<'_>`. Closing ends that function normally when it returns after
+/// [`Self::next_frame`] yields `None`. Suspension cancels the function; on resume,
+/// the single-window wrapper invokes it again and recreates window-local resources.
+/// Keep application data outside that function if it must survive suspension.
+///
+/// Use `#[wgame::app]` on an async zero-argument function for multiple windows.
+/// [`create_windowed_task`] yields one window's result; on [`WindowError::Suspended`],
+/// its caller decides whether to recreate it.
 pub struct Window<'a> {
     gfx: gfx::Surface<'a>,
     app: app::Window<'a>,
@@ -51,10 +62,16 @@ impl<'a> Window<'a> {
         })
     }
 
+    /// Create an independent event stream; see [`Input`] for buffering and termination.
     pub fn input(&self) -> Input {
         self.app.input()
     }
 
+    /// Wait for a drawable frame, or return `None` when the window closes.
+    ///
+    /// Recoverable surface timeouts request another redraw; lost/outdated surfaces
+    /// are reconfigured. Fatal acquisition errors propagate. Zero-size surfaces
+    /// are not configured, and resize notifications survive skipped frames.
     pub async fn next_frame(&mut self) -> Result<Option<Frame<'a, '_>>> {
         loop {
             let Some(redraw) = self.app.request_redraw().await else {
@@ -80,6 +97,11 @@ impl<'a> Window<'a> {
     }
 }
 
+/// A drawing frame borrowing its window.
+///
+/// [`Self::present`] submits and presents once; normal drop does the same.
+/// [`Self::discard`] submits nothing. Panic unwinding does not submit the frame.
+/// Finish any [`gfx::AutoScene`] borrowing the frame before presenting it.
 pub struct Frame<'a, 'b> {
     gfx: Option<gfx::Frame<'a, 'b>>,
     app: app::window::Redraw<'b>,

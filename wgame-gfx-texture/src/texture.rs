@@ -38,11 +38,28 @@ pub(crate) struct InnerAtlas<T: Texel> {
     tracker: Rc<Tracker>,
 }
 
+/// GPU mirror of an append-only [`Atlas`].
+///
+/// Each CPU atlas generation receives a new GPU texture, even at unchanged
+/// dimensions. Existing baked renderers and encoded commands retain the previous
+/// GPU texture with matching coordinates. Dead rectangles are reclaimed only by
+/// generation replacement; long-lived renderers can retain older GPU textures.
+/// See [`Atlas`] for allocation and compaction policy.
 #[derive(Clone)]
 pub struct TextureAtlas<T: Texel = Rgba<f16>> {
     pub(crate) inner: Rc<RefCell<InnerAtlas<T>>>,
 }
 
+/// Shared texture handle tracking its live atlas item.
+///
+/// [`Self::update`] and [`Self::update_part`] maintain the one-pixel border needed
+/// for linear filtering; mutating the backing [`AtlasImage`] directly bypasses
+/// this maintenance. [`TextureSettings::nearest`] keeps hard texel edges and
+/// [`TextureSettings::linear`] interpolates.
+///
+/// Resizing replaces the item's allocation while clones follow its new location.
+/// Existing baked drawing retains its old allocation/texture. Explicit pixel
+/// updates remain mutable when synchronized into the same GPU generation.
 #[derive(Clone)]
 pub struct Texture<T: Texel = Rgba<f16>> {
     atlas: Rc<RefCell<InnerAtlas<T>>>,

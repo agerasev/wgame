@@ -1,6 +1,7 @@
 //! Procedural macros for deriving shader attribute implementations.
 //!
-//! Provides `#[derive(Attribute)]` and `#[derive(AttributeGlobal)]` for structs.
+//! Provides `#[derive(Attribute)]` and `#[derive(AttributeGlobal)]` for named and
+//! tuple structs. These describe vertex/instance attributes, not uniform packing.
 //!
 //! # Examples
 //!
@@ -14,7 +15,7 @@
 //! }
 //!
 //! #[derive(AttributeGlobal)]
-//! struct GlobalUniforms {
+//! struct InstanceTransforms {
 //!     projection: glam::Mat4,
 //!     view: glam::Mat4,
 //! }
@@ -25,7 +26,7 @@ mod attribute;
 use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
 
-/// Derives the `Attribute` trait for a struct.
+/// Derives vertex/instance attributes using the canonical `wgame::shader` path.
 #[proc_macro_derive(AttributeGlobal)]
 pub fn attribute_global(input: TokenStream) -> TokenStream {
     match attribute::derive(input.into(), quote!(wgame::shader)) {
@@ -35,7 +36,7 @@ pub fn attribute_global(input: TokenStream) -> TokenStream {
     .into()
 }
 
-/// Derives the `Attribute` trait for a struct (for internal usage).
+/// Derives vertex/instance attributes using the canonical `wgame_shader` path.
 #[proc_macro_derive(Attribute)]
 pub fn attribute(input: TokenStream) -> TokenStream {
     match attribute::derive(input.into(), quote!(wgame_shader)) {

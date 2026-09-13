@@ -1,3 +1,6 @@
 # wgame-app-input
 
-Independent buffered input streams. Overflow drops the oldest event. Termination wakes consumers, drains buffered events, and then ends the stream. Redraw events are handled separately by the window loop. See [input and timing](../docs/GUIDE.md#input-and-timing).
+Independent buffered input event streams.
+
+See the [crate documentation](src/lib.rs) for usage and contracts, and the
+[workspace README](../README.md) for building the documentation.

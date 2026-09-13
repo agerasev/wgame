@@ -1,4 +1,27 @@
-//! Reproducible CPU submission/end-to-end baseline. Uses a headless GPU.
+//! Reproducible CPU submission/end-to-end benchmark using a headless GPU.
+//!
+//! Run from the workspace root:
+//!
+//! ```sh
+//! cargo run --locked -p wgame --example render_bench --release
+//! ```
+//!
+//! Adapter information goes to stderr and measurements as CSV to stdout. Each
+//! workload/mode uses a 256x256 target, ten warmup frames, and forty measured frames.
+//! CPU time includes scene construction, buffer creation, encoding, and submission;
+//! end-to-end time also waits for the device to complete that frame. This measures
+//! synchronized latency, not pipelined throughput or FPS.
+//!
+//! Workloads cover identical shapes, alternating resources, overlapping translucent
+//! shapes, and changing text. `multipass` rebuilds with one pass per batch;
+//! `singlepass` rebuilds into one pass; `retained` bakes once and reuses the buffers.
+//! Retained mode is omitted for changing text because freezing it changes the work.
+//!
+//! Pass counts include clearing. Instance-buffer counts are derived from the
+//! one-buffer-per-batch renderer, not global allocation instrumentation. This does
+//! not measure all CPU allocations, hardware GPU timestamps, peak retained memory,
+//! or repeated atlas compaction. Report the adapter and measurement method with
+//! results; software-renderer timings do not establish hardware frame rates.
 #[path = "../tests/support/mod.rs"]
 mod support;
 use std::{

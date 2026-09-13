@@ -1,6 +1,8 @@
-//! Texture handling and rendering utilities.
+//! Texture atlases, gradients, and filtered sampling for wgpu.
 //!
-//! Provides texture atlases, filtering, gradients, and coordinate transformations.
+//! [`TexturingLibrary`] owns shared helpers. [`TextureAtlas`] mirrors a CPU atlas;
+//! [`Texture`] handles follow their live atlas items through relocation. See those
+//! APIs for update, resize, and retained-rendering contracts.
 
 #![forbid(unsafe_code)]
 

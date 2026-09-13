@@ -54,6 +54,10 @@ pub enum WindowError {
     Terminated,
 }
 /// Single-consumer window task. Dropping it detaches the task.
+/// Clone [`Self::handle`] for cancellation access. Cancellation before creation
+/// resolves without waiting for OS resume and prevents queued window creation.
+/// Suspension cancels the window function and reports [`WindowError::Suspended`];
+/// a manually managed caller decides whether to recreate the window.
 pub struct WindowedTask<T>(Rc<RefCell<State<T>>>);
 /// Clonable cancellation access without access to the result.
 pub struct WindowTaskHandle<T>(Rc<RefCell<State<T>>>);

@@ -54,6 +54,7 @@ pub trait Target {
             });
         renderer.render(ctx, &mut pass);
     }
+    /// Encode all supplied renderers in one pass; clearing uses a separate pass.
     fn render_iter<'r, C: Context, I: Iterator<Item = &'r R>, R: Renderer<C> + ?Sized + 'r>(
         &mut self,
         ctx: &C,
@@ -83,6 +84,8 @@ pub trait Target {
         }
     }
 
+    /// Camera with Y pointing upward, visible Y from -1 to 1, and X from minus
+    /// to plus the target aspect ratio.
     fn camera(&mut self) -> Camera {
         let aspect_ratio = {
             let (width, height) = self.size();
@@ -91,6 +94,8 @@ pub trait Target {
         let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
         Camera::new(self.state(), view)
     }
+    /// Camera in physical pixels: top-left origin, X rightward, Y downward.
+    /// These pixels include the display scaling factor; they are not logical units.
     fn physical_camera(&mut self) -> Camera {
         let (width, height) = self.size();
         let view = Mat4::orthographic_lh(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);

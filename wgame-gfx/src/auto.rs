@@ -2,6 +2,10 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{Camera, Context, Scene, Target};
 
+/// A scene borrowing its target and rendering on normal drop.
+/// Use [`Self::render`] for an explicit boundary or [`Self::discard`] to abandon it.
+/// Panic unwinding does not render. Finish the scene's borrow before presenting
+/// the enclosing frame.
 pub struct AutoScene<'a, T: Target + ?Sized, C: Context = Camera> {
     pub target: &'a mut T,
     pub camera: C,
@@ -24,6 +28,7 @@ impl<'a, T: Target + ?Sized, C: Context> AutoScene<'a, T, C> {
             self.target.render_iter(&self.camera, items.iter());
         }
     }
+    /// Abandon all collected drawing without rendering.
     pub fn discard(mut self) {
         self.items = Scene::default();
     }

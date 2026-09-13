@@ -2,6 +2,9 @@ use glam::{Affine3A, Vec3};
 
 use crate::types::{Color, Position, Transform};
 
+/// Composable object transforms. Built-in objects apply transforms in call order:
+/// `scale(40.0).move_to(position)` scales before translating. [`Self::move_to`]
+/// adds a translation; it does not replace an existing transform.
 pub trait Transformable: Sized {
     fn transform<X: Transform>(&self, xform: X) -> Self;
 

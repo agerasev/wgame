@@ -40,6 +40,7 @@ Open the URL printed by Trunk. `index.html` selects the shapes example and copie
 Do not combine the default desktop features with `web`. WebGPU is not enabled
 by the high-level web feature. Use `trunk build --no-default-features --features
 web` for a static build; Cargo's `check` alone does not create browser glue.
+If Trunk rejects an inherited `NO_COLOR=1`, set `NO_COLOR=true` or unset it.
 
 ## Other examples
 
@@ -50,5 +51,13 @@ cargo run -p wgame --example render_bench --release
 ```
 
 For `wgame-app`, select a native backend appropriate to your platform (`std` on
-Windows/macOS, `x11` or `wayland` on Linux). These examples open real windows;
-headless rendering tests are documented in `../docs/VALIDATION.md`.
+Windows/macOS, `x11` or `wayland` on Linux). `multiple_windows` and `raw_wgpu`
+open real windows; `render_bench` is headless. Benchmark methodology lives in
+[its source documentation](../wgame/examples/render_bench.rs).
+
+The [offscreen rendering tests](../wgame/tests/rendering.rs) need an adapter but
+no display. For a window smoke check on headless Linux with Mesa Vulkan and Xvfb:
+
+```sh
+WGPU_BACKEND=vulkan xvfb-run -a cargo run --locked -p wgame-examples --bin playground -- --smoke
+```

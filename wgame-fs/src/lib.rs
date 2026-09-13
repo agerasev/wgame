@@ -1,6 +1,8 @@
 //! Cross-platform file reading utilities.
 //!
 //! Provides async file reading for both desktop (std) and web platforms.
+//! Native paths are relative to the process working directory; web paths are URLs
+//! relative to the page. Embed bytes when assets must work from any directory.
 //!
 //! # Examples
 //!

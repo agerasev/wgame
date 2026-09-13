@@ -26,7 +26,19 @@ pub struct EventHandler {
     terminated: bool,
 }
 
-/// A stream of window events that can be polled asynchronously.
+/// An independent buffered stream of window events.
+///
+/// [`Self::try_next`] drains queued events without waiting. With a direct `futures`
+/// dependency, `StreamExt::next()` waits asynchronously. Redraw events are excluded
+/// because the window loop handles them separately.
+///
+/// The default capacity is 1024 events; overflow discards the oldest event.
+/// [`Self::set_capacity`] with `None` makes the queue unbounded. Overflow can lose
+/// a key transition: select a suitable capacity or track focus/state explicitly
+/// when complete input history matters.
+///
+/// Handler termination or drop wakes consumers. They drain buffered events before
+/// receiving `None` from the stream.
 pub struct Input {
     state: Rc<State>,
 }
@@ -56,7 +68,7 @@ impl EventHandler {
         });
     }
 
-    /// Terminate all input streams by clearing all registered states.
+    /// Wake all consumers; streams drain their buffered events before ending.
     pub fn terminate(&mut self) {
         self.terminated = true;
         for state in self.states.drain(..).filter_map(|s| s.upgrade()) {

@@ -12,14 +12,21 @@ use wgame_app::{
     time::{Instant, Timer},
 };
 
-/// A timer that fires at regular intervals.
+/// A timer that preserves its deadline phase when ticks are missed.
+/// [`Self::elapsed_periods`] and [`Self::wait_next`] return the duration of whole
+/// elapsed periods, not an integer count. Use elapsed time for animation and
+/// periodic timers for scheduled background work.
 pub struct PeriodicTimer {
     timer: Timer,
     period: Duration,
 }
 
 impl PeriodicTimer {
-    /// Creates a new periodic timer with the given period.
+    /// Creates a periodic timer in the current runtime.
+    ///
+    /// # Panics
+    ///
+    /// Panics for a zero period or when no runtime is active.
     pub fn new(period: Duration) -> Self {
         assert!(!period.is_zero(), "Timer period must be positive");
         Self {

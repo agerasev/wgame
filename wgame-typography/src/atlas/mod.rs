@@ -34,6 +34,8 @@ pub struct FontAtlas {
 }
 
 impl FontAtlas {
+    /// Create a shared glyph cache for a finite, positive raster size.
+    /// Panics if the size is zero, negative, or non-finite.
     pub fn new(atlas: &Atlas<u8>, font: &Font, settings: impl Into<RasterSettings>) -> Self {
         let RasterSettings { size } = settings.into();
         assert!(

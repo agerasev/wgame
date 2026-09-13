@@ -22,6 +22,10 @@ pub enum TextAlign {
     Right,
 }
 
+/// Shaped text with a shared font raster and composable drawing transforms.
+/// The default transform is normalized by font size; multiply by the raster size
+/// for physical-pixel output. [`TextAlign`] adjusts the horizontal origin relative
+/// to the measured advance width.
 #[must_use]
 #[derive(Clone)]
 pub struct Text {
@@ -39,6 +43,7 @@ impl Text {
             TextMetrics::new(font.font(), font.size(), text.to_string()),
         )
     }
+    /// Build text from metrics produced with the same font and raster size.
     pub fn from_metrics(font: &FontTexture, metrics: TextMetrics) -> Self {
         font.add_glyphs(metrics.glyphs().iter().map(|g| g.id));
         Self {

@@ -1,6 +1,20 @@
-//! GPU rendering framework built on WGPU.
+//! GPU rendering with ordered scenes, reusable renderers, and window/offscreen targets.
 //!
-//! Provides abstractions for rendering 2D content with scene management, batching, and camera support.
+//! Collect changing objects in a [`Scene`], then draw through [`Target::render_iter`].
+//! For unchanged content, [`Scene::bake`] produces a [`BakedScene`] that reuses its
+//! instance buffers across frames and cameras. See those types for painter order,
+//! resource lifetimes, and rebaking rules.
+//!
+//! [`Target::camera`] supplies aspect-correct coordinates; [`Target::physical_camera`]
+//! uses physical pixels. [`AutoScene`] provides automatic rendering on normal drop.
+//!
+//! # Custom and headless rendering
+//!
+//! Use [`Graphics::device`] and [`Graphics::queue`] for direct wgpu access. Implement
+//! [`Renderer<C>`] to encode drawing in a supplied render pass and [`Context`] for
+//! shared bindings. [`Target`] abstracts window frames and [`Offscreen`] textures.
+//! [`Graphics::new`] wraps a supplied adapter/device/queue for headless applications.
+//! The facade's `raw_wgpu` example demonstrates a custom pipeline.
 
 #![forbid(unsafe_code)]
 

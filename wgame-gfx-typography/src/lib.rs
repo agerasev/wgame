@@ -1,6 +1,11 @@
-//! Text rendering utilities.
+//! GPU text rendering with shaping, alignment, and cached monochrome glyphs.
 //!
-//! Provides font rasterization and text rendering with wgpu integration.
+//! Load a [`Font`] once, rasterize it for a pixel size, and reuse the [`FontTexture`]
+//! for labels. Cache unchanged [`Text`] objects outside the frame loop; recreate
+//! size-dependent rasters after resizing when appropriate.
+//!
+//! Text respects glyph placement offsets from [`wgame_typography`]; see that crate
+//! for rasterization and layout limitations.
 
 #![forbid(unsafe_code)]
 

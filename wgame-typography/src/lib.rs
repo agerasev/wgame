@@ -1,6 +1,9 @@
-//! Font rasterization and text layout utilities.
+//! CPU font loading, shaping metrics, and cached glyph rasterization.
 //!
-//! Provides font loading, glyph rasterization, and text metrics.
+//! [`Font`] owns validated font data, [`TextMetrics`] shapes text with swash, and
+//! [`FontAtlas`] caches glyph images. Rasterization supports monochrome outlines.
+//! Color emoji/bitmap-only fonts, font fallback, automatic line wrapping,
+//! bidirectional paragraph layout, and editable-text navigation are not implemented.
 
 #![forbid(unsafe_code)]
 
