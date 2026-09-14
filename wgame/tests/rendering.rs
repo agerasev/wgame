@@ -1,7 +1,7 @@
 //! Offscreen pixel reference checks; run explicitly on a GPU or Mesa lavapipe.
 //!
 //! ```sh
-//! cargo test --locked -p wgame --test rendering -- --ignored
+//! cargo test --locked -p wgame --lib --test rendering -- --ignored
 //! ```
 //!
 //! These tests are ignored by the ordinary suite so CPU-only machines can run it.

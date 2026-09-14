@@ -1,7 +1,7 @@
 //! Window configuration.
 
 use crate::{
-    app::{Size, WindowAttributes},
+    app::{LogicalSize, Size, WindowAttributes},
     gfx::{self, PresentMode},
 };
 
@@ -25,10 +25,24 @@ impl WindowConfig {
         }
     }
 
-    /// Sets the window size.
+    /// Sets the inner window size in physical pixels.
     pub fn size(self, size: (u32, u32)) -> Self {
         Self {
             app: self.app.with_inner_size(Size::new(size.0, size.1)),
+            ..self
+        }
+    }
+
+    /// Sets the inner window size in logical pixels, scaled by the OS.
+    ///
+    /// ```
+    /// let config = wgame::WindowConfig::default().logical_size((800.0, 600.0));
+    /// ```
+    ///
+    /// Also accepted by `#[wgame::window(logical_size = (800.0, 600.0))]`.
+    pub fn logical_size(self, size: (f64, f64)) -> Self {
+        Self {
+            app: self.app.with_inner_size(LogicalSize::new(size.0, size.1)),
             ..self
         }
     }

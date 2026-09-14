@@ -4,6 +4,11 @@
 //! for labels. Cache unchanged [`Text`] objects outside the frame loop; recreate
 //! size-dependent rasters after resizing when appropriate.
 //!
+//! For HiDPI UI, rasterize at `logical_size * scale_factor` physical pixels and
+//! draw text scaled by `logical_size` through a logical-pixel camera. Refresh
+//! the raster and cached text when the scale factor changes; enlarging an old
+//! raster alone reduces sharpness.
+//!
 //! Text respects glyph placement offsets from [`wgame_typography`]; see that crate
 //! for rasterization and layout limitations.
 

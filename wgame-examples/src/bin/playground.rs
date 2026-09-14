@@ -10,7 +10,7 @@ use wgame::{
     prelude::*,
 };
 
-#[wgame::window(title = "wgame playground — mouse: move, space: pause", size = (960,640))]
+#[wgame::window(title = "wgame playground — mouse: move, space: pause", logical_size = (960.0,640.0))]
 async fn main(mut window: Window<'_>) -> Result<()> {
     let library = Library::new(window.graphics());
     let font_data = wgame::typography::FontData::new(
@@ -43,7 +43,9 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let mut paused = false;
     let mut angle = 0.0;
     let mut last = wgame::app::time::Instant::now();
-    let mut raster = font.rasterize(22.0);
+    let mut scale_factor = window.scale_factor();
+    let mut font_size = 22.0;
+    let mut raster = font.rasterize(font_size * scale_factor as f32);
     let mut label = raster.text("Move the mouse. Space pauses animation.");
     let mut last_ticks = usize::MAX;
     #[cfg(not(target_arch = "wasm32"))]
@@ -73,8 +75,11 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             angle += (now - last).as_secs_f32().min(0.1);
         }
         last = now;
-        if let Some((_, height)) = frame.resized() {
-            raster = font.rasterize((height as f32 / 28.0).clamp(14.0, 32.0));
+        let (width, height) = frame.logical_size();
+        if frame.resized().is_some() || frame.scale_factor() != scale_factor {
+            scale_factor = frame.scale_factor();
+            font_size = (height as f32 / 28.0).clamp(14.0, 32.0);
+            raster = font.rasterize(font_size * scale_factor as f32);
             last_ticks = usize::MAX;
         }
         if last_ticks != ticks.get() {
@@ -85,9 +90,9 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             ));
             last_ticks = ticks.get();
         }
-        let (width, height) = frame.size();
         frame.clear(color::BLACK);
-        let camera = frame.physical_camera();
+        let camera = frame.logical_camera();
+        let pointer = camera.screen_to_world(mouse, frame.size());
         let mut scene = frame.scene();
         scene.camera = camera;
         scene.add(
@@ -95,11 +100,13 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 .transform(wgame::glam::Affine2::from_angle(angle))
                 .move_to(Vec2::new(width as f32 * 0.5, height as f32 * 0.5)),
         );
-        scene.add(&ring.move_to(mouse));
+        if let Some(pointer) = pointer {
+            scene.add(&ring.move_to(pointer));
+        }
         scene.add(
             &label
-                .scale(raster.size())
-                .move_to(Vec2::new(16.0, raster.size() + 12.0))
+                .scale(font_size)
+                .move_to(Vec2::new(16.0, font_size + 12.0))
                 .order(1),
         );
         scene.render();

@@ -10,6 +10,10 @@ mod window {
         Ok(())
     }
 }
+mod logical_window {
+    #[wgame::window(logical_size = (800.0, 600.0))]
+    async fn main(_window: wgame::Window<'_>) {}
+}
 #[derive(wgame::shader::Attribute)]
 struct Tuple(f32, wgame::glam::Vec2);
 #[derive(wgame::shader::Attribute)]

@@ -9,7 +9,9 @@ cargo run -p wgame-examples --bin playground
 ```
 
 Mouse movement positions the ring; Space pauses animation. Resize the window to
-exercise camera/text updates. Close it to cancel its background task. Add
+exercise camera/text updates. Move it between differently scaled displays to
+exercise logical sizing and sharp font rasters. On X11,
+`WINIT_X11_SCALE_FACTOR=2` forces a scale factor for manual checking. Close it to cancel its background task. Add
 `-- --smoke` for a twelve-frame startup/render/shutdown check.
 
 Inspect four-point quads and variable-width polylines:

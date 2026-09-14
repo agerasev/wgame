@@ -23,6 +23,8 @@ pub(crate) struct WindowState {
     waker: Option<Waker>,
     size: PhysicalSize<u32>,
     resized: bool,
+    scale_factor: f64,
+    scale_redraw: bool,
     close_requested: bool,
     redraw_requested: bool,
     redraw_ready: bool,
@@ -43,6 +45,9 @@ impl WindowState {
                 self.size = *size;
                 self.resized = true;
             }
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                self.scale_factor_changed(*scale_factor);
+            }
             _ => {
                 wake = false;
             }
@@ -52,6 +57,11 @@ impl WindowState {
         }
 
         self.handler.push(event);
+    }
+
+    fn scale_factor_changed(&mut self, scale_factor: f64) {
+        self.scale_factor = scale_factor;
+        self.scale_redraw = true;
     }
 
     pub fn terminate(&mut self) {
@@ -106,6 +116,7 @@ where
     let id = handle.id();
     let state = Rc::new(RefCell::new(WindowState {
         size: handle.inner_size(),
+        scale_factor: handle.scale_factor(),
         resized: true,
         ..Default::default()
     }));
@@ -136,8 +147,16 @@ where
 }
 
 impl<'a> Window<'a> {
+    /// Inner dimensions in physical pixels.
     pub fn size(&self) -> (u32, u32) {
         self.handle.inner_size().into()
+    }
+
+    /// OS scaling from logical pixels to physical pixels for this window.
+    ///
+    /// This may change when moving between monitors or changing desktop scaling.
+    pub fn scale_factor(&self) -> f64 {
+        self.handle.scale_factor()
     }
 
     pub fn raw(&self) -> &'a WindowHandle {
@@ -170,6 +189,11 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let owner = &mut self.owner;
+        // A scale change can require fresh content without a physical resize.
+        let scale_redraw = replace(&mut owner.state.borrow_mut().scale_redraw, false);
+        if scale_redraw {
+            owner.handle.request_redraw();
+        }
         let mut state = owner.state.borrow_mut();
         if state.terminated {
             log::error!("Window terminated but its task still alive");
@@ -192,6 +216,7 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
                 Poll::Ready(Some(Redraw {
                     handle: owner.handle,
                     size: state.size,
+                    scale_factor: state.scale_factor,
                     resized: replace(&mut state.resized, false),
                 }))
             }
@@ -210,10 +235,22 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
 pub struct Redraw<'b> {
     handle: &'b WindowHandle,
     size: PhysicalSize<u32>,
+    scale_factor: f64,
     resized: bool,
 }
 
 impl Redraw<'_> {
+    /// OS scale factor captured with this redraw's physical dimensions.
+    pub fn scale_factor(&self) -> f64 {
+        self.scale_factor
+    }
+
+    /// Inner dimensions in logical pixels, retaining fractional sizes.
+    pub fn logical_size(&self) -> (f64, f64) {
+        self.size.to_logical::<f64>(self.scale_factor).into()
+    }
+
+    /// Inner dimensions in physical pixels.
     pub fn size(&self) -> (u32, u32) {
         self.size.into()
     }
@@ -228,5 +265,29 @@ impl Redraw<'_> {
 
     pub fn pre_present(&mut self) {
         self.handle.pre_present_notify();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scale_changes_request_redraw_without_claiming_a_resize() {
+        let mut state = WindowState {
+            size: PhysicalSize::new(1800, 1200),
+            scale_factor: 1.0,
+            ..Default::default()
+        };
+        for factor in [1.25, 2.0, 1.0] {
+            state.scale_factor_changed(factor);
+            assert!(replace(&mut state.scale_redraw, false));
+            assert_eq!(state.scale_factor, factor);
+            assert_eq!(state.size, PhysicalSize::new(1800, 1200));
+            assert!(!state.resized);
+        }
+        state.push_event(WindowEvent::Resized(PhysicalSize::new(900, 600)));
+        assert!(state.resized);
+        assert_eq!(state.scale_factor, 1.0);
     }
 }

@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers xvfb
-      - run: cargo test --locked -p wgame --test rendering -- --ignored
+      - run: cargo test --locked -p wgame --lib --test rendering -- --ignored
         env:
           WGPU_BACKEND: vulkan
       - run: xvfb-run -a cargo run --locked -p wgame-examples --bin playground -- --smoke

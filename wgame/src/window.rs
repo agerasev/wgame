@@ -68,6 +68,13 @@ impl<'a> Window<'a> {
         })
     }
 
+    /// OS scale factor mapping logical pixels to physical pixels.
+    ///
+    /// For drawing, prefer the snapshot on [`Frame::scale_factor`].
+    pub fn scale_factor(&self) -> f64 {
+        self.app.scale_factor()
+    }
+
     /// Create an independent event stream; see [`Input`] for buffering and termination.
     pub fn input(&self) -> Input {
         self.app.input()
@@ -151,6 +158,51 @@ impl Frame<'_, '_> {
         self.gfx.take();
     }
 
+    /// OS scale factor captured with this frame's physical dimensions.
+    ///
+    /// Compare consecutive frames to refresh resources when display scaling
+    /// changes, even if [`Self::resized`] is `None`. Skipped surface acquisitions
+    /// do not hide the latest factor.
+    pub fn scale_factor(&self) -> f64 {
+        self.app.scale_factor()
+    }
+
+    /// Inner dimensions in logical pixels (physical size / scale factor).
+    pub fn logical_size(&self) -> (f64, f64) {
+        self.app.logical_size()
+    }
+
+    /// Camera in logical pixels: top-left origin, X rightward, Y downward.
+    ///
+    /// Use this explicitly for display-scaled UI. Render targets and
+    /// [`gfx::Target::physical_camera`] remain in physical pixels; scene cameras
+    /// are otherwise unaffected. For picking, pass physical cursor positions and
+    /// [`Self::size`] to [`gfx::Camera::screen_to_world`].
+    ///
+    /// Rasterize text at `logical_font_size * frame.scale_factor() as f32`,
+    /// then draw it scaled by `logical_font_size` through this camera. Rebuild
+    /// cached text when the raster size changes to keep glyphs sharp.
+    ///
+    /// ```no_run
+    /// # async fn draw(mut window: wgame::Window<'_>) -> wgame::Result<()> {
+    /// use wgame::{prelude::*, glam::Vec2, gfx::types::color};
+    /// let library = wgame::Library::new(window.graphics());
+    /// while let Some(mut frame) = window.next_frame().await? {
+    ///     let camera = frame.logical_camera();
+    ///     let mut scene = frame.scene();
+    ///     scene.camera = camera;
+    ///     scene.add(&library.shapes()
+    ///         .rectangle((Vec2::splat(12.0), Vec2::new(112.0, 52.0)))
+    ///         .fill_color(color::WHITE));
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn logical_camera(&mut self) -> gfx::Camera {
+        let scale_factor = self.scale_factor();
+        logical_camera(&mut **self, scale_factor)
+    }
+
+    /// Inner dimensions in physical pixels.
     pub fn size(&self) -> (u32, u32) {
         self.app.size()
     }
@@ -159,3 +211,16 @@ impl Frame<'_, '_> {
         self.resized
     }
 }
+
+fn logical_camera(target: &mut impl gfx::Target, scale_factor: f64) -> gfx::Camera {
+    use gfx::prelude::Transformable;
+    target
+        .physical_camera()
+        .transform(glam::Affine2::from_scale(glam::Vec2::splat(
+            scale_factor as f32,
+        )))
+}
+
+#[cfg(test)]
+#[path = "window/tests.rs"]
+mod tests;

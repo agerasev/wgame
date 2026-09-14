@@ -1,8 +1,5 @@
 #![allow(dead_code)]
-use wgame::{
-    gfx::{Graphics, Offscreen},
-    prelude::*,
-};
+use wgame_gfx::{Graphics, Offscreen, prelude::*};
 pub fn graphics() -> Graphics {
     futures::executor::block_on(async {
         let instance =

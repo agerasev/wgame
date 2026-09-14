@@ -32,7 +32,10 @@ pub use crate::{
     windowed_task::{WindowError, WindowTaskHandle, WindowedTask, create_windowed_task},
 };
 pub use wgame_app_input::{Event, Input};
-pub use winit::{dpi::PhysicalSize as Size, window::WindowAttributes};
+pub use winit::{
+    dpi::{LogicalSize, PhysicalSize as Size},
+    window::WindowAttributes,
+};
 pub mod input {
     pub use wgame_app_input::{Event, Input, event, keyboard};
 }
