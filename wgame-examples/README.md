@@ -12,6 +12,17 @@ Mouse movement positions the ring; Space pauses animation. Resize the window to
 exercise camera/text updates. Close it to cancel its background task. Add
 `-- --smoke` for a twelve-frame startup/render/shutdown check.
 
+Inspect four-point quads and variable-width polylines:
+
+```sh
+cargo run -p wgame-examples --bin polylines
+```
+
+The gallery shows texture interpolation, tapered widths, miter/bevel joins at
+limit 4, index-based UVs, repeated points, zero widths, and translucent crossings.
+Space pauses the angle sweep, P toggles junction markers, and Escape closes the
+window. It embeds its assets and also supports `-- --smoke`.
+
 The older examples load assets relative to the current directory:
 
 ```sh
@@ -35,7 +46,7 @@ trunk serve --no-default-features --features web
 
 Open the URL printed by Trunk. `index.html` selects the shapes example and copies
 `assets/`. To use the playground, change `data-bin="shapes"` to
-`data-bin="playground"`. The playground's assets are embedded.
+`data-bin="playground"` or `data-bin="polylines"`. Both embed their assets.
 
 Do not combine the default desktop features with `web`. WebGPU is not enabled
 by the high-level web feature. Use `trunk build --no-default-features --features

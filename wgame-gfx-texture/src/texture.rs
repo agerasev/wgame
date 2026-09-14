@@ -458,7 +458,10 @@ impl<T: Texel> Texture<T> {
     }
 
     pub fn attribute(&self) -> TextureAttribute<T> {
-        TextureAttribute(self.clone())
+        TextureAttribute {
+            texture: self.clone(),
+            local_xform: Affine2::IDENTITY,
+        }
     }
 }
 
@@ -505,14 +508,31 @@ impl<T: Texel> Debug for TextureResource<T> {
 }
 
 #[derive(Clone)]
-pub struct TextureAttribute<T: Texel = Rgba<f16>>(Texture<T>);
+pub struct TextureAttribute<T: Texel = Rgba<f16>> {
+    texture: Texture<T>,
+    local_xform: Affine2,
+}
 
 impl<T: Texel> TextureAttribute<T> {
     pub fn coord_xform(&self) -> Affine2 {
-        self.0.coord_xform()
+        self.texture.coord_xform() * self.local_xform
     }
     pub fn color(&self) -> Rgba<f32> {
-        self.0.color
+        self.texture.color
+    }
+
+    /// Map primitive coordinates into the textured object's local coordinates.
+    /// The mapping is applied before the texture's own transform and atlas
+    /// placement. For example, a ribbon segment can select its interval of the
+    /// full ribbon's UVs without changing a caller's texture transform.
+    ///
+    /// Repeated calls compose as `previous * mapping`. Atlas coordinates remain
+    /// live until serialization, just as for an unmapped texture attribute.
+    pub fn map_coord(&self, mapping: Affine2) -> Self {
+        Self {
+            texture: self.texture.clone(),
+            local_xform: self.local_xform * mapping,
+        }
     }
 }
 

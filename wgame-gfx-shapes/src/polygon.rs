@@ -23,6 +23,7 @@ use crate::{
 pub struct PolygonLibrary {
     pub triangle: Mesh,
     pub quad: Mesh,
+    pub four_point_quad: Mesh,
     pub hexagon: Mesh,
     pub fill: wgpu::RenderPipeline,
 }
@@ -47,6 +48,20 @@ impl PolygonLibrary {
                 Vertex::new(Vec4::new(1.0, 1.0, 0.0, 1.0), Vec3::new(1.0, 1.0, 1.0)),
             ],
             Some(&[0, 1, 2, 2, 1, 3]),
+        );
+
+        // Four affinely independent reference points let an Affine3A map each
+        // corner independently. Planar destinations flatten this mesh without
+        // introducing perspective interpolation or changing clip-space w.
+        let four_point_quad = Mesh::from_arrays(
+            state,
+            &[
+                Vertex::new(Vec3::ZERO.extend(1.0), Vec3::new(0.0, 0.0, 1.0)),
+                Vertex::new(Vec3::X.extend(1.0), Vec3::new(1.0, 0.0, 1.0)),
+                Vertex::new(Vec3::Y.extend(1.0), Vec3::new(1.0, 1.0, 1.0)),
+                Vertex::new(Vec3::Z.extend(1.0), Vec3::new(0.0, 1.0, 1.0)),
+            ],
+            Some(&[0, 1, 2, 0, 2, 3]),
         );
 
         let sqrt_3_2 = 3.0f32.sqrt() / 2.0;
@@ -81,6 +96,7 @@ impl PolygonLibrary {
         Self {
             triangle,
             quad,
+            four_point_quad,
             hexagon,
             fill: pipeline,
         }
@@ -174,6 +190,43 @@ impl ShapesLibrary {
         self.polygon(self.polygon.quad.clone())
     }
 
+    /// A quadrilateral with corners in perimeter order and texture coordinates
+    /// `(0, 0)`, `(1, 0)`, `(1, 1)`, `(0, 1)`, respectively.
+    ///
+    /// Draws triangles `abc` and `acd`, with linear texture interpolation within
+    /// each triangle. Convex planar corners give an ordinary filled quad;
+    /// collapsed edges are allowed. Concave, crossed, or nonplanar corners retain
+    /// this fixed triangulation. Geometry is shared between all calls.
+    ///
+    /// ```
+    /// # fn draw(shapes: &wgame_gfx_shapes::ShapesLibrary, scene: &mut wgame_gfx::Scene) {
+    /// use glam::Vec2;
+    /// use wgame_gfx_shapes::prelude::*;
+    /// scene.add(&shapes.quad(
+    ///     Vec2::new(10.0, 10.0), Vec2::new(80.0, 20.0),
+    ///     Vec2::new(60.0, 70.0), Vec2::new(20.0, 50.0),
+    /// ).fill_color(wgame_gfx::types::color::WHITE));
+    /// # }
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if coordinates or their affine differences are non-finite.
+    pub fn quad(
+        &self,
+        a: impl Position,
+        b: impl Position,
+        c: impl Position,
+        d: impl Position,
+    ) -> Polygon {
+        self.polygon(self.polygon.four_point_quad.clone())
+            .transform(quad_transform([
+                a.to_xyz(),
+                b.to_xyz(),
+                c.to_xyz(),
+                d.to_xyz(),
+            ]))
+    }
+
     pub fn rectangle(&self, (min, max): (Vec2, Vec2)) -> Polygon {
         let center = 0.5 * (min + max);
         let half_size = 0.5 * (max - min);
@@ -214,6 +267,15 @@ impl Debug for Polygon {
     }
 }
 
+pub(crate) fn quad_transform([a, b, c, d]: [Vec3; 4]) -> Affine3A {
+    let transform = Affine3A::from_mat3_translation(Mat3::from_cols(b - a, c - a, d - a), a);
+    assert!(
+        transform.is_finite(),
+        "quad coordinates and differences must be finite"
+    );
+    transform
+}
+
 fn line_transform(start: Vec2, end: Vec2, width: f32) -> Affine2 {
     assert!(
         start.is_finite() && end.is_finite(),
@@ -233,8 +295,32 @@ fn line_transform(start: Vec2, end: Vec2, width: f32) -> Affine2 {
 
 #[cfg(test)]
 mod tests {
-    use super::line_transform;
-    use glam::Vec2;
+    use super::{line_transform, quad_transform};
+    use glam::{Vec2, Vec3};
+
+    #[test]
+    fn quad_maps_all_corners_without_perspective() {
+        for corners in [
+            [
+                Vec3::new(2.0, 3.0, 0.0),
+                Vec3::new(20.0, 4.0, 0.0),
+                Vec3::new(15.0, 12.0, 0.0),
+                Vec3::new(6.0, 10.0, 0.0),
+            ],
+            [Vec3::ZERO, Vec3::X, Vec3::Y, Vec3::new(0.5, 0.5, 2.0)],
+            [Vec3::ZERO, Vec3::X, Vec3::X, Vec3::Y],
+        ] {
+            let transform = quad_transform(corners);
+            for (reference, expected) in [Vec3::ZERO, Vec3::X, Vec3::Y, Vec3::Z]
+                .into_iter()
+                .zip(corners)
+            {
+                let actual = glam::Mat4::from(transform) * reference.extend(1.0);
+                assert!((actual.truncate() - expected).length() < 1e-6);
+                assert_eq!(actual.w, 1.0);
+            }
+        }
+    }
 
     #[test]
     fn line_has_flat_ends_and_full_width_in_every_direction() {

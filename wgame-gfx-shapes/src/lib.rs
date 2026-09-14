@@ -8,6 +8,7 @@ mod circle;
 pub mod geometry;
 mod pipeline;
 mod polygon;
+mod polyline;
 mod render;
 pub mod shader;
 mod shape;
@@ -26,6 +27,7 @@ pub use self::{
     circle::{Circle, CircleFill, CircleStroke},
     geometry::Mesh,
     polygon::{Polygon, PolygonFill},
+    polyline::{Polyline, PolylineFill, PolylinePoint},
     shape::{Shape, Textured},
 };
 
