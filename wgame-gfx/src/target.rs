@@ -1,5 +1,4 @@
 use crate::{AutoScene, Camera, Context, Graphics, Renderer, types::Color};
-use glam::Mat4;
 use rgb::{ComponentMap, Rgba};
 
 /// Render target
@@ -91,14 +90,28 @@ pub trait Target {
             let (width, height) = self.size();
             width as f32 / height as f32
         };
-        let view = Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        let view = glam::camera::rh::proj::directx::orthographic(
+            -aspect_ratio,
+            aspect_ratio,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+        );
         Camera::new(self.state(), view)
     }
     /// Camera in physical pixels: top-left origin, X rightward, Y downward.
     /// These pixels include the display scaling factor; they are not logical units.
     fn physical_camera(&mut self) -> Camera {
         let (width, height) = self.size();
-        let view = Mat4::orthographic_lh(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
+        let view = glam::camera::lh::proj::directx::orthographic(
+            0.0,
+            width as f32,
+            height as f32,
+            0.0,
+            -1.0,
+            1.0,
+        );
         Camera::new(self.state(), view)
     }
 

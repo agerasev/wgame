@@ -82,7 +82,10 @@ impl TypographyState {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[state.camera_bind_group_layout(), &texture_bind_group_layout],
+            bind_group_layouts: &[
+                Some(state.camera_bind_group_layout()),
+                Some(&texture_bind_group_layout),
+            ],
             immediate_size: 0,
         });
 
@@ -92,7 +95,7 @@ impl TypographyState {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vertex_main"),
-                buffers: &vertex_buffers_layout,
+                buffers: &vertex_buffers_layout.map(Some),
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {

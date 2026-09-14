@@ -8,13 +8,13 @@ license.workspace = true
 wgame-image.workspace = true
 euclid.workspace = true
 anyhow.workspace = true
-swash = { version = "0.2.6", default-features = false, features = [
+swash = { version = "0.2.10", default-features = false, features = [
     "libm",
     "render",
     "scale",
 ] }
-etagere = "0.2.15"
+etagere = { version = "0.3.0", features = ["std"] }
 
 [dev-dependencies]
 image = { workspace = true, features = ["png"] }
-rand = { version = "0.10.0", default-features = false }
+rand = { version = "0.10.2", default-features = false }

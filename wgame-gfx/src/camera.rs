@@ -198,8 +198,14 @@ mod tests {
             Vec3::new(140.0, 90.0, 0.0),
         );
         for (width, height) in [(800, 600), (1600, 900)] {
-            let view =
-                Mat4::orthographic_lh(0.0, width as f32, height as f32, 0.0, -1.0, 1.0) * model;
+            let view = glam::camera::lh::proj::directx::orthographic(
+                0.0,
+                width as f32,
+                height as f32,
+                0.0,
+                -1.0,
+                1.0,
+            ) * model;
             for point in [Vec2::ZERO, Vec2::new(21.0, -7.0), Vec2::new(-200.0, 800.0)] {
                 let pixel = model.transform_point3(point.extend(0.0)).truncate();
                 let actual = screen_to_world(view, pixel, (width, height)).unwrap();

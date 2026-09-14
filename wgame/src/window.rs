@@ -52,7 +52,13 @@ pub struct Window<'a> {
 
 impl<'a> Window<'a> {
     async fn new(app: app::Window<'a>, gfx_cfg: gfx::Config) -> Result<Self> {
-        let mut gfx = gfx::Surface::new(gfx_cfg, app.raw()).await?;
+        let display = Runtime::current()
+            .run_within_event_loop(
+                |event_loop| event_loop.owned_display_handle(),
+                Default::default(),
+            )
+            .await;
+        let mut gfx = gfx::Surface::with_display_handle(gfx_cfg, app.raw(), display).await?;
         gfx.resize(app.size());
         let pending_resize = Some(app.size());
         Ok(Self {
@@ -69,9 +75,9 @@ impl<'a> Window<'a> {
 
     /// Wait for a drawable frame, or return `None` when the window closes.
     ///
-    /// Recoverable surface timeouts request another redraw; lost/outdated surfaces
-    /// are reconfigured. Fatal acquisition errors propagate. Zero-size surfaces
-    /// are not configured, and resize notifications survive skipped frames.
+    /// Timeouts and occlusion request another redraw; outdated/suboptimal surfaces
+    /// are reconfigured. Surface loss and validation errors propagate. Zero-size
+    /// surfaces are not configured, and resize notifications survive skipped frames.
     pub async fn next_frame(&mut self) -> Result<Option<Frame<'a, '_>>> {
         loop {
             let Some(redraw) = self.app.request_redraw().await else {

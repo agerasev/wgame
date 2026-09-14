@@ -27,8 +27,8 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[
-            state.camera_bind_group_layout(),
-            &state.texture().float_bind_group_layout,
+            Some(state.camera_bind_group_layout()),
+            Some(&state.texture().float_bind_group_layout),
         ],
         immediate_size: 0,
     });
@@ -54,7 +54,7 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
         vertex: wgpu::VertexState {
             module: &shader,
             entry_point: Some("vertex_main"),
-            buffers: &vertex_buffers,
+            buffers: &vertex_buffers.map(Some),
             compilation_options: Default::default(),
         },
         fragment: Some(wgpu::FragmentState {

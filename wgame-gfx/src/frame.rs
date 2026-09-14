@@ -35,7 +35,7 @@ impl<'a, 'b> Frame<'a, 'b> {
             .state()
             .queue()
             .submit(Some(self.encoder.finish()));
-        self.surface.present();
+        self.owner.state().queue().present(self.surface);
     }
 }
 

@@ -5,7 +5,8 @@ use wgame::{
 };
 pub fn graphics() -> Graphics {
     futures::executor::block_on(async {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
+        let instance =
+            wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle_from_env());
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions::default())
             .await
@@ -65,7 +66,10 @@ pub fn pixels(target: &mut Offscreen) -> Vec<u8> {
         })
         .unwrap();
     rx.recv().unwrap().unwrap();
-    let data = buffer.slice(..).get_mapped_range();
+    let data = buffer
+        .slice(..)
+        .get_mapped_range()
+        .expect("readback buffer must be mapped");
     let pixels = data
         .chunks(stride as usize)
         .flat_map(|row| row[..width as usize * 4].iter().copied())

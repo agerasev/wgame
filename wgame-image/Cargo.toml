@@ -16,5 +16,5 @@ half.workspace = true
 hashbrown.workspace = true
 smallvec.workspace = true
 anyhow.workspace = true
-guillotiere = "0.6.2"
+guillotiere = "0.7.0"
 image = { workspace = true, optional = true }

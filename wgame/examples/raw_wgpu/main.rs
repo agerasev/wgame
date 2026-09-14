@@ -19,7 +19,15 @@ struct WgpuState<'a> {
 
 impl<'a> WgpuState<'a> {
     async fn new(window: &'a winit::window::Window) -> Self {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
+        let display = wgame_app::Runtime::current()
+            .run_within_event_loop(
+                |event_loop| event_loop.owned_display_handle(),
+                Default::default(),
+            )
+            .await;
+        let instance = wgpu::Instance::new(
+            wgpu::InstanceDescriptor::new_with_display_handle_from_env(Box::new(display)),
+        );
 
         let surface = instance
             .create_surface(window)
@@ -31,6 +39,7 @@ impl<'a> WgpuState<'a> {
                 force_fallback_adapter: false,
                 // Request an adapter which can render to our surface
                 compatible_surface: Some(&surface),
+                ..Default::default()
             })
             .await
             .expect("Failed to find an appropriate adapter");
@@ -97,10 +106,11 @@ impl<'a> WgpuState<'a> {
         }
 
         // Create texture view
-        let frame = self
-            .surface
-            .get_current_texture()
-            .expect("Failed to acquire next swap chain texture");
+        let frame = match self.surface.get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(frame)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
+            result => panic!("Failed to acquire next swap chain texture: {result:?}"),
+        };
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -117,7 +127,7 @@ impl<'a> WgpuState<'a> {
 impl Drop for WgpuFrame<'_, '_, '_> {
     fn drop(&mut self) {
         self.inner.pre_present();
-        self.frame.take().unwrap().present();
+        self.state.queue.present(self.frame.take().unwrap());
     }
 }
 
@@ -184,7 +194,7 @@ impl TriangleScene {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[&bind_group_layout],
+            bind_group_layouts: &[Some(&bind_group_layout)],
             immediate_size: 0,
         });
 
@@ -227,7 +237,7 @@ impl TriangleScene {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &vertex_buffers,
+                buffers: &vertex_buffers.map(Some),
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -253,8 +263,14 @@ impl TriangleScene {
 
     fn render(&mut self, frame: &WgpuFrame<'_, '_, '_>, angle: f32) {
         let aspect_ratio = frame.state.size.0 as f32 / frame.state.size.1 as f32;
-        let mut transform =
-            glam::Mat4::orthographic_rh(-aspect_ratio, aspect_ratio, -1.0, 1.0, -1.0, 1.0);
+        let mut transform = glam::camera::rh::proj::directx::orthographic(
+            -aspect_ratio,
+            aspect_ratio,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+        );
         transform *= glam::Mat4::from_rotation_z(angle);
         frame.state.queue.write_buffer(
             &self.uniform_buf,
