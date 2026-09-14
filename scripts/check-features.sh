@@ -10,3 +10,6 @@ for ((mask=0; mask<32; mask++)); do
 done
 cargo check --locked -p wgame --target wasm32-unknown-unknown --no-default-features --features web
 cargo check --locked -p wgame-examples --target wasm32-unknown-unknown --no-default-features --features web
+
+cargo check --locked -p wgame-egui --no-default-features --features desktop
+cargo check --locked -p wgame-egui --examples --target wasm32-unknown-unknown --no-default-features --features web

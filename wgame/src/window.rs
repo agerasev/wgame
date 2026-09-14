@@ -48,6 +48,8 @@ pub struct Window<'a> {
     gfx: gfx::Surface<'a>,
     app: app::Window<'a>,
     pending_resize: Option<(u32, u32)>,
+    host_input: crate::host_input::PlainInput,
+    last_scale: f64,
 }
 
 impl<'a> Window<'a> {
@@ -61,11 +63,22 @@ impl<'a> Window<'a> {
         let mut gfx = gfx::Surface::with_display_handle(gfx_cfg, app.raw(), display).await?;
         gfx.resize(app.size());
         let pending_resize = Some(app.size());
+        let host_input = crate::host_input::PlainInput::new(app.input(), app.raw().has_focus());
+        let last_scale = app.scale_factor();
         Ok(Self {
+            host_input,
+            last_scale,
             app,
             gfx,
             pending_resize,
         })
+    }
+
+    /// Native window access for integrations handling cursor, IME and clipboard.
+    /// The reference lives for the window task, so it can be used while a frame
+    /// borrows the graphics surface. Resize/redraw events still belong to wgame.
+    pub fn raw(&self) -> &'a app::RawWindow {
+        self.app.raw()
     }
 
     /// OS scale factor mapping logical pixels to physical pixels.
@@ -97,7 +110,11 @@ impl<'a> Window<'a> {
             if !self.gfx.prepare_frame()? {
                 continue;
             }
+            let changed = self.pending_resize.is_some() || self.last_scale != redraw.scale_factor();
+            let input = self.host_input.collect(redraw.scale_factor(), changed);
+            self.last_scale = redraw.scale_factor();
             return Ok(Some(Frame {
+                input,
                 app: redraw,
                 gfx: Some(self.gfx.frame()?),
                 resized: self.pending_resize.take(),
@@ -119,6 +136,7 @@ pub struct Frame<'a, 'b> {
     gfx: Option<gfx::Frame<'a, 'b>>,
     app: app::window::Redraw<'b>,
     resized: Option<(u32, u32)>,
+    input: crate::canvas::CanvasInput,
 }
 
 impl<'a, 'b> Deref for Frame<'a, 'b> {
@@ -143,6 +161,10 @@ impl Drop for Frame<'_, '_> {
 }
 
 impl Frame<'_, '_> {
+    /// Input local to this frame's drawing area. Raw events remain on the window.
+    pub fn input(&self) -> &crate::canvas::CanvasInput {
+        &self.input
+    }
     fn present_inner(&mut self) {
         if let Some(frame) = self.gfx.take() {
             self.app.pre_present();
@@ -224,3 +246,44 @@ fn logical_camera(target: &mut impl gfx::Target, scale_factor: f64) -> gfx::Came
 #[cfg(test)]
 #[path = "window/tests.rs"]
 mod tests;
+
+impl gfx::Target for Frame<'_, '_> {
+    fn state(&self) -> &gfx::Graphics {
+        gfx::Target::state(&**self)
+    }
+    fn view(&self) -> &wgpu::TextureView {
+        gfx::Target::view(&**self)
+    }
+    fn encoder(&mut self) -> &mut wgpu::CommandEncoder {
+        gfx::Target::encoder(&mut **self)
+    }
+}
+impl crate::ContentFrame for Frame<'_, '_> {
+    fn input(&self) -> &crate::canvas::CanvasInput {
+        self.input()
+    }
+    fn scale_factor(&self) -> f64 {
+        self.scale_factor()
+    }
+    fn resized(&self) -> Option<(u32, u32)> {
+        self.resized()
+    }
+    fn present(self) {
+        self.present();
+    }
+    fn discard(self) {
+        self.discard();
+    }
+}
+impl<'w> crate::WindowHost for Window<'w> {
+    type Frame<'a>
+        = Frame<'w, 'a>
+    where
+        Self: 'a;
+    fn graphics(&self) -> &gfx::Graphics {
+        self.graphics()
+    }
+    async fn next_frame(&mut self) -> Result<Option<Self::Frame<'_>>> {
+        self.next_frame().await
+    }
+}

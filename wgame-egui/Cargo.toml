@@ -1,0 +1,30 @@
+[package]
+name = "wgame-egui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["desktop"]
+desktop = ["wgame/desktop", "egui-winit/clipboard", "egui-winit/links", "egui-winit/x11", "egui-winit/wayland"]
+web = ["wgame/web"]
+
+[dependencies]
+wgame.workspace = true
+egui.workspace = true
+egui-wgpu.workspace = true
+wgpu.workspace = true
+
+[dev-dependencies]
+winit.workspace = true
+web-sys = { workspace = true, features = ["Window"] }
+wgame-gfx.workspace = true
+futures = { workspace = true, features = ["executor"] }
+wgame = { workspace = true, features = ["shapes"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+egui-winit.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+winit.workspace = true
+web-sys = { workspace = true, features = ["Window"] }

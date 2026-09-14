@@ -7,6 +7,7 @@ pub struct Frame<'a, 'b> {
     surface: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
     encoder: wgpu::CommandEncoder,
+    before: Vec<wgpu::CommandBuffer>,
 }
 
 impl<'a, 'b> Frame<'a, 'b> {
@@ -27,14 +28,21 @@ impl<'a, 'b> Frame<'a, 'b> {
             surface,
             view,
             encoder,
+            before: Vec::new(),
         })
+    }
+
+    /// Queue prerequisite commands for the same submission as this frame.
+    /// Dropping the frame without presenting also drops these commands.
+    pub fn submit_before(&mut self, buffers: impl IntoIterator<Item = wgpu::CommandBuffer>) {
+        self.before.extend(buffers);
     }
 
     pub fn present(self) {
         self.owner
             .state()
             .queue()
-            .submit(Some(self.encoder.finish()));
+            .submit(self.before.into_iter().chain(Some(self.encoder.finish())));
         self.owner.state().queue().present(self.surface);
     }
 }

@@ -43,15 +43,28 @@ impl Offscreen {
     pub fn texture(&self) -> &wgpu::Texture {
         &self.texture
     }
-    /// Submit commands and start a fresh encoder. Existing pixels are preserved.
-    pub fn submit(&mut self) -> wgpu::SubmissionIndex {
+    /// Finish pending commands without submitting them, and start a fresh encoder.
+    /// A host can submit this buffer before compositing the texture in one frame.
+    pub fn finish(&mut self) -> wgpu::CommandBuffer {
         let encoder = std::mem::replace(
             &mut self.encoder,
             self.state
                 .device()
                 .create_command_encoder(&Default::default()),
         );
-        self.state.queue().submit(Some(encoder.finish()))
+        encoder.finish()
+    }
+    /// Drop pending commands without changing already-submitted pixels.
+    pub fn discard(&mut self) {
+        self.encoder = self
+            .state
+            .device()
+            .create_command_encoder(&Default::default());
+    }
+    /// Submit commands and start a fresh encoder. Existing pixels are preserved.
+    pub fn submit(&mut self) -> wgpu::SubmissionIndex {
+        let buffer = self.finish();
+        self.state.queue().submit(Some(buffer))
     }
 }
 impl Target for Offscreen {

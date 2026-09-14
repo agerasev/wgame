@@ -34,7 +34,7 @@ pub use crate::{
 pub use wgame_app_input::{Event, Input};
 pub use winit::{
     dpi::{LogicalSize, PhysicalSize as Size},
-    window::WindowAttributes,
+    window::{Window as RawWindow, WindowAttributes},
 };
 pub mod input {
     pub use wgame_app_input::{Event, Input, event, keyboard};

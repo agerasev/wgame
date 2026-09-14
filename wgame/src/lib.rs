@@ -41,6 +41,11 @@
 #![forbid(unsafe_code)]
 
 mod config;
+pub mod host;
+mod host_input;
+pub use host::{ContentFrame, WindowHost};
+/// Input local to a drawing area, independent of the UI backend.
+pub use wgame_input as canvas;
 mod library;
 mod window;
 
@@ -110,6 +115,7 @@ pub use crate::{config::*, library::*, window::*};
 
 /// Commonly used types and traits.
 pub mod prelude {
+    pub use crate::{ContentFrame, WindowHost};
     pub use wgame_gfx::prelude::*;
     #[cfg(feature = "shapes")]
     pub use wgame_gfx_shapes::prelude::*;

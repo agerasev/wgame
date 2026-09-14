@@ -55,6 +55,18 @@ by the high-level web feature. Use `trunk build --no-default-features --features
 web` for a static build; Cargo's `check` alone does not create browser glue.
 If Trunk rejects an inherited `NO_COLOR=1`, set `NO_COLOR=true` or unset it.
 
+## Optional egui host
+
+```sh
+cargo run -p wgame-egui --example playground
+cargo run -p wgame-egui --example playground -- --plain
+```
+
+Both use the same canvas input/render loop. Click the canvas to focus it; typing
+in the text field stays in the UI. Add `--smoke` for twelve frames including an
+explicitly discarded frame. The same Mesa/Xvfb setup below applies. Run its
+offscreen composition tests with `cargo test -p wgame-egui --lib -- --ignored`.
+
 ## Other examples
 
 ```sh

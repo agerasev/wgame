@@ -37,3 +37,9 @@ jobs:
       - run: xvfb-run -a cargo run --locked -p wgame-examples --bin playground -- --smoke
         env:
           WGPU_BACKEND: vulkan
+      - run: cargo test --locked -p wgame-egui --lib -- --ignored
+        env:
+          WGPU_BACKEND: vulkan
+      - run: xvfb-run -a cargo run --locked -p wgame-egui --example playground -- --smoke
+        env:
+          WGPU_BACKEND: vulkan
