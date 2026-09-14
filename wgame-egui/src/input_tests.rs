@@ -153,3 +153,37 @@ fn quick_click_keeps_press_and_release_in_order() {
         .collect();
     assert_eq!(pressed, [true, false]);
 }
+
+#[test]
+fn escape_is_delivered_to_focused_canvas_without_cancelling_first() {
+    let mut h = Harness::new();
+    h.frame(mouse(200.0, 150.0, true), 1.0, true, 100.0);
+    h.frame(mouse(200.0, 150.0, false), 1.0, true, 100.0);
+    h.frame(mouse(200.0, 150.0, true), 1.0, true, 100.0);
+    let input = h.frame(
+        vec![egui::Event::Key {
+            key: egui::Key::Escape,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: Default::default(),
+        }],
+        1.0,
+        true,
+        100.0,
+    );
+    assert!(
+        input.events.iter().any(|e| matches!(
+            e,
+            Event::Key {
+                key: Key::Escape,
+                pressed: true,
+                ..
+            }
+        )),
+        "{:?}",
+        input.events
+    );
+    assert!(!input.events.contains(&Event::Cancelled));
+    assert!(input.button_down(Button::Primary));
+}

@@ -16,6 +16,25 @@ impl CanvasState {
         modifiers: egui::Modifiers,
         scale: f32,
     ) -> CanvasInput {
+        // Egui surrenders widget focus on Escape before returning the response.
+        // A canvas owns Escape (e.g. cancel an aim), so keep its focus and deliver
+        // the key. Never restore focus stolen by another widget or window.
+        if window_focused
+            && self.state.input().focused
+            && response.ctx.memory(|m| m.focused().is_none())
+            && events.iter().any(|event| {
+                matches!(
+                    event,
+                    egui::Event::Key {
+                        key: egui::Key::Escape,
+                        pressed: true,
+                        ..
+                    }
+                )
+            })
+        {
+            response.request_focus();
+        }
         let geometry = (response.rect, scale);
         if self.geometry != Some(geometry) || (self.state.input().focused && !response.has_focus())
         {
