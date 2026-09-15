@@ -40,7 +40,9 @@ struct Batch<C: Context> {
 /// Painter-ordered collection of drawing instances.
 ///
 /// Lower explicit orders draw first. Equal-order objects preserve insertion order,
-/// so the last translucent object is composited on top. Nested orders compare
+/// so at equal depth the last translucent object is composited on top.
+/// Depth testing can reject fragments regardless of explicit order. Draw
+/// translucent objects back to front with depth writes disabled. Nested orders compare
 /// lexicographically with missing components treated as zero.
 ///
 /// Only adjacent compatible instances within an order are batched. Interleaved

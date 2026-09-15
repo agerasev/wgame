@@ -254,6 +254,9 @@ impl gfx::Target for Frame<'_, '_> {
     fn view(&self) -> &wgpu::TextureView {
         gfx::Target::view(&**self)
     }
+    fn depth_view(&self) -> &wgpu::TextureView {
+        gfx::Target::depth_view(&**self)
+    }
     fn encoder(&mut self) -> &mut wgpu::CommandEncoder {
         gfx::Target::encoder(&mut **self)
     }

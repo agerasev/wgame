@@ -1,3 +1,5 @@
+//! Glyphs test depth with `LessEqual` without writing depth, preserving smooth
+//! alpha edges. Draw translucent text after opaque content, back to front.
 //! GPU text rendering with shaping, alignment, and cached monochrome glyphs.
 //!
 //! Load a [`Font`] once, rasterize it for a pixel size, and reuse the [`FontTexture`]

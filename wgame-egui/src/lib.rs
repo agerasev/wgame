@@ -339,6 +339,9 @@ impl Target for Frame<'_, '_> {
     fn view(&self) -> &wgpu::TextureView {
         self.painter.target.view()
     }
+    fn depth_view(&self) -> &wgpu::TextureView {
+        self.painter.target.depth_view()
+    }
     fn encoder(&mut self) -> &mut wgpu::CommandEncoder {
         self.painter.target.encoder()
     }

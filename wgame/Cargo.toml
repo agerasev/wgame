@@ -22,6 +22,7 @@ web = [
     # "wgame-gfx/webgpu",
     "wgame-fs?/web",
 ]
+3d = ["shapes", "dep:wgame-gfx-3d"]
 shapes = ["dep:wgame-gfx-shapes"]
 fs = ["dep:wgame-fs"]
 image = ["dep:wgame-image"]
@@ -34,6 +35,7 @@ wgame-input.workspace = true
 wgame-app.workspace = true
 wgame-gfx.workspace = true
 wgame-gfx-texture.workspace = true
+wgame-gfx-3d = { workspace = true, optional = true }
 wgame-gfx-shapes = { workspace = true, optional = true }
 wgame-gfx-typography = { workspace = true, optional = true }
 wgame-fs = { workspace = true, optional = true }

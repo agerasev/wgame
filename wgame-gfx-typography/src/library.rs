@@ -109,7 +109,7 @@ impl TypographyState {
                 })],
             }),
             primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
+            depth_stencil: Some(wgame_gfx::DepthMode::ReadOnly.state()),
             multisample: wgpu::MultisampleState::default(),
             multiview_mask: None,
             cache: None,

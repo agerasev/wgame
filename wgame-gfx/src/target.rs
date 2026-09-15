@@ -1,10 +1,15 @@
 use crate::{AutoScene, Camera, Context, Graphics, Renderer, types::Color};
 use rgb::{ComponentMap, Rgba};
 
-/// Render target
+/// Color and depth render target. All built-in targets use [`crate::DEPTH_FORMAT`].
+/// `clear` resets color and depth; successive render calls share depth. Clear
+/// depth explicitly when starting an independent camera/overlay scene. Custom
+/// pipelines used by `render` must declare the same depth format, even when
+/// ignoring depth (see [`crate::DepthMode::Overlay`]).
 pub trait Target {
     fn state(&self) -> &Graphics;
     fn view(&self) -> &wgpu::TextureView;
+    fn depth_view(&self) -> &wgpu::TextureView;
     fn encoder(&mut self) -> &mut wgpu::CommandEncoder;
 
     fn size(&self) -> (u32, u32) {
@@ -18,6 +23,7 @@ pub trait Target {
             wgpu::Color { r, g, b, a }
         };
 
+        let depth = self.depth_view().clone();
         let view = &self.view().clone();
         let _ = self
             .encoder()
@@ -31,11 +37,38 @@ pub trait Target {
                     },
                     depth_slice: None,
                 })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                ..Default::default()
+            });
+    }
+
+    /// Reset depth while preserving color, for a new independent scene.
+    fn clear_depth(&mut self) {
+        let depth = self.depth_view().clone();
+        let _pass = self
+            .encoder()
+            .begin_render_pass(&wgpu::RenderPassDescriptor {
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 ..Default::default()
             });
     }
 
     fn render<C: Context, R: Renderer<C> + ?Sized>(&mut self, ctx: &C, renderer: &R) {
+        let depth = self.depth_view().clone();
         let view = &self.view().clone();
         let mut pass = self
             .encoder()
@@ -49,6 +82,14 @@ pub trait Target {
                     },
                     depth_slice: None,
                 })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 ..Default::default()
             });
         renderer.render(ctx, &mut pass);
@@ -63,6 +104,7 @@ pub trait Target {
         if renderers.peek().is_none() {
             return;
         }
+        let depth = self.depth_view().clone();
         let view = self.view().clone();
         let mut pass = self
             .encoder()
@@ -76,6 +118,14 @@ pub trait Target {
                         store: wgpu::StoreOp::Store,
                     },
                 })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 ..Default::default()
             });
         for renderer in renderers {

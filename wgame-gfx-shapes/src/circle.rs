@@ -31,8 +31,8 @@ struct RingVarying {
 
 #[derive(Clone)]
 pub struct CircleLibrary {
-    fill: wgpu::RenderPipeline,
-    stroke: wgpu::RenderPipeline,
+    fill: crate::pipeline::Pipelines,
+    stroke: crate::pipeline::Pipelines,
 }
 
 impl CircleLibrary {
@@ -117,8 +117,8 @@ impl CircleLibrary {
 pub struct Circle {
     library: ShapesLibrary,
     geometry: Mesh,
-    fill: wgpu::RenderPipeline,
-    stroke: wgpu::RenderPipeline,
+    fill: crate::pipeline::Pipelines,
+    stroke: crate::pipeline::Pipelines,
     inner_radius: f32,
     sector_angle: f32,
     xform: Affine3A,
@@ -160,6 +160,7 @@ impl ShapeFill for Circle {
         CircleFill {
             shape: self.clone(),
             texture: texture.clone(),
+            depth: Default::default(),
         }
     }
 }
@@ -174,6 +175,7 @@ impl ShapeStroke for Circle {
                 .inner_radius((1.0 - half_width) / (1.0 + half_width))
                 .transform(Affine3A::from_scale(Vec3::splat(1.0 + half_width))),
             texture: texture.clone(),
+            depth: Default::default(),
         }
     }
 }
@@ -183,6 +185,7 @@ impl_transformable!(Circle, xform);
 #[must_use]
 #[derive(Clone)]
 pub struct CircleFill {
+    depth: wgame_gfx::DepthMode,
     shape: Circle,
     texture: Texture,
 }
@@ -213,7 +216,7 @@ impl Instance for CircleFill {
             vertices: self.shape.geometry.clone(),
             texture: self.texture.resource(),
             uniforms: None,
-            pipeline: self.shape.fill.clone(),
+            pipeline: self.shape.fill.get(self.depth),
             device: self.shape.library.state().device().clone(),
             _ghost: PhantomData,
         }
@@ -239,6 +242,7 @@ impl_textured!(CircleFill, texture);
 #[must_use]
 #[derive(Clone)]
 pub struct CircleStroke {
+    depth: wgame_gfx::DepthMode,
     shape: Circle,
     texture: Texture,
 }
@@ -262,7 +266,7 @@ impl Instance for CircleStroke {
             vertices: self.shape.geometry.clone(),
             texture: self.texture.resource(),
             uniforms: None,
-            pipeline: self.shape.stroke.clone(),
+            pipeline: self.shape.stroke.get(self.depth),
             device: self.shape.library.state().device().clone(),
             _ghost: PhantomData,
         }
@@ -295,6 +299,26 @@ impl ShapesLibrary {
             inner_radius: 0.0,
             sector_angle: 2.0 * PI,
             xform: Affine3A::IDENTITY,
+        }
+    }
+}
+
+impl CircleFill {
+    /// Select depth testing/writing; the default is `ReadWrite`.
+    pub fn depth(&self, depth: wgame_gfx::DepthMode) -> Self {
+        Self {
+            depth,
+            ..self.clone()
+        }
+    }
+}
+
+impl CircleStroke {
+    /// Select depth testing/writing; the default is `ReadWrite`.
+    pub fn depth(&self, depth: wgame_gfx::DepthMode) -> Self {
+        Self {
+            depth,
+            ..self.clone()
         }
     }
 }

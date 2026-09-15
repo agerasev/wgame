@@ -8,6 +8,7 @@ members = [
     "wgame-gfx",
     "wgame-gfx-texture",
     "wgame-gfx-shapes",
+    "wgame-gfx-3d",
     "wgame-gfx-typography",
     "wgame-fs",
     "wgame-typography",
@@ -36,6 +37,7 @@ wgame-app = { version = "0.1.0", path = "wgame-app" }
 wgame-app-input = { version = "0.1.0", path = "wgame-app-input" }
 wgame-gfx = { version = "0.1.0", path = "wgame-gfx" }
 wgame-gfx-texture = { version = "0.1.0", path = "wgame-gfx-texture" }
+wgame-gfx-3d = { version = "0.1.0", path = "wgame-gfx-3d" }
 wgame-gfx-shapes = { version = "0.1.0", path = "wgame-gfx-shapes" }
 wgame-gfx-typography = { version = "0.1.0", path = "wgame-gfx-typography" }
 wgame-fs = { version = "0.1.0", path = "wgame-fs" }

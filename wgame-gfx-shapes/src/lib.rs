@@ -1,4 +1,4 @@
-//! GPU-accelerated 2D shape rendering.
+//! GPU-accelerated shapes and textured triangle meshes in 2D and 3D.
 //!
 //! Provides geometry primitives with fill, stroke, and texture support.
 
@@ -56,7 +56,7 @@ impl Deref for ShapesState {
     }
 }
 
-/// 2D graphics library for rendering shapes.
+/// Shared graphics library for rendering shapes and meshes.
 #[derive(Clone)]
 pub struct ShapesLibrary {
     state: ShapesState,

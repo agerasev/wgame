@@ -92,6 +92,10 @@ pub use wgame_fs as fs;
 #[cfg(feature = "shapes")]
 pub use wgame_gfx_shapes as shapes;
 
+/// Solid primitives rendered through the shared shape infrastructure.
+#[cfg(feature = "3d")]
+pub use wgame_gfx_3d as shapes3d;
+
 /// Text rendering.
 #[cfg(feature = "typography")]
 pub use wgame_gfx_typography as typography;
@@ -117,6 +121,8 @@ pub use crate::{config::*, library::*, window::*};
 pub mod prelude {
     pub use crate::{ContentFrame, WindowHost};
     pub use wgame_gfx::prelude::*;
+    #[cfg(feature = "3d")]
+    pub use wgame_gfx_3d::Shapes3d;
     #[cfg(feature = "shapes")]
     pub use wgame_gfx_shapes::prelude::*;
 }

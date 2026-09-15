@@ -3,19 +3,20 @@ const PI: f32 = 3.141592653589793238462643;
 struct VertexData {
     @location(0) position: vec4<f32>,
     @location(1) local_coord: vec3<f32>,
+    @location(2) color: vec4<f32>,
 };
 
 struct InstanceData {
-    @location(2) xform_0: vec4<f32>,
-    @location(3) xform_1: vec4<f32>,
-    @location(4) xform_2: vec4<f32>,
-    @location(5) xform_3: vec4<f32>,
-    @location(6) tex_xform_m: vec4<f32>,
-    @location(7) tex_xform_v: vec2<f32>,
-    @location(8) tex_color: vec4<f32>,
+    @location(3) xform_0: vec4<f32>,
+    @location(4) xform_1: vec4<f32>,
+    @location(5) xform_2: vec4<f32>,
+    @location(6) xform_3: vec4<f32>,
+    @location(7) tex_xform_m: vec4<f32>,
+    @location(8) tex_xform_v: vec2<f32>,
+    @location(9) tex_color: vec4<f32>,
 
     {% for (i, a) in instance|enumerate %}
-    @location({{ i|add(9) }}) {{ a.name }}: {{ a.ty }},
+    @location({{ i|add(10) }}) {{ a.name }}: {{ a.ty }},
     {% endfor %}
 };
 
@@ -58,7 +59,7 @@ fn vertex_main(
     output.position = view_matrix * model_matrix * vertex.position;
     output.local_coord = vertex.local_coord;
     output.tex_coord = tex_xform * vertex.local_coord;
-    output.color = view_color * instance.tex_color;
+    output.color = view_color * instance.tex_color * vertex.color;
 
     {{ vertex_source }}
 
@@ -90,5 +91,6 @@ fn fragment_main(input: VaryingData) -> @location(0) vec4<f32> {
 
     {{ fragment_color_source }}
 
+    if color.a == 0.0 { discard; }
     return color;
 }

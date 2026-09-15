@@ -20,6 +20,7 @@
 
 mod auto;
 mod camera;
+mod depth;
 mod frame;
 mod instance;
 pub mod modifiers;
@@ -38,6 +39,7 @@ pub mod utils;
 pub use self::{
     auto::AutoScene,
     camera::Camera,
+    depth::{DEPTH_FORMAT, DepthBuffer, DepthMode},
     frame::Frame,
     instance::{AnyStorage, Instance, Storage},
     object::{InstanceVisitor, Object},

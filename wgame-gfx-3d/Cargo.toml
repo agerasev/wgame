@@ -1,0 +1,9 @@
+[package]
+name = "wgame-gfx-3d"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+glam.workspace = true
+wgame-gfx-shapes.workspace = true

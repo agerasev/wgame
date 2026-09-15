@@ -8,7 +8,26 @@ use crate::{
     shader::{InstanceData, ShaderConfig, Vertex},
 };
 
-pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgpu::RenderPipeline> {
+#[derive(Clone)]
+pub struct Pipelines([wgpu::RenderPipeline; 3]);
+impl Pipelines {
+    pub fn get(&self, mode: wgame_gfx::DepthMode) -> wgpu::RenderPipeline {
+        self.0[mode as usize].clone()
+    }
+}
+pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<Pipelines> {
+    use wgame_gfx::DepthMode;
+    Ok(Pipelines([
+        create_one(state, config, DepthMode::ReadWrite)?,
+        create_one(state, config, DepthMode::ReadOnly)?,
+        create_one(state, config, DepthMode::Overlay)?,
+    ]))
+}
+fn create_one(
+    state: &ShapesState,
+    config: &ShaderConfig,
+    depth: wgame_gfx::DepthMode,
+) -> Result<wgpu::RenderPipeline> {
     let device = state.device();
     let swapchain_format = state.format();
 
@@ -68,7 +87,7 @@ pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<wgp
             })],
         }),
         primitive: wgpu::PrimitiveState::default(),
-        depth_stencil: None,
+        depth_stencil: Some(depth.state()),
         multisample: wgpu::MultisampleState::default(),
         multiview_mask: None,
         cache: None,

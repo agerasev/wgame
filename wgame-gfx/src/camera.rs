@@ -1,6 +1,6 @@
 use std::{cell::RefCell, num::NonZero};
 
-use glam::{Mat4, Vec2, Vec4};
+use glam::{Mat4, Vec2, Vec3, Vec4};
 use rgb::Rgba;
 use wgpu::util::DeviceExt;
 
@@ -62,6 +62,26 @@ impl Camera {
     /// ```
     pub fn screen_to_world(&self, pos: Vec2, viewport: (u32, u32)) -> Option<Vec2> {
         screen_to_world(self.view, pos, viewport)
+    }
+
+    /// Unproject a physical pixel at projected depth in `0..=1`.
+    /// Supports orthographic and perspective matrices; returns `None` for
+    /// invalid viewports, depths, matrices, or points at infinity.
+    pub fn screen_to_world_at_depth(
+        &self,
+        pos: Vec2,
+        depth: f32,
+        viewport: (u32, u32),
+    ) -> Option<Vec3> {
+        unproject(self.view, pos, depth, viewport)
+    }
+
+    /// Ray from the near plane through a physical pixel. Direction is normalized.
+    /// Uses depths 0 and 0.5, so infinite-far perspective projections also work.
+    pub fn screen_ray(&self, pos: Vec2, viewport: (u32, u32)) -> Option<(Vec3, Vec3)> {
+        let origin = self.screen_to_world_at_depth(pos, 0.0, viewport)?;
+        let interior = self.screen_to_world_at_depth(pos, 0.5, viewport)?;
+        Some((origin, (interior - origin).try_normalize()?))
     }
 
     pub(crate) fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
@@ -170,19 +190,28 @@ impl Context for Camera {
     }
 }
 
-fn screen_to_world(view: Mat4, pos: Vec2, (width, height): (u32, u32)) -> Option<Vec2> {
-    if width == 0 || height == 0 || !view.is_finite() || view.determinant() == 0.0 {
+fn unproject(view: Mat4, pos: Vec2, depth: f32, (width, height): (u32, u32)) -> Option<Vec3> {
+    if width == 0
+        || height == 0
+        || !view.is_finite()
+        || view.determinant() == 0.0
+        || !(0.0..=1.0).contains(&depth)
+    {
         return None;
     }
     let clip = Vec4::new(
         2.0 * pos.x / width as f32 - 1.0,
         1.0 - 2.0 * pos.y / height as f32,
-        0.0,
+        depth,
         1.0,
     );
     let world = view.inverse() * clip;
-    let result = world.truncate().truncate() / world.w;
+    let result = world.truncate() / world.w;
     (world.is_finite() && result.is_finite()).then_some(result)
+}
+
+fn screen_to_world(view: Mat4, pos: Vec2, viewport: (u32, u32)) -> Option<Vec2> {
+    unproject(view, pos, 0.0, viewport).map(|p| p.truncate())
 }
 
 #[cfg(test)]
@@ -230,5 +259,22 @@ mod tests {
             ),
             None
         );
+    }
+}
+
+#[cfg(test)]
+mod perspective_tests {
+    use super::*;
+    #[test]
+    fn perspective_unprojection_round_trips_and_rejects_invalid_depth() {
+        let view = glam::camera::rh::proj::directx::perspective(1.0, 1.5, 0.1, 100.0)
+            * glam::camera::rh::view::look_at_mat4(Vec3::new(4.0, -6.0, 3.0), Vec3::ZERO, Vec3::Z);
+        for point in [Vec3::ZERO, Vec3::new(1.0, 2.0, 0.5)] {
+            let clip = view.project_point3(point);
+            let pixel = Vec2::new((clip.x + 1.0) * 600.0, (1.0 - clip.y) * 400.0);
+            let actual = unproject(view, pixel, clip.z, (1200, 800)).unwrap();
+            assert!((actual - point).length() < 0.001);
+        }
+        assert!(unproject(view, Vec2::ZERO, -0.1, (1200, 800)).is_none());
     }
 }

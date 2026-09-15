@@ -25,11 +25,21 @@ pub struct ShaderConfig {
 pub struct Vertex {
     pub pos: Vec4,
     pub local_coord: Vec3,
+    pub color: Vec4,
 }
 
 impl Vertex {
+    /// Per-vertex tint multiplied by the texture and instance color.
+    pub fn with_color(mut self, color: Vec4) -> Self {
+        self.color = color;
+        self
+    }
     pub fn new(pos: Vec4, local_coord: Vec3) -> Self {
-        Self { pos, local_coord }
+        Self {
+            pos,
+            local_coord,
+            color: Vec4::ONE,
+        }
     }
 }
 

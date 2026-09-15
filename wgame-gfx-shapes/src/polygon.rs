@@ -25,7 +25,7 @@ pub struct PolygonLibrary {
     pub quad: Mesh,
     pub four_point_quad: Mesh,
     pub hexagon: Mesh,
-    pub fill: wgpu::RenderPipeline,
+    pub fill: crate::pipeline::Pipelines,
 }
 
 impl PolygonLibrary {
@@ -108,7 +108,7 @@ impl PolygonLibrary {
 pub struct Polygon {
     library: ShapesLibrary,
     geometry: Mesh,
-    fill: wgpu::RenderPipeline,
+    fill: crate::pipeline::Pipelines,
     xform: Affine3A,
 }
 
@@ -125,6 +125,7 @@ impl ShapeFill for Polygon {
         PolygonFill {
             shape: self.clone(),
             texture: texture.clone(),
+            depth: Default::default(),
         }
     }
 }
@@ -134,6 +135,7 @@ impl_transformable!(Polygon, xform);
 #[must_use]
 #[derive(Clone)]
 pub struct PolygonFill {
+    depth: wgame_gfx::DepthMode,
     shape: Polygon,
     texture: Texture,
 }
@@ -148,7 +150,7 @@ impl Instance for PolygonFill {
             vertices: self.shape.geometry.clone(),
             texture: self.texture.resource(),
             uniforms: None,
-            pipeline: self.shape.fill.clone(),
+            pipeline: self.shape.fill.get(self.depth),
             device: self.shape.library.state().device().clone(),
             _ghost: PhantomData,
         }
@@ -172,7 +174,10 @@ delegate_transformable!(PolygonFill, shape);
 impl_textured!(PolygonFill, texture);
 
 impl ShapesLibrary {
-    fn polygon(&self, mesh: Mesh) -> Polygon {
+    /// Draw an indexed or non-indexed triangle mesh through the shared shape
+    /// renderer. Vertex positions may be 2D, 3D, or homogeneous coordinates;
+    /// local coordinates supply UVs. Meshes and pipelines are shared by clones.
+    pub fn mesh(&self, mesh: Mesh) -> Polygon {
         Polygon {
             library: self.clone(),
             geometry: mesh,
@@ -182,12 +187,12 @@ impl ShapesLibrary {
     }
 
     pub fn triangle(&self, a: impl Position, b: impl Position, c: impl Position) -> Polygon {
-        self.polygon(self.polygon.triangle.clone())
+        self.mesh(self.polygon.triangle.clone())
             .transform(Mat3::from_cols(a.to_xyz(), b.to_xyz(), c.to_xyz()))
     }
 
     pub fn unit_quad(&self) -> Polygon {
-        self.polygon(self.polygon.quad.clone())
+        self.mesh(self.polygon.quad.clone())
     }
 
     /// A quadrilateral with corners in perimeter order and texture coordinates
@@ -218,7 +223,7 @@ impl ShapesLibrary {
         c: impl Position,
         d: impl Position,
     ) -> Polygon {
-        self.polygon(self.polygon.four_point_quad.clone())
+        self.mesh(self.polygon.four_point_quad.clone())
             .transform(quad_transform([
                 a.to_xyz(),
                 b.to_xyz(),
@@ -257,7 +262,7 @@ impl ShapesLibrary {
     }
 
     pub fn unit_hexagon(&self) -> Polygon {
-        self.polygon(self.polygon.hexagon.clone())
+        self.mesh(self.polygon.hexagon.clone())
     }
 }
 
@@ -291,6 +296,16 @@ fn line_transform(start: Vec2, end: Vec2, width: f32) -> Affine2 {
         half.normalize_or_zero().perp() * (0.5 * width),
         0.5 * start + 0.5 * end,
     )
+}
+
+impl PolygonFill {
+    /// Select depth testing/writing; the default is `ReadWrite`.
+    pub fn depth(&self, depth: wgame_gfx::DepthMode) -> Self {
+        Self {
+            depth,
+            ..self.clone()
+        }
+    }
 }
 
 #[cfg(test)]

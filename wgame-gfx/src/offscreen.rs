@@ -7,6 +7,7 @@ pub struct Offscreen {
     texture: wgpu::Texture,
     view: wgpu::TextureView,
     encoder: wgpu::CommandEncoder,
+    depth: crate::DepthBuffer,
 }
 impl Offscreen {
     /// Panics for zero dimensions or sizes unsupported by the device.
@@ -33,12 +34,15 @@ impl Offscreen {
         });
         let view = texture.create_view(&Default::default());
         let encoder = state.device().create_command_encoder(&Default::default());
-        Self {
+        let mut target = Self {
+            depth: crate::DepthBuffer::new(state, size),
             state: state.clone(),
             texture,
             view,
             encoder,
-        }
+        };
+        target.clear_depth();
+        target
     }
     pub fn texture(&self) -> &wgpu::Texture {
         &self.texture
@@ -73,6 +77,9 @@ impl Target for Offscreen {
     }
     fn view(&self) -> &wgpu::TextureView {
         &self.view
+    }
+    fn depth_view(&self) -> &wgpu::TextureView {
+        self.depth.view()
     }
     fn encoder(&mut self) -> &mut wgpu::CommandEncoder {
         &mut self.encoder

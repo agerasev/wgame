@@ -3385,6 +3385,7 @@ dependencies = [
  "wgame-app-input",
  "wgame-fs",
  "wgame-gfx",
+ "wgame-gfx-3d",
  "wgame-gfx-shapes",
  "wgame-gfx-texture",
  "wgame-gfx-typography",
@@ -3474,6 +3475,14 @@ dependencies = [
  "rgb",
  "smallvec",
  "wgpu",
+]
+
+[[package]]
+name = "wgame-gfx-3d"
+version = "0.1.0"
+dependencies = [
+ "glam",
+ "wgame-gfx-shapes",
 ]
 
 [[package]]

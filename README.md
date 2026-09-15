@@ -39,3 +39,7 @@ Try `cargo run -p wgame-egui --example playground` (or add `-- --plain`).
 ## License
 
 MIT. Example font and image assets are used only by examples and tests.
+
+The optional `3d` facade feature adds [solid primitives](wgame-gfx-3d/README.md)
+to the shared shape renderer. Cameras, textures, meshes and scenes are common
+to 2D and 3D; targets provide depth by default.

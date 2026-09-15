@@ -8,6 +8,7 @@ pub struct Surface<'a> {
     state: Graphics,
     size: (u32, u32),
     pending: Option<wgpu::SurfaceTexture>,
+    depth: Option<crate::DepthBuffer>,
 }
 
 impl<'a> Surface<'a> {
@@ -82,6 +83,7 @@ impl<'a> Surface<'a> {
             state: Graphics::new(adapter, device, queue, format),
             size: Default::default(),
             pending: None,
+            depth: None,
         };
 
         Ok(this)
@@ -112,6 +114,10 @@ impl<'a> Surface<'a> {
     }
     pub fn resize(&mut self, new_size: (u32, u32)) {
         self.pending = None;
+        if self.size != new_size {
+            self.depth = (new_size.0 > 0 && new_size.1 > 0)
+                .then(|| crate::DepthBuffer::new(&self.state, new_size));
+        }
         self.size = new_size;
         self.configure();
     }
@@ -160,6 +166,13 @@ impl<'a> Surface<'a> {
 
     pub fn frame(&mut self) -> Result<Frame<'a, '_>> {
         Frame::new(self)
+    }
+
+    pub(crate) fn depth_view(&self) -> &wgpu::TextureView {
+        self.depth
+            .as_ref()
+            .expect("a drawable surface has depth")
+            .view()
     }
 
     pub fn state(&self) -> &Graphics {

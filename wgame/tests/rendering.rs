@@ -12,6 +12,8 @@
 //! Pixel checks use analytic expectations or comparisons, not a complete visual
 //! gallery or a guarantee of typography completeness and driver portability.
 #![cfg(all(feature = "shapes", feature = "image", feature = "typography"))]
+#[path = "rendering/depth.rs"]
+mod depth;
 #[path = "rendering/polylines.rs"]
 mod polylines;
 mod support;

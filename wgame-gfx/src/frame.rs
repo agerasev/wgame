@@ -23,13 +23,15 @@ impl<'a, 'b> Frame<'a, 'b> {
             .device()
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        Ok(Frame {
+        let mut frame = Frame {
             owner,
             surface,
             view,
             encoder,
             before: Vec::new(),
-        })
+        };
+        frame.clear_depth();
+        Ok(frame)
     }
 
     /// Queue prerequisite commands for the same submission as this frame.
@@ -53,6 +55,9 @@ impl Target for Frame<'_, '_> {
     }
     fn view(&self) -> &wgpu::TextureView {
         &self.view
+    }
+    fn depth_view(&self) -> &wgpu::TextureView {
+        self.owner.depth_view()
     }
     fn encoder(&mut self) -> &mut wgpu::CommandEncoder {
         &mut self.encoder

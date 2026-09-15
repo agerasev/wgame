@@ -66,6 +66,7 @@ impl ShapeFill for Polyline {
         PolylineFill {
             shape: self.clone(),
             texture: texture.clone(),
+            depth: Default::default(),
         }
     }
 }
@@ -76,6 +77,7 @@ impl_transformable!(Polyline, xform);
 #[must_use]
 #[derive(Clone)]
 pub struct PolylineFill {
+    depth: wgame_gfx::DepthMode,
     shape: Polyline,
     texture: Texture,
 }
@@ -91,7 +93,7 @@ impl Instance for PolylineFill {
             vertices: library.polygon.four_point_quad.clone(),
             texture: self.texture.resource(),
             uniforms: None,
-            pipeline: library.polygon.fill.clone(),
+            pipeline: library.polygon.fill.get(self.depth),
             device: library.state().device().clone(),
             _ghost: PhantomData,
         }
@@ -150,6 +152,16 @@ impl ShapesLibrary {
             library: self.clone(),
             pieces: geometry::tessellate(points).into(),
             xform: Affine3A::IDENTITY,
+        }
+    }
+}
+
+impl PolylineFill {
+    /// Select depth testing/writing; the default is `ReadWrite`.
+    pub fn depth(&self, depth: wgame_gfx::DepthMode) -> Self {
+        Self {
+            depth,
+            ..self.clone()
         }
     }
 }
