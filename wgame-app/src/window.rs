@@ -29,12 +29,26 @@ pub(crate) struct WindowState {
     redraw_requested: bool,
     redraw_ready: bool,
     terminated: bool,
+    focused: bool,
+    mouse_motion: (f64, f64),
 }
 
 impl WindowState {
+    pub(crate) fn mouse_motion(&mut self, delta: (f64, f64)) {
+        if self.focused && !self.terminated && delta.0.is_finite() && delta.1.is_finite() {
+            self.mouse_motion.0 += delta.0;
+            self.mouse_motion.1 += delta.1;
+        }
+    }
+
     pub fn push_event(&mut self, event: WindowEvent) {
         let mut wake = true;
         match &event {
+            WindowEvent::Focused(focused) => {
+                self.focused = *focused;
+                self.mouse_motion = (0.0, 0.0);
+                wake = false;
+            }
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
             }
@@ -42,6 +56,7 @@ impl WindowState {
                 self.redraw_ready = true;
             }
             WindowEvent::Resized(size) => {
+                self.mouse_motion = (0.0, 0.0);
                 self.size = *size;
                 self.resized = true;
             }
@@ -117,6 +132,7 @@ where
     let state = Rc::new(RefCell::new(WindowState {
         size: handle.inner_size(),
         scale_factor: handle.scale_factor(),
+        focused: handle.has_focus(),
         resized: true,
         ..Default::default()
     }));
@@ -218,6 +234,7 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
                     size: state.size,
                     scale_factor: state.scale_factor,
                     resized: replace(&mut state.resized, false),
+                    mouse_motion: replace(&mut state.mouse_motion, (0.0, 0.0)),
                 }))
             }
         } else {
@@ -233,6 +250,7 @@ impl<'a, 'b> Future for WaitRedraw<'a, 'b> {
 }
 
 pub struct Redraw<'b> {
+    mouse_motion: (f64, f64),
     handle: &'b WindowHandle,
     size: PhysicalSize<u32>,
     scale_factor: f64,
@@ -240,6 +258,13 @@ pub struct Redraw<'b> {
 }
 
 impl Redraw<'_> {
+    /// Accumulated raw device motion since the preceding redraw, while focused.
+    /// Units are platform-defined device units, unaffected by display scaling.
+    /// Useful with cursor locking; focus/size changes discard accumulated motion.
+    pub fn mouse_motion(&self) -> (f64, f64) {
+        self.mouse_motion
+    }
+
     /// OS scale factor captured with this redraw's physical dimensions.
     pub fn scale_factor(&self) -> f64 {
         self.scale_factor
@@ -271,6 +296,22 @@ impl Redraw<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn relative_motion_accumulates_only_while_focused_and_resets_on_focus_loss() {
+        let mut state = WindowState::default();
+        state.mouse_motion((3.0, 4.0));
+        assert_eq!(state.mouse_motion, (0.0, 0.0));
+        state.push_event(WindowEvent::Focused(true));
+        state.mouse_motion((3.0, 4.0));
+        state.mouse_motion((-1.0, 2.0));
+        assert_eq!(replace(&mut state.mouse_motion, (0.0, 0.0)), (2.0, 6.0));
+        state.mouse_motion((f64::NAN, 2.0));
+        assert_eq!(state.mouse_motion, (0.0, 0.0));
+        state.mouse_motion((3.0, 4.0));
+        state.push_event(WindowEvent::Focused(false));
+        assert_eq!(state.mouse_motion, (0.0, 0.0));
+    }
 
     #[test]
     fn scale_changes_request_redraw_without_claiming_a_resize() {

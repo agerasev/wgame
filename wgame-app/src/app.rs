@@ -174,6 +174,26 @@ impl ApplicationHandler<UserEvent> for AppHandler {
         }
     }
 
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        if let winit::event::DeviceEvent::MouseMotion { delta } = event {
+            let windows: Vec<_> = self
+                .state
+                .borrow()
+                .windows
+                .values()
+                .filter_map(|(_, state)| state.upgrade())
+                .collect();
+            for window in windows {
+                window.borrow_mut().mouse_motion(delta);
+            }
+        }
+    }
+
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
         log::trace!("user_event: {event:?}");
         self.executor.add_task_to_poll(event.task_id);

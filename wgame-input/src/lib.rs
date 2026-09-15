@@ -86,6 +86,10 @@ pub enum Event {
 /// Immutable input paired with one content frame.
 #[derive(Clone, Debug, Default)]
 pub struct CanvasInput {
+    /// Summed relative mouse motion in platform-defined device units. Unaffected
+    /// by display scaling. Hosts provide it only while this canvas is focused;
+    /// cancellation clears it. Do not also use pointer deltas for the same motion.
+    pub relative_motion: Vec2,
     pub events: Vec<Event>,
     pub pointer: Option<Vec2>,
     pub hovered: bool,
@@ -142,6 +146,7 @@ impl InputState {
                 self.input.buttons.fill(false);
                 self.input.keys.clear();
                 self.input.pointer = None;
+                self.input.relative_motion = Vec2::ZERO;
             }
             Event::Scroll(_) => {}
         }

@@ -111,7 +111,16 @@ impl<'a> Window<'a> {
                 continue;
             }
             let changed = self.pending_resize.is_some() || self.last_scale != redraw.scale_factor();
-            let input = self.host_input.collect(redraw.scale_factor(), changed);
+            let mut input = self.host_input.collect(redraw.scale_factor(), changed);
+            if input.focused
+                && !input
+                    .events
+                    .iter()
+                    .any(|event| matches!(event, crate::canvas::Event::Cancelled))
+            {
+                let (x, y) = redraw.mouse_motion();
+                input.relative_motion = glam::Vec2::new(x as f32, y as f32);
+            }
             self.last_scale = redraw.scale_factor();
             return Ok(Some(Frame {
                 input,

@@ -279,9 +279,17 @@ impl<'w, L: FnMut(&mut egui::Ui, &Canvas) -> egui::Response> WindowHost for Egui
             let response = response.expect("egui executes a layout pass");
             let modifiers = self.context.input(|i| i.modifiers);
             let scale = output.pixels_per_point;
-            let input = self
+            let mut input = self
                 .input
                 .collect(&response, &events, focused, modifiers, scale);
+            if input.focused
+                && !input
+                    .events
+                    .iter()
+                    .any(|event| matches!(event, wgame::canvas::Event::Cancelled))
+            {
+                input.relative_motion = root.input().relative_motion;
+            }
             let visible = response.rect.is_positive() && response.interact_rect.is_positive();
             let limit = root.state().device().limits().max_texture_dimension_2d;
             let size = (
