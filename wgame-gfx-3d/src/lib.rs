@@ -60,7 +60,15 @@ fn sphere_mesh(sectors: u32, rings: u32) -> (Vec<Vertex>, Vec<u32>) {
     }
     (vertices, indices)
 }
-fn cylinder_mesh(sectors: u32) -> (Vec<Vertex>, Vec<u32>) {
+/// CPU geometry for a closed unit-radius cylinder, Z from -0.5 to 0.5.
+///
+/// Cap and side vertices are separate. Edit their UVs or vertex colors before
+/// uploading with [`Mesh::from_arrays`] when an asset needs custom mapping.
+/// [`Shapes3d::cylinder`] uploads these arrays directly for the usual case.
+///
+/// # Panics
+/// Panics unless `sectors` is between 3 and 4096 inclusive.
+pub fn cylinder_mesh(sectors: u32) -> (Vec<Vertex>, Vec<u32>) {
     assert!(
         (3..=4096).contains(&sectors),
         "invalid cylinder subdivisions"
