@@ -6,6 +6,7 @@
 
 mod circle;
 pub mod geometry;
+pub mod material;
 mod pipeline;
 mod polygon;
 mod polyline;

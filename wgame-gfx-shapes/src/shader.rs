@@ -12,6 +12,9 @@ pub struct ShaderConfig {
     /// Uniforms to pass to fragment shader.
     pub fragment_uniforms: Vec<Binding>,
 
+    /// Module-level WGSL declarations and helper functions.
+    pub module_source: String,
+
     /// Code to execute in vertex shader to set additional varyings and alter basic ones.
     pub vertex_source: String,
     /// Code to execute in fragment shader before texture sampling.
@@ -26,6 +29,8 @@ pub struct Vertex {
     pub pos: Vec4,
     pub local_coord: Vec3,
     pub color: Vec4,
+    /// Object-space surface normal. Flat 2D geometry uses +Z.
+    pub normal: Vec3,
 }
 
 impl Vertex {
@@ -34,11 +39,17 @@ impl Vertex {
         self.color = color;
         self
     }
+    /// Set the object-space normal used by lighting materials.
+    pub fn with_normal(mut self, normal: Vec3) -> Self {
+        self.normal = normal;
+        self
+    }
     pub fn new(pos: Vec4, local_coord: Vec3) -> Self {
         Self {
             pos,
             local_coord,
             color: Vec4::ONE,
+            normal: Vec3::Z,
         }
     }
 }

@@ -20,7 +20,7 @@ use crate::{Mesh, shader::InstanceData};
 pub struct ShapeResource<T: Attribute> {
     pub vertices: Mesh,
     pub texture: TextureResource,
-    pub uniforms: Option<wgpu::BindGroup>,
+    pub bindings: Vec<crate::material::MaterialBinding>,
     pub pipeline: wgpu::RenderPipeline,
     pub device: wgpu::Device,
     pub _ghost: PhantomData<T>,
@@ -85,9 +85,11 @@ impl<T: Attribute> Storage for ShapeStorage<T> {
 
 impl<T: Attribute> ShapeResource<T> {
     fn uniforms(&self) -> impl IntoIterator<Item = wgpu::BindGroup> {
-        [self.texture.bind_group().clone()]
-            .into_iter()
-            .chain(self.uniforms.clone())
+        [self.texture.bind_group().clone()].into_iter().chain(
+            self.bindings
+                .iter()
+                .map(crate::material::MaterialBinding::bind_group),
+        )
     }
 }
 

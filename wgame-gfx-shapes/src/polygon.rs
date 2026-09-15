@@ -33,9 +33,12 @@ impl PolygonLibrary {
         let triangle = Mesh::from_arrays(
             state,
             &[
-                Vertex::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
-                Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
-                Vertex::new(Vec4::new(0.0, 0.0, 1.0, 1.0), Vec3::new(0.0, 0.0, 1.0)),
+                Vertex::new(Vec4::new(1.0, 0.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0))
+                    .with_normal(Vec3::ONE),
+                Vertex::new(Vec4::new(0.0, 1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 1.0))
+                    .with_normal(Vec3::ONE),
+                Vertex::new(Vec4::new(0.0, 0.0, 1.0, 1.0), Vec3::new(0.0, 0.0, 1.0))
+                    .with_normal(Vec3::ONE),
             ],
             None,
         );
@@ -149,7 +152,7 @@ impl Instance for PolygonFill {
         ShapeResource {
             vertices: self.shape.geometry.clone(),
             texture: self.texture.resource(),
-            uniforms: None,
+            bindings: Vec::new(),
             pipeline: self.shape.fill.get(self.depth),
             device: self.shape.library.state().device().clone(),
             _ghost: PhantomData,
@@ -299,6 +302,17 @@ fn line_transform(start: Vec2, end: Vec2, width: f32) -> Affine2 {
 }
 
 impl PolygonFill {
+    pub(crate) fn depth_mode(&self) -> wgame_gfx::DepthMode {
+        self.depth
+    }
+    pub(crate) fn instance_data(&self) -> InstanceData<()> {
+        InstanceData {
+            matrix: self.shape.xform.to_mat4(),
+            tex: self.texture.attribute(),
+            custom: (),
+        }
+    }
+
     /// Select depth testing/writing; the default is `ReadWrite`.
     pub fn depth(&self, depth: wgame_gfx::DepthMode) -> Self {
         Self {

@@ -1,6 +1,6 @@
 # wgame
 
-A modular Rust framework for async 2D graphics applications, built on winit and
+A modular Rust framework for async 2D/3D graphics applications, built on winit and
 wgpu. It provides an async window loop, composable shapes, texture atlases, and text.
 
 ## Get started
@@ -36,10 +36,10 @@ Try `cargo run -p wgame-egui --example playground` (or add `-- --plain`).
 | Shader attributes | `wgame-shader`, `wgame-shader-macros` |
 | Timing helpers and examples | `wgame-utils`, `wgame-examples` |
 
+The optional `3d` facade feature adds [solid primitives and lighting](wgame-gfx-3d/README.md)
+to the shared shape renderer. Cameras, textures, meshes, materials and scenes are
+common to 2D and 3D; targets provide depth by default.
+
 ## License
 
 MIT. Example font and image assets are used only by examples and tests.
-
-The optional `3d` facade feature adds [solid primitives](wgame-gfx-3d/README.md)
-to the shared shape renderer. Cameras, textures, meshes and scenes are common
-to 2D and 3D; targets provide depth by default.

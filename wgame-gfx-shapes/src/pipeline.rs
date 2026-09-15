@@ -16,16 +16,24 @@ impl Pipelines {
     }
 }
 pub fn create_pipeline(state: &ShapesState, config: &ShaderConfig) -> Result<Pipelines> {
+    create_pipeline_with_bindings(state, config, &[])
+}
+pub(crate) fn create_pipeline_with_bindings(
+    state: &ShapesState,
+    config: &ShaderConfig,
+    extra_layouts: &[wgpu::BindGroupLayout],
+) -> Result<Pipelines> {
     use wgame_gfx::DepthMode;
     Ok(Pipelines([
-        create_one(state, config, DepthMode::ReadWrite)?,
-        create_one(state, config, DepthMode::ReadOnly)?,
-        create_one(state, config, DepthMode::Overlay)?,
+        create_one(state, config, extra_layouts, DepthMode::ReadWrite)?,
+        create_one(state, config, extra_layouts, DepthMode::ReadOnly)?,
+        create_one(state, config, extra_layouts, DepthMode::Overlay)?,
     ]))
 }
 fn create_one(
     state: &ShapesState,
     config: &ShaderConfig,
+    extra_layouts: &[wgpu::BindGroupLayout],
     depth: wgame_gfx::DepthMode,
 ) -> Result<wgpu::RenderPipeline> {
     let device = state.device();
@@ -43,12 +51,16 @@ fn create_one(
         source: shader_source,
     });
 
+    let layouts: Vec<_> = [
+        Some(state.camera_bind_group_layout()),
+        Some(&state.texture().float_bind_group_layout),
+    ]
+    .into_iter()
+    .chain(extra_layouts.iter().map(Some))
+    .collect();
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
-        bind_group_layouts: &[
-            Some(state.camera_bind_group_layout()),
-            Some(&state.texture().float_bind_group_layout),
-        ],
+        bind_group_layouts: &layouts,
         immediate_size: 0,
     });
 

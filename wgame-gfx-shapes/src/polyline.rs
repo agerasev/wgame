@@ -92,7 +92,7 @@ impl Instance for PolylineFill {
         ShapeResource {
             vertices: library.polygon.four_point_quad.clone(),
             texture: self.texture.resource(),
-            uniforms: None,
+            bindings: Vec::new(),
             pipeline: library.polygon.fill.get(self.depth),
             device: library.state().device().clone(),
             _ghost: PhantomData,

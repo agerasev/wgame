@@ -4,19 +4,20 @@ struct VertexData {
     @location(0) position: vec4<f32>,
     @location(1) local_coord: vec3<f32>,
     @location(2) color: vec4<f32>,
+    @location(3) normal: vec3<f32>,
 };
 
 struct InstanceData {
-    @location(3) xform_0: vec4<f32>,
-    @location(4) xform_1: vec4<f32>,
-    @location(5) xform_2: vec4<f32>,
-    @location(6) xform_3: vec4<f32>,
-    @location(7) tex_xform_m: vec4<f32>,
-    @location(8) tex_xform_v: vec2<f32>,
-    @location(9) tex_color: vec4<f32>,
+    @location(4) xform_0: vec4<f32>,
+    @location(5) xform_1: vec4<f32>,
+    @location(6) xform_2: vec4<f32>,
+    @location(7) xform_3: vec4<f32>,
+    @location(8) tex_xform_m: vec4<f32>,
+    @location(9) tex_xform_v: vec2<f32>,
+    @location(10) tex_color: vec4<f32>,
 
     {% for (i, a) in instance|enumerate %}
-    @location({{ i|add(10) }}) {{ a.name }}: {{ a.ty }},
+    @location({{ i|add(11) }}) {{ a.name }}: {{ a.ty }},
     {% endfor %}
 };
 
@@ -37,6 +38,8 @@ var<uniform> view_matrix: mat4x4<f32>;
 @group(0)
 @binding(1)
 var<uniform> view_color: vec4<f32>;
+
+{{ module_source }}
 
 @vertex
 fn vertex_main(
@@ -86,8 +89,8 @@ fn fragment_main(input: VaryingData) -> @location(0) vec4<f32> {
 
     {{ fragment_texcoord_source }}
 
-    var color = textureSample(texture, sampler_, tex_coord);
-    color *= input.color;
+    let sampled_color = textureSample(texture, sampler_, tex_coord);
+    var color = sampled_color * input.color;
 
     {{ fragment_color_source }}
 

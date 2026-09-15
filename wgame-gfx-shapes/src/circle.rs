@@ -215,7 +215,7 @@ impl Instance for CircleFill {
         ShapeResource {
             vertices: self.shape.geometry.clone(),
             texture: self.texture.resource(),
-            uniforms: None,
+            bindings: Vec::new(),
             pipeline: self.shape.fill.get(self.depth),
             device: self.shape.library.state().device().clone(),
             _ghost: PhantomData,
@@ -265,7 +265,7 @@ impl Instance for CircleStroke {
         ShapeResource {
             vertices: self.shape.geometry.clone(),
             texture: self.texture.resource(),
-            uniforms: None,
+            bindings: Vec::new(),
             pipeline: self.shape.stroke.get(self.depth),
             device: self.shape.library.state().device().clone(),
             _ghost: PhantomData,
