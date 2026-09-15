@@ -41,7 +41,9 @@ impl Offscreen {
             view,
             encoder,
         };
+        // Initialization must survive discarding the first batch of draws.
         target.clear_depth();
+        target.submit();
         target
     }
     pub fn texture(&self) -> &wgpu::Texture {

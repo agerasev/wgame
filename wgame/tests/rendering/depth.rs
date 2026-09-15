@@ -143,3 +143,34 @@ fn sphere_renders_through_the_shared_perspective_camera() {
     assert_eq!(center(&mut target), [255, 0, 0, 255]);
     assert_eq!(&support::pixels(&mut target)[..4], &[0, 0, 0, 255]);
 }
+
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn offscreen_discard_preserves_initialization_and_submitted_depth() {
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    let mut target = Offscreen::new(&gfx, (32, 32));
+    let camera = Camera::new(&gfx, Mat4::IDENTITY);
+    let mut near = Scene::default();
+    near.add(
+        &lib.shapes()
+            .unit_quad()
+            .fill_color(color::RED)
+            .move_to(Vec3::Z * 0.2),
+    );
+    target.discard();
+    target.render_iter(&camera, near.iter());
+    assert_eq!(center(&mut target), [255, 0, 0, 255]);
+    // Discarding an encoded clear must retain the depth already on the GPU.
+    target.clear_depth();
+    target.discard();
+    let mut far = Scene::default();
+    far.add(
+        &lib.shapes()
+            .unit_quad()
+            .fill_color(color::BLUE)
+            .move_to(Vec3::Z * 0.8),
+    );
+    target.render_iter(&camera, far.iter());
+    assert_eq!(center(&mut target), [255, 0, 0, 255]);
+}
