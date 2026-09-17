@@ -37,6 +37,19 @@ switch between horizontal and vertical layouts. The example embeds its font and
 supports `-- --smoke`. Viewport rectangles use physical pixels; see
 [`Target::viewport`](../wgame-gfx/src/target.rs) for bounds and clearing behavior.
 
+Render into a texture and capture a detached CPU snapshot:
+
+```sh
+cargo run -p wgame-examples --bin render_textures
+```
+
+The live view and frozen snapshot use the same shape sampling API. A checkerboard
+reveals transparency, and the live texture contains a borrowed viewport. Press S
+to capture again, Space to pause, or Escape to close. The example embeds its font
+and supports `-- --smoke`, including asynchronous readback and re-upload. See
+[`RenderTexture`](../wgame-gfx-texture/src/render_texture.rs) for ownership and
+submission rules.
+
 The older examples load assets relative to the current directory:
 
 ```sh
@@ -65,6 +78,7 @@ The viewport example has its own page:
 
 ```sh
 trunk serve viewports.html --no-default-features --features web
+trunk serve render_textures.html --no-default-features --features web
 ```
 
 Do not combine the default desktop features with `web`. WebGPU is not enabled
