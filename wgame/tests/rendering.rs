@@ -17,6 +17,8 @@ mod depth;
 #[path = "rendering/polylines.rs"]
 mod polylines;
 mod support;
+#[path = "rendering/viewports.rs"]
+mod viewports;
 use wgame::gfx::types::Color;
 use wgame::{
     Library,

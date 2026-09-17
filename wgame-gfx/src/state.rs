@@ -8,6 +8,7 @@ pub struct Graphics {
     format: wgpu::TextureFormat,
 
     camera_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) clear: crate::clear::ClearCache,
 }
 
 impl Graphics {
@@ -21,6 +22,7 @@ impl Graphics {
     ) -> Self {
         Self {
             camera_bind_group_layout: Camera::create_bind_group_layout(&device),
+            clear: Default::default(),
 
             adapter,
             device,

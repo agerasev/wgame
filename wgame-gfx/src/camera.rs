@@ -43,12 +43,14 @@ impl Camera {
     }
 
     /// Converts a physical cursor position (top-left origin, Y downward) to
-    /// world X/Y using the full target size in physical pixels.
+    /// world X/Y using the target size in physical pixels. For a borrowed
+    /// [`crate::Viewport`], first convert the position with
+    /// [`crate::Viewport::to_local`] and pass that viewport's size.
     ///
     /// This is intended for 2D cameras, including transformed
     /// [`crate::Target::physical_camera`] cameras. It unprojects at clip depth
-    /// zero; for perspective picking, use [`Self::logical_to_world`] to construct
-    /// a ray instead. Positions outside the viewport are allowed.
+    /// zero; for perspective picking, use [`Self::screen_ray`] instead.
+    /// Positions outside the viewport are allowed.
     /// Returns `None` for an empty viewport, singular camera, or non-finite result.
     ///
     /// ```

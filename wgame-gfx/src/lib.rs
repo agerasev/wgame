@@ -7,6 +7,8 @@
 //!
 //! [`Target::camera`] supplies aspect-correct coordinates; [`Target::physical_camera`]
 //! uses physical pixels. [`AutoScene`] provides automatic rendering on normal drop.
+//! [`Target::viewport`] borrows a clipped rectangle with its own camera coordinates
+//! for previews, split-screen views, and nested drawing areas.
 //!
 //! # Custom and headless rendering
 //!
@@ -20,6 +22,7 @@
 
 mod auto;
 mod camera;
+mod clear;
 mod depth;
 mod frame;
 mod instance;
@@ -35,6 +38,7 @@ mod surface;
 mod target;
 pub mod types;
 pub mod utils;
+mod viewport;
 
 pub use self::{
     auto::AutoScene,
@@ -51,6 +55,7 @@ pub use self::{
     state::Graphics,
     surface::Surface,
     target::Target,
+    viewport::{Viewport, ViewportError},
 };
 pub use anyhow::Error;
 pub use wgpu::PresentMode;
