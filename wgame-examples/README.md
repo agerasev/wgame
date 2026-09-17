@@ -25,6 +25,18 @@ limit 4, index-based UVs, repeated points, zero widths, and translucent crossing
 Space pauses the angle sweep, P toggles junction markers, and Escape closes the
 window. It embeds its assets and also supports `-- --smoke`.
 
+Explore borrowed viewports with 2D and perspective cameras:
+
+```sh
+cargo run -p wgame-examples --bin viewports
+```
+
+The first panel contains a nested preview. Move the pointer over a view to see
+picking in its local coordinates; Space pauses and Escape closes. Resize to
+switch between horizontal and vertical layouts. The example embeds its font and
+supports `-- --smoke`. Viewport rectangles use physical pixels; see
+[`Target::viewport`](../wgame-gfx/src/target.rs) for bounds and clearing behavior.
+
 The older examples load assets relative to the current directory:
 
 ```sh
@@ -49,6 +61,11 @@ trunk serve --no-default-features --features web
 Open the URL printed by Trunk. `index.html` selects the shapes example and copies
 `assets/`. To use the playground, change `data-bin="shapes"` to
 `data-bin="playground"` or `data-bin="polylines"`. Both embed their assets.
+The viewport example has its own page:
+
+```sh
+trunk serve viewports.html --no-default-features --features web
+```
 
 Do not combine the default desktop features with `web`. WebGPU is not enabled
 by the high-level web feature. Use `trunk build --no-default-features --features
