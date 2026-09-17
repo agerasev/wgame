@@ -187,3 +187,13 @@ fn escape_is_delivered_to_focused_canvas_without_cancelling_first() {
     assert!(!input.events.contains(&Event::Cancelled));
     assert!(input.button_down(Button::Primary));
 }
+
+#[test]
+fn page_keys_reach_the_canvas() {
+    for (source, expected) in [
+        (egui::Key::PageUp, Key::PageUp),
+        (egui::Key::PageDown, Key::PageDown),
+    ] {
+        assert_eq!(super::logical_key(source), Some(expected));
+    }
+}

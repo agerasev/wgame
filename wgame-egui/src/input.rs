@@ -138,6 +138,8 @@ fn logical_key(key: egui::Key) -> Option<Key> {
         egui::Key::Delete => Key::Delete,
         egui::Key::Home => Key::Home,
         egui::Key::End => Key::End,
+        egui::Key::PageUp => Key::PageUp,
+        egui::Key::PageDown => Key::PageDown,
         egui::Key::ArrowLeft => Key::ArrowLeft,
         egui::Key::ArrowRight => Key::ArrowRight,
         egui::Key::ArrowUp => Key::ArrowUp,

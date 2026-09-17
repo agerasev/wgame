@@ -162,6 +162,8 @@ fn logical_key(key: &WinitKey) -> Option<Key> {
             NamedKey::Delete => Key::Delete,
             NamedKey::Home => Key::Home,
             NamedKey::End => Key::End,
+            NamedKey::PageUp => Key::PageUp,
+            NamedKey::PageDown => Key::PageDown,
             NamedKey::ArrowLeft => Key::ArrowLeft,
             NamedKey::ArrowRight => Key::ArrowRight,
             NamedKey::ArrowUp => Key::ArrowUp,
@@ -177,6 +179,15 @@ mod tests {
     use super::*;
     use crate::app::input::event::{DeviceId, ElementState};
     use wgame_app_input::EventHandler;
+    #[test]
+    fn page_keys_reach_the_canvas() {
+        for (source, expected) in [
+            (NamedKey::PageUp, Key::PageUp),
+            (NamedKey::PageDown, Key::PageDown),
+        ] {
+            assert_eq!(logical_key(&WinitKey::Named(source)), Some(expected));
+        }
+    }
     #[test]
     fn local_coordinates_and_scale_change_reset_capture() {
         let mut handler = EventHandler::default();
