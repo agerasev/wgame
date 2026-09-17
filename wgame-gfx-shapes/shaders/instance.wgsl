@@ -77,6 +77,9 @@ var texture: texture_2d<f32>;
 @binding(1)
 var sampler_: sampler;
 
+@group(1) @binding(2)
+var<uniform> texture_info: vec4<u32>;
+
 {% for (i, a) in fragment_uniforms|enumerate %}
 @group(2)
 @binding({{ i }})
@@ -89,7 +92,10 @@ fn fragment_main(input: VaryingData) -> @location(0) vec4<f32> {
 
     {{ fragment_texcoord_source }}
 
-    let sampled_color = textureSample(texture, sampler_, tex_coord);
+    var sampled_color = textureSample(texture, sampler_, tex_coord);
+    if texture_info.x != 0u {
+        sampled_color = vec4(select(vec3(0.0), sampled_color.rgb / max(sampled_color.a, 1e-20), sampled_color.a > 0.0), sampled_color.a);
+    }
     var color = sampled_color * input.color;
 
     {{ fragment_color_source }}

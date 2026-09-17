@@ -1,7 +1,8 @@
 use glam::Affine2;
 use wgame_gfx::{Object, modifiers::Transformable, prelude::Colorable, types::Color};
 
-use crate::{ShapesLibrary, Texture};
+use crate::ShapesLibrary;
+use wgame_gfx_texture::SampledTexture;
 
 pub trait Shape: Transformable {
     fn library(&self) -> &ShapesLibrary;
@@ -10,7 +11,7 @@ pub trait Shape: Transformable {
 pub trait ShapeFill: Shape {
     type Fill: Object + Textured + Colorable + Transformable;
 
-    fn fill_texture(&self, texture: &Texture) -> Self::Fill;
+    fn fill_texture(&self, texture: &dyn SampledTexture) -> Self::Fill;
     fn fill_color(&self, color: impl Color) -> Self::Fill {
         self.fill_texture(&self.library().white_texture.multiply_color(color))
     }
@@ -19,7 +20,7 @@ pub trait ShapeFill: Shape {
 pub trait ShapeStroke: Shape {
     type Stroke: Object + Textured + Colorable + Transformable;
 
-    fn stroke_texture(&self, line_width: f32, texture: &Texture) -> Self::Stroke;
+    fn stroke_texture(&self, line_width: f32, texture: &dyn SampledTexture) -> Self::Stroke;
     fn stroke_color(&self, line_width: f32, color: impl Color) -> Self::Stroke {
         self.stroke_texture(
             line_width,

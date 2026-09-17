@@ -109,6 +109,13 @@ impl ClearPipelines {
 }
 
 pub(crate) fn clear(target: &mut (impl Target + ?Sized), color: Option<Rgba<f32>>) {
+    let color = color.map(|c| {
+        if target.premultiplied_alpha() {
+            Rgba::new(c.r * c.a, c.g * c.a, c.b * c.a, c.a)
+        } else {
+            c
+        }
+    });
     let region = Region {
         origin: target.origin(),
         size: target.size(),

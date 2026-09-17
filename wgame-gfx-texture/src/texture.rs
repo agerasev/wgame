@@ -1,38 +1,33 @@
 use std::{
-    cell::{RefCell, RefMut},
+    cell::RefCell,
     fmt::{self, Debug},
-    hash::{Hash, Hasher},
     rc::Rc,
 };
 
-use derivative::Derivative;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
-use glam::{Affine2, Vec2, Vec4};
+use glam::{Affine2, Vec2};
 use half::f16;
-use hashbrown::HashMap;
 use rgb::Rgba;
 use wgame_gfx::types::{Color, color};
 use wgame_image::{
-    Atlas, AtlasImage, ImageBase, ImageRead, ImageReadExt, ImageSlice, ImageSliceMut,
-    ImageWriteMut, atlas::Tracker,
+    Atlas, AtlasImage, ImageBase, ImageReadExt, ImageSlice, ImageSliceMut, ImageWriteMut,
+    atlas::Tracker,
 };
-use wgame_shader::{Attribute, BindingList, BytesSink};
 
-use crate::{TexturingState, texel::Texel};
-
-#[derive(Clone)]
-struct TextureInstance {
-    state: TexturingState,
-    extent: wgpu::Extent3d,
-    texture: wgpu::Texture,
-    view: wgpu::TextureView,
-    bind_groups: HashMap<TextureSettings, wgpu::BindGroup>,
-}
+use crate::{
+    TexturingState,
+    gpu::GpuTexture,
+    sampling::{
+        SampledTexture, TextureAttribute, TextureBinding, TextureRegion, TextureResource,
+        TextureSample,
+    },
+    texel::Texel,
+};
 
 pub(crate) struct InnerAtlas<T: Texel> {
     state: TexturingState,
     format: wgpu::TextureFormat,
-    dst: Option<TextureInstance>,
+    dst: Option<GpuTexture>,
     dst_generation: u64,
     src: Atlas<T>,
     tracker: Rc<Tracker>,
@@ -50,7 +45,17 @@ pub struct TextureAtlas<T: Texel = Rgba<f16>> {
     pub(crate) inner: Rc<RefCell<InnerAtlas<T>>>,
 }
 
-/// Shared texture handle tracking its live atlas item.
+/// CPU-editable texture handle tracking its live atlas item.
+///
+/// Data flows from CPU pixels to the GPU. Sampling is shared with
+/// [`crate::RenderTexture`] through [`SampledTexture`], but drawing into this
+/// texture is not available:
+/// ```compile_fail
+/// # fn draw(texture: &mut wgame_gfx_texture::Texture) {
+/// use wgame_gfx::Target;
+/// texture.clear(wgame_gfx::types::color::BLACK);
+/// # }
+/// ```
 ///
 /// [`Self::update`] and [`Self::update_part`] maintain the one-pixel border needed
 /// for linear filtering; mutating the backing [`AtlasImage`] directly bypasses
@@ -95,121 +100,6 @@ impl AsRef<Texture> for Texture {
     }
 }
 
-impl TextureInstance {
-    fn new(state: &TexturingState, size: Size2D<u32>, format: wgpu::TextureFormat) -> Self {
-        let state = state.clone();
-        let device = state.device();
-
-        let extent = wgpu::Extent3d {
-            width: size.width,
-            height: size.height,
-            depth_or_array_layers: 1,
-        };
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
-            size: extent,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        Self {
-            state,
-            extent,
-            texture,
-            view,
-            bind_groups: HashMap::new(),
-        }
-    }
-
-    fn get_bind_group(&mut self, settings: TextureSettings) -> wgpu::BindGroup {
-        self.bind_groups
-            .entry(settings)
-            .or_insert_with(|| {
-                let format = self.texture.format();
-                match format.sample_type(None, None) {
-                    Some(wgpu::TextureSampleType::Uint) => {
-                        assert_eq!(settings.mag_filter, FilterMode::Nearest);
-                        self.state
-                            .device()
-                            .create_bind_group(&wgpu::BindGroupDescriptor {
-                                layout: &self.state.uint_bind_group_layout,
-                                entries: &[wgpu::BindGroupEntry {
-                                    binding: 0,
-                                    resource: wgpu::BindingResource::TextureView(&self.view),
-                                }],
-                                label: None,
-                            })
-                    }
-                    Some(wgpu::TextureSampleType::Float { filterable: true }) => self
-                        .state
-                        .device()
-                        .create_bind_group(&wgpu::BindGroupDescriptor {
-                            layout: &self.state.float_bind_group_layout,
-                            entries: &[
-                                wgpu::BindGroupEntry {
-                                    binding: 0,
-                                    resource: wgpu::BindingResource::TextureView(&self.view),
-                                },
-                                wgpu::BindGroupEntry {
-                                    binding: 1,
-                                    resource: wgpu::BindingResource::Sampler(
-                                        match settings.mag_filter {
-                                            FilterMode::Nearest => &self.state.nearest_sampler,
-                                            FilterMode::Linear => &self.state.linear_sampler,
-                                        },
-                                    ),
-                                },
-                            ],
-                            label: None,
-                        }),
-                    _ => panic!("Unsupported texture format: {format:?}"),
-                }
-            })
-            .clone()
-    }
-
-    fn write<T: Texel>(&self, data: ImageSlice<T>, dst: Point2D<u32>) {
-        let format = self.texture.format();
-        assert!(T::is_format_supported(format));
-
-        let size = data.size();
-        let dst_rect = Rect { origin: dst, size };
-        assert!(dst_rect.max_x() <= self.extent.width && dst_rect.max_y() <= self.extent.height);
-
-        let bytes_per_block = format.block_copy_size(None).unwrap() as usize;
-        assert_eq!(size_of::<T>(), bytes_per_block);
-
-        self.state.queue().write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &self.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: dst.x,
-                    y: dst.y,
-                    z: 0,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            bytemuck::cast_slice(data.data()),
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(data.stride() * size_of::<T>() as u32),
-                rows_per_image: None,
-            },
-            wgpu::Extent3d {
-                width: size.width,
-                height: size.height,
-                depth_or_array_layers: 1,
-            },
-        );
-    }
-}
-
 impl<T: Texel> Drop for InnerAtlas<T> {
     fn drop(&mut self) {
         self.src.unsubscribe();
@@ -242,7 +132,7 @@ impl<T: Texel> InnerAtlas<T> {
                     .with_data(|image| dst.write(image.slice(rect), rect.origin));
             }
         } else {
-            let texture = TextureInstance::new(&self.state, self.src.size(), self.format);
+            let texture = GpuTexture::new(&self.state, self.src.size(), self.format);
             // A replacement needs a complete upload, including a populated atlas
             // first attached to the GPU and same-size compaction generations.
             self.src
@@ -420,20 +310,7 @@ impl<T: Texel> Texture<T> {
     }
 
     pub fn coord_xform(&self) -> Affine2 {
-        let atlas_size = self.atlas.borrow().src.size();
-        let Rect { origin, size } = self.image.rect();
-        let item_rect = Rect {
-            origin: Point2D::new(origin.x + 1, origin.y + 1),
-            size: Size2D::new(size.width.saturating_sub(2), size.height.saturating_sub(2)),
-        };
-        let item_xform = Affine2::from_translation(Vec2::new(
-            item_rect.origin.x as f32 / atlas_size.width as f32,
-            item_rect.origin.y as f32 / atlas_size.height as f32,
-        )) * Affine2::from_scale(Vec2::new(
-            item_rect.size.width as f32 / atlas_size.width as f32,
-            item_rect.size.height as f32 / atlas_size.height as f32,
-        ));
-        item_xform * self.xform
+        TextureRegion::coord_xform(&self.image) * self.xform
     }
 
     pub fn transform_coord(&self, xform: Affine2) -> Self {
@@ -450,105 +327,49 @@ impl<T: Texel> Texture<T> {
         }
     }
 
-    pub fn resource(&self) -> TextureResource<T> {
-        TextureResource {
-            atlas: self.atlas.clone(),
-            settings: self.settings,
-        }
+    pub fn resource(&self) -> TextureResource {
+        TextureResource::new(self.atlas.clone(), self.settings)
     }
 
-    pub fn attribute(&self) -> TextureAttribute<T> {
-        TextureAttribute {
-            texture: self.clone(),
-            local_xform: Affine2::IDENTITY,
-        }
+    pub fn attribute(&self) -> TextureAttribute {
+        self.sample().attribute()
     }
 }
 
-fn rc_ptr_hash<T, H: Hasher>(a: &Rc<T>, state: &mut H) {
-    Rc::as_ptr(a).hash(state);
-}
-
-#[derive(Derivative)]
-#[derivative(
-    Clone(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
-pub struct TextureResource<T: Texel = Rgba<f16>> {
-    #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))]
-    #[derivative(Hash(hash_with = "rc_ptr_hash"))]
-    atlas: Rc<RefCell<InnerAtlas<T>>>,
-    settings: TextureSettings,
-}
-
-impl<T: Texel> TextureResource<T> {
-    fn get_instance(&self) -> RefMut<'_, TextureInstance> {
-        let mut atlas = self.atlas.borrow_mut();
+impl<T: Texel> TextureBinding for RefCell<InnerAtlas<T>> {
+    fn bind_group(&self, settings: TextureSettings) -> wgpu::BindGroup {
+        let mut atlas = self.borrow_mut();
         atlas.sync();
-        RefMut::map(atlas, |atlas| atlas.dst.as_mut().unwrap())
+        atlas.dst.as_ref().unwrap().bind_group(settings)
     }
-
-    pub fn bind_group(&self) -> wgpu::BindGroup {
-        self.get_instance().get_bind_group(self.settings)
-    }
-
-    pub fn bind_group_layout(&self) -> wgpu::BindGroupLayout {
-        let instance = self.get_instance();
-        let format = instance.texture.format();
-        instance.state.bind_group_layout(format)
+    fn bind_group_layout(&self) -> wgpu::BindGroupLayout {
+        let atlas = self.borrow();
+        atlas.state.bind_group_layout(atlas.format)
     }
 }
 
-impl<T: Texel> Debug for TextureResource<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Texture atlas at {:?}", self.atlas.as_ptr())
+impl<T: Texel> TextureRegion for AtlasImage<T> {
+    fn size(&self) -> Size2D<u32> {
+        self.size() - Size2D::new(2, 2)
+    }
+    fn coord_xform(&self) -> Affine2 {
+        let atlas_size = self.atlas().size();
+        let rect = self.rect();
+        Affine2::from_translation(Vec2::new(
+            (rect.origin.x + 1) as f32 / atlas_size.width as f32,
+            (rect.origin.y + 1) as f32 / atlas_size.height as f32,
+        )) * Affine2::from_scale(Vec2::new(
+            rect.size.width.saturating_sub(2) as f32 / atlas_size.width as f32,
+            rect.size.height.saturating_sub(2) as f32 / atlas_size.height as f32,
+        ))
     }
 }
 
-#[derive(Clone)]
-pub struct TextureAttribute<T: Texel = Rgba<f16>> {
-    texture: Texture<T>,
-    local_xform: Affine2,
-}
-
-impl<T: Texel> TextureAttribute<T> {
-    pub fn coord_xform(&self) -> Affine2 {
-        self.texture.coord_xform() * self.local_xform
-    }
-    pub fn color(&self) -> Rgba<f32> {
-        self.texture.color
-    }
-
-    /// Map primitive coordinates into the textured object's local coordinates.
-    /// The mapping is applied before the texture's own transform and atlas
-    /// placement. For example, a ribbon segment can select its interval of the
-    /// full ribbon's UVs without changing a caller's texture transform.
-    ///
-    /// Repeated calls compose as `previous * mapping`. Atlas coordinates remain
-    /// live until serialization, just as for an unmapped texture attribute.
-    pub fn map_coord(&self, mapping: Affine2) -> Self {
-        Self {
-            texture: self.texture.clone(),
-            local_xform: self.local_xform * mapping,
-        }
-    }
-}
-
-impl<T: Texel> Attribute for TextureAttribute<T> {
-    fn bindings() -> BindingList {
-        BindingList::chain(
-            <Affine2 as Attribute>::bindings().with_prefix("xform"),
-            <Vec4 as Attribute>::bindings().with_prefix("color"),
-        )
-    }
-
-    const SIZE: usize = <Affine2 as Attribute>::SIZE + <Vec4 as Attribute>::SIZE;
-
-    fn store(&self, dst: &mut BytesSink) {
-        self.coord_xform().store(dst);
-        self.color().to_vec4().store(dst);
+impl<T: Texel> SampledTexture for Texture<T> {
+    fn sample(&self) -> TextureSample {
+        TextureSample::new(self.resource(), Rc::new(self.image.clone()))
+            .transform_coord(self.xform)
+            .multiply_color(self.color)
     }
 }
 

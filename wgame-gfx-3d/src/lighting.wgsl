@@ -6,6 +6,7 @@ struct LightingData {
 };
 @group(2) @binding(0) var normal_texture: texture_2d<f32>;
 @group(2) @binding(1) var normal_sampler: sampler;
+@group(2) @binding(2) var<uniform> normal_texture_info: vec4<u32>;
 @group(3) @binding(0) var<uniform> lighting: LightingData;
 
 fn safe_unit(v: vec3<f32>, fallback: vec3<f32>) -> vec3<f32> {

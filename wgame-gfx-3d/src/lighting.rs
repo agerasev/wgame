@@ -5,7 +5,7 @@ use wgame_gfx_shapes::{
     material::{MaterialBinding, MaterialMesh, MeshMaterial, MeshShader},
     shader::ShaderConfig,
 };
-use wgame_gfx_texture::{Texture, TextureAttribute, TexturingLibrary};
+use wgame_gfx_texture::{SampledTexture, Texture, TextureAttribute, TexturingLibrary};
 use wgame_image::Image;
 use wgame_shader::Attribute;
 use wgpu::util::DeviceExt;
@@ -246,13 +246,16 @@ impl Lighting {
     }
     /// Material with an optional normal map. A missing map uses a neutral normal.
     /// The normal texture's color multiplier is ignored; only its UVs/data matter.
+    /// Accepts both CPU textures and render textures. Submit GPU normal-map
+    /// drawing before submitting a scene which samples it. Normal data must be
+    /// linear, and `albedo_srgb` should match the sampled base-color values.
     pub fn material(
         &self,
-        normal: Option<&Texture>,
+        normal: Option<&dyn SampledTexture>,
         settings: MaterialSettings,
     ) -> anyhow::Result<LitMaterial> {
         settings.validate()?;
-        let normal = normal.unwrap_or(&self.neutral);
+        let normal = normal.unwrap_or(&self.neutral).sample();
         self.shader.material(
             vec![
                 MaterialBinding::Texture(normal.resource()),

@@ -1,5 +1,7 @@
 //! Connected, variable-width ribbons made from shared quad instances.
 
+use wgame_gfx_texture::{SampledTexture, TextureSample};
+
 mod geometry;
 
 use std::{marker::PhantomData, rc::Rc};
@@ -10,7 +12,7 @@ use wgame_gfx::{
 };
 
 use crate::{
-    Shape, ShapesLibrary, Texture, impl_textured,
+    Shape, ShapesLibrary, impl_textured,
     render::{ShapeResource, ShapeStorage},
     shader::InstanceData,
     shape::ShapeFill,
@@ -62,10 +64,10 @@ impl Shape for Polyline {
 impl ShapeFill for Polyline {
     type Fill = PolylineFill;
 
-    fn fill_texture(&self, texture: &Texture) -> Self::Fill {
+    fn fill_texture(&self, texture: &dyn SampledTexture) -> Self::Fill {
         PolylineFill {
             shape: self.clone(),
-            texture: texture.clone(),
+            texture: texture.sample(),
             depth: Default::default(),
         }
     }
@@ -79,7 +81,7 @@ impl_transformable!(Polyline, xform);
 pub struct PolylineFill {
     depth: wgame_gfx::DepthMode,
     shape: Polyline,
-    texture: Texture,
+    texture: TextureSample,
 }
 
 impl Instance for PolylineFill {

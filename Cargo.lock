@@ -3519,12 +3519,17 @@ name = "wgame-gfx-texture"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "derivative",
  "euclid",
+ "futures",
  "glam",
  "half",
  "hashbrown 0.17.1",
+ "js-sys",
  "rgb",
+ "thiserror 2.0.20",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "web-time",
  "wgame-gfx",
  "wgame-image",
  "wgame-shader",

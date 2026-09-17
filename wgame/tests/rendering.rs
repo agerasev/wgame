@@ -16,6 +16,8 @@
 mod depth;
 #[path = "rendering/polylines.rs"]
 mod polylines;
+#[path = "rendering/render_textures.rs"]
+mod render_textures;
 mod support;
 #[path = "rendering/viewports.rs"]
 mod viewports;

@@ -40,6 +40,10 @@ The optional `3d` facade feature adds [solid primitives and lighting](wgame-gfx-
 to the shared shape renderer. Cameras, textures, meshes, materials and scenes are
 common to 2D and 3D; targets provide depth by default.
 
+[CPU textures and GPU render textures](wgame-gfx-texture/src/lib.rs) share sampling
+in shapes and materials. Render into previews using the ordinary target API and
+download detached CPU snapshots when needed.
+
 ## License
 
 MIT. Example font and image assets are used only by examples and tests.

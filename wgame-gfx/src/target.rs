@@ -25,6 +25,13 @@ pub trait Target {
         (0, 0)
     }
 
+    /// Whether clears must store RGB multiplied by alpha. Render textures use
+    /// this representation so ordinary alpha blending composes correctly before
+    /// the resulting texture is sampled. Clear colors are always supplied straight.
+    fn premultiplied_alpha(&self) -> bool {
+        false
+    }
+
     /// Borrow a viewport in parent-relative physical pixels.
     /// Returns an error for empty rectangles, overflow, or bounds outside the
     /// parent. No allocation or clearing occurs until drawing is requested.

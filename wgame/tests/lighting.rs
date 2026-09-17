@@ -376,3 +376,33 @@ fn material_parameters_batch_and_unlit_objects_share_the_scene() {
     target.render(&camera, &scene.bake());
     assert_eq!(center(&mut target), [0, 0, 255, 255]);
 }
+
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn rendered_normal_maps_remain_live_in_baked_materials() {
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    let lighting = Lighting::new(lib.shapes(), lib.texturing(), sunlight(Vec3::X)).unwrap();
+    let mut normal = lib
+        .texturing()
+        .render_texture((4, 4), Default::default())
+        .unwrap();
+    // Partial alpha exercises unpremultiplication of normal data before decoding.
+    normal.clear(Vec4::new(1.0, 0.5, 0.5, 0.5));
+    normal.submit();
+    let material = lighting.material(Some(&normal), matte()).unwrap();
+    let mut scene = Scene::default();
+    scene.add(&quad(&lib, Vec3::Z, false).with_material(&material));
+    let baked = scene.bake();
+    let mut target = Offscreen::new(&gfx, (16, 16));
+    let camera = Camera::new(&gfx, Mat4::IDENTITY);
+    target.clear(color::BLACK);
+    target.render(&camera, &baked);
+    assert!(center(&mut target)[0] >= 253);
+    normal.clear(Vec4::new(0.0, 0.5, 0.5, 1.0));
+    normal.submit();
+    drop(normal);
+    target.clear(color::BLACK);
+    target.render(&camera, &baked);
+    assert_eq!(center(&mut target), [0, 0, 0, 255]);
+}

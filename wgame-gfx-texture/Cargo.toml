@@ -15,4 +15,11 @@ glam.workspace = true
 rgb.workspace = true
 half.workspace = true
 hashbrown.workspace = true
-derivative.workspace = true
+thiserror.workspace = true
+futures.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys = { workspace = true, features = ["Window"] }
+web-time.workspace = true

@@ -5,7 +5,7 @@ use wgame_gfx::{
     Camera, Instance, Object, delegate_transformable, impl_object_for_instance, impl_transformable,
     prelude::Transformable, types::Transform,
 };
-use wgame_gfx_texture::Texture;
+use wgame_gfx_texture::{SampledTexture, TextureSample};
 use wgame_shader::Attribute;
 
 use crate::{
@@ -156,10 +156,10 @@ impl Shape for Circle {
 impl ShapeFill for Circle {
     type Fill = CircleFill;
 
-    fn fill_texture(&self, texture: &Texture) -> Self::Fill {
+    fn fill_texture(&self, texture: &dyn SampledTexture) -> Self::Fill {
         CircleFill {
             shape: self.clone(),
-            texture: texture.clone(),
+            texture: texture.sample(),
             depth: Default::default(),
         }
     }
@@ -168,13 +168,13 @@ impl ShapeFill for Circle {
 impl ShapeStroke for Circle {
     type Stroke = CircleStroke;
 
-    fn stroke_texture(&self, line_width: f32, texture: &Texture) -> Self::Stroke {
+    fn stroke_texture(&self, line_width: f32, texture: &dyn SampledTexture) -> Self::Stroke {
         let half_width = line_width / 2.0;
         CircleStroke {
             shape: self
                 .inner_radius((1.0 - half_width) / (1.0 + half_width))
                 .transform(Affine3A::from_scale(Vec3::splat(1.0 + half_width))),
-            texture: texture.clone(),
+            texture: texture.sample(),
             depth: Default::default(),
         }
     }
@@ -187,7 +187,7 @@ impl_transformable!(Circle, xform);
 pub struct CircleFill {
     depth: wgame_gfx::DepthMode,
     shape: Circle,
-    texture: Texture,
+    texture: TextureSample,
 }
 
 impl CircleFill {
@@ -244,7 +244,7 @@ impl_textured!(CircleFill, texture);
 pub struct CircleStroke {
     depth: wgame_gfx::DepthMode,
     shape: Circle,
-    texture: Texture,
+    texture: TextureSample,
 }
 
 impl CircleStroke {

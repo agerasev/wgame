@@ -2,7 +2,14 @@ use std::ops::Deref;
 
 use wgame_gfx::Graphics;
 
-/// Shared state
+/// Shared samplers and binding layouts.
+///
+/// Float sampling binds a filterable 2D texture at binding 0, sampler at 1, and a
+/// 16-byte `vec4<u32>` uniform at 2. Its first component is 1 for premultiplied RGB,
+/// 0 for straight RGB; the remaining components are reserved. Custom shaders
+/// should divide sampled RGB by nonzero alpha when this flag is set, with zero
+/// RGB for zero alpha. Built-in shapes and lighting perform this conversion.
+/// Integer sampling uses only the texture at binding 0.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct TexturingState {
     inner: Graphics,
@@ -79,6 +86,16 @@ fn create_float_bind_group_layout(state: &Graphics) -> wgpu::BindGroupLayout {
                     binding: 1,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZero::new(16),
+                    },
                     count: None,
                 },
             ],

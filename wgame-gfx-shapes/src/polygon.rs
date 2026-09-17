@@ -9,7 +9,7 @@ use wgame_gfx::{
     modifiers::Transformable,
     types::{Position, Transform},
 };
-use wgame_gfx_texture::Texture;
+use wgame_gfx_texture::{SampledTexture, TextureSample};
 
 use crate::{
     Mesh, Shape, ShapesLibrary, ShapesState, impl_textured,
@@ -124,10 +124,10 @@ impl Shape for Polygon {
 impl ShapeFill for Polygon {
     type Fill = PolygonFill;
 
-    fn fill_texture(&self, texture: &Texture) -> Self::Fill {
+    fn fill_texture(&self, texture: &dyn SampledTexture) -> Self::Fill {
         PolygonFill {
             shape: self.clone(),
-            texture: texture.clone(),
+            texture: texture.sample(),
             depth: Default::default(),
         }
     }
@@ -140,7 +140,7 @@ impl_transformable!(Polygon, xform);
 pub struct PolygonFill {
     depth: wgame_gfx::DepthMode,
     shape: Polygon,
-    texture: Texture,
+    texture: TextureSample,
 }
 
 impl Instance for PolygonFill {

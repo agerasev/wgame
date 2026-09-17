@@ -125,6 +125,7 @@ pub mod prelude {
     pub use wgame_gfx_3d::Shapes3d;
     #[cfg(feature = "shapes")]
     pub use wgame_gfx_shapes::prelude::*;
+    pub use wgame_gfx_texture::SampledTexture;
 }
 
 /// Vector and matrix operations.

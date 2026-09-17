@@ -79,6 +79,9 @@ impl<T: Target + ?Sized> Target for Viewport<'_, T> {
     fn size(&self) -> (u32, u32) {
         self.region.size
     }
+    fn premultiplied_alpha(&self) -> bool {
+        self.parent.premultiplied_alpha()
+    }
 }
 
 /// Invalid viewport rectangle. The parent remains usable after an error.

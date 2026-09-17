@@ -10,7 +10,7 @@ use crate::{FontTexture, text::TextInstance};
 pub struct TextResource {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    texture: TextureResource<u8>,
+    texture: TextureResource,
     pipeline: wgpu::RenderPipeline,
     device: wgpu::Device,
 }

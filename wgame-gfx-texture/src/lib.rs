@@ -1,11 +1,35 @@
-//! Texture atlases, gradients, and filtered sampling for wgpu.
+//! CPU texture atlases, GPU render textures, and shared sampling for wgpu.
 //!
-//! [`TexturingLibrary`] owns shared helpers. [`TextureAtlas`] mirrors a CPU atlas;
-//! [`Texture`] handles follow their live atlas items through relocation. See those
-//! APIs for update, resize, and retained-rendering contracts.
+//! [`Texture`] owns CPU-editable pixels through a [`TextureAtlas`], uploading them
+//! on use. [`RenderTexture`] implements [`wgame_gfx::Target`] and owns a dedicated
+//! GPU allocation; its explicit asynchronous readback produces a detached image.
+//! Both implement [`SampledTexture`], accepted by shapes and normal-map materials.
+//! Neither type changes ownership mode, and no CPU mirror is kept for GPU rendering.
+//!
+//! ```no_run
+//! # async fn preview(graphics: &wgame_gfx::Graphics) -> Result<(), Box<dyn std::error::Error>> {
+//! use wgame_gfx::{Target, types::color};
+//! use wgame_gfx_texture::{SampledTexture, TexturingLibrary, TextureSettings};
+//! let textures = TexturingLibrary::new(graphics);
+//! let mut preview = textures.render_texture((256, 256), TextureSettings::linear())?;
+//! preview.clear(color::BLUE);
+//! // Draw through Target::render, Target::scene, or borrowed viewports as usual.
+//! preview.submit(); // Submit drawing before another target samples it.
+//! let sampled = preview.sample(); // Can outlive the drawing target.
+//! let pixels = preview.readback().await?; // Detached snapshot; no automatic downloads.
+//! let frozen = textures.texture(&pixels, TextureSettings::linear());
+//! # Ok(()) }
+//! ```
+//!
+//! See [`Texture`] for atlas updates/relocation, [`RenderTexture`] for submission
+//! and snapshot contracts, and [`TextureSample`] for retained sampling handles.
 
 #![forbid(unsafe_code)]
 
+mod gpu;
+mod readback;
+mod render_texture;
+mod sampling;
 mod state;
 mod texel;
 mod texture;
@@ -17,11 +41,12 @@ use wgame_gfx::{Graphics, types::Color};
 use wgame_image::{Image, ImageBase, ImageWriteMut};
 
 pub use self::{
+    readback::ReadbackError,
+    render_texture::{RenderTexture, RenderTextureError},
+    sampling::{SampledTexture, TextureAttribute, TextureResource, TextureSample},
     state::TexturingState,
     texel::Texel,
-    texture::{
-        FilterMode, Texture, TextureAtlas, TextureAttribute, TextureResource, TextureSettings,
-    },
+    texture::{FilterMode, Texture, TextureAtlas, TextureSettings},
 };
 
 /// A library for managing textures.
@@ -48,6 +73,15 @@ impl TexturingLibrary {
     /// Returns the texturing state.
     pub fn state(&self) -> &TexturingState {
         &self.state
+    }
+
+    /// Create a GPU render target that implements the same sampling trait as images.
+    pub fn render_texture(
+        &self,
+        size: (u32, u32),
+        settings: TextureSettings,
+    ) -> Result<RenderTexture, RenderTextureError> {
+        RenderTexture::new(&self.state, size, settings)
     }
 
     /// Creates a texture from an image.
