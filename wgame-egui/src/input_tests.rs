@@ -155,6 +155,32 @@ fn quick_click_keeps_press_and_release_in_order() {
 }
 
 #[test]
+fn touch_end_keeps_the_release_while_cancelled_touches_abort() {
+    for completed in [false, true] {
+        let mut h = Harness::new();
+        h.frame(mouse(200.0, 150.0, true), 1.0, true, 100.0);
+        let mut events = if completed {
+            mouse(260.0, 150.0, false)
+        } else {
+            Vec::new()
+        };
+        events.push(egui::Event::PointerGone);
+        let input = h.frame(events, 1.0, true, 100.0);
+        assert_eq!(input.events.contains(&Event::Cancelled), !completed);
+        assert_eq!(
+            input
+                .events
+                .iter()
+                .any(|e| matches!(e, Event::Button { pressed: false, .. })),
+            completed
+        );
+        assert!(!input.button_down(Button::Primary));
+        assert!(input.pointer.is_none());
+        assert!(h.frame(Vec::new(), 1.0, true, 100.0).pointer.is_none());
+    }
+}
+
+#[test]
 fn escape_is_delivered_to_focused_canvas_without_cancelling_first() {
     let mut h = Harness::new();
     h.frame(mouse(200.0, 150.0, true), 1.0, true, 100.0);

@@ -6,6 +6,7 @@ use wgame::glam::Vec2;
 pub(crate) struct CanvasState {
     state: InputState,
     geometry: Option<(egui::Rect, f32)>,
+    pointer_gone: bool,
 }
 impl CanvasState {
     pub fn collect(
@@ -48,12 +49,14 @@ impl CanvasState {
             let p = pos - response.rect.min;
             Vec2::new(p.x, p.y)
         };
+        let mut released = false;
         for event in events {
             let captured = Button::ALL
                 .into_iter()
                 .any(|b| self.state.input().button_down(b));
             match *event {
                 egui::Event::PointerMoved(pos) if response.hovered() || captured => {
+                    self.pointer_gone = false;
                     self.state.push(Event::Moved(local(pos)));
                 }
                 egui::Event::PointerButton {
@@ -70,6 +73,8 @@ impl CanvasState {
                         && ((pressed && owns_press && response.interact_rect.contains(pos))
                             || (!pressed && self.state.input().button_down(mapped)))
                     {
+                        self.pointer_gone = false;
+                        released = !pressed;
                         self.state.push(Event::Button {
                             button: mapped,
                             pressed,
@@ -78,7 +83,14 @@ impl CanvasState {
                     }
                 }
                 egui::Event::WindowFocused(value) => self.state.push(Event::Focused(value)),
-                egui::Event::PointerGone => self.state.push(Event::Cancelled),
+                egui::Event::PointerGone => {
+                    self.pointer_gone = true;
+                    // Touch end emits release followed by PointerGone. Preserve
+                    // the completed gesture; only disappearing mid-drag cancels it.
+                    if captured || !released {
+                        self.state.push(Event::Cancelled);
+                    }
+                }
                 egui::Event::MouseWheel { unit, delta, .. } if response.hovered() => {
                     let factor = match unit {
                         egui::MouseWheelUnit::Point => Vec2::ONE,
@@ -107,7 +119,7 @@ impl CanvasState {
                 _ => {}
             }
         }
-        self.state.finish(
+        let mut input = self.state.finish(
             response.hovered(),
             response.has_focus(),
             Modifiers {
@@ -116,7 +128,11 @@ impl CanvasState {
                 alt: modifiers.alt,
                 command: modifiers.mac_cmd,
             },
-        )
+        );
+        if self.pointer_gone {
+            input.pointer = None;
+        }
+        input
     }
 }
 fn button_key(button: PointerButton) -> Button {

@@ -6,6 +6,8 @@
 //! coordinates are local logical pixels, including egui zoom. Clicking the canvas
 //! gives it keyboard focus. UI controls own their events; a captured canvas drag
 //! retains its release outside the canvas. Geometry/focus loss cancels gestures.
+//! Lifting a touch preserves its completed release and clears pointer hover;
+//! a cancelled touch aborts the gesture instead.
 //!
 //! ```no_run
 //! use wgame::{ContentFrame, WindowHost, gfx::{Target, types::color}};
