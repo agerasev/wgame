@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>wgame — On-demand events</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #06090e; }
+    #content { width: 100%; height: 100%; contain: size; }
+    canvas { display: block; width: 100% !important; height: 100% !important; outline: none; touch-action: none; }
+    .back { position: fixed; right: 12px; bottom: 12px; padding: 12px 16px; border: 1px solid #65736d; border-radius: 5px; background: #111719ee; color: #d0f58a; font: 14px system-ui, sans-serif; text-decoration: none; }
+    .back:focus-visible { outline: 3px solid #d0f58a; outline-offset: 3px; }
+    noscript { position: fixed; inset: 24px; color: white; font-family: system-ui, sans-serif; }
+  </style>
+
+<script type="module">
+import init, * as bindings from '/wgame/examples/events/events-e7509505a2b398d7.js';
+const wasm = await init({ module_or_path: '/wgame/examples/events/events-e7509505a2b398d7_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+<link rel="modulepreload" href="/wgame/examples/events/events-e7509505a2b398d7.js" crossorigin="anonymous" integrity="sha384-M8J+KQ+uC+iNmTRV2enupvaqfOdnqyiHgfIRZbGZ7zImn/+XtO4nLI6Znm4iOeTy"><link rel="preload" href="/wgame/examples/events/events-e7509505a2b398d7_bg.wasm" crossorigin="anonymous" integrity="sha384-iisH3RSXt+i6Hq03MxyAAHKsLhzAHdoR36excHNHifwj6Oth2b5d1SrKu4BMixHd" as="fetch" type="application/wasm"></head>
+<body>
+  <div id="content"><canvas id="canvas" tabindex="0" aria-label="On-demand events interactive graphics example"></canvas></div>
+  <a class="back" href="../../">← All examples</a>
+  <noscript>This example requires JavaScript and WebGL2.</noscript>
+</body>
+</html>
