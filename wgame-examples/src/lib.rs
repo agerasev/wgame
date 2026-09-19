@@ -1,6 +1,8 @@
 //! Shared presentation helpers for the browser and desktop examples.
 #![forbid(unsafe_code)]
 
+pub mod gallery;
+
 use std::collections::BTreeMap;
 use wgame::{
     Library, Result,

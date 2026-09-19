@@ -18,10 +18,13 @@ From the repository root, run the self-contained playground:
 cargo run -p wgame-examples --bin playground
 ```
 
-Mouse movement positions the ring; Space pauses animation. Resize the window to
-exercise camera/text updates. Move it between differently scaled displays to
-exercise logical sizing and sharp font rasters. On X11,
-`WINIT_X11_SCALE_FACTOR=2` forces a scale factor for manual checking. Close it to cancel its background task. Add
+The six panels cover primitives and strokes, gradients and alpha compositing,
+composed transforms, nearest/linear texture sampling, independently rasterized
+text sizes, and pointer input. Space pauses animation; click in the input panel
+to stamp circles and press R to clear them. Escape closes the window. The scoped
+background counter continues while animation is paused and is cancelled on exit.
+Resize or change display scale to exercise camera/text updates. On X11,
+`WINIT_X11_SCALE_FACTOR=2` forces a scale factor for manual checking. Add
 `-- --smoke` for a twelve-frame startup/render/shutdown check.
 
 Inspect four-point quads and variable-width polylines:
@@ -41,10 +44,12 @@ Explore borrowed viewports with 2D and perspective cameras:
 cargo run -p wgame-examples --bin viewports
 ```
 
-The first panel contains a nested preview. Move the pointer over a view to see
-picking in its local coordinates; Space pauses and Escape closes. Resize to
-switch between horizontal and vertical layouts. The example embeds its font and
-supports `-- --smoke`. Viewport rectangles use physical pixels; see
+Four views show the same scene through an orthographic camera, a perspective
+camera, a zoomed/rotating camera, and a nested viewport. Move the pointer to pick
+the ground plane; input over the nested inset is routed to that camera alone.
+Space pauses and Escape closes. Resize to exercise fitted physical viewport
+bounds and text rasters. The example embeds its font and supports `-- --smoke`.
+Viewport rectangles use physical pixels; see
 [`Target::viewport`](../wgame-gfx/src/target.rs) for bounds and clearing behavior.
 
 Render into a texture and capture a detached CPU snapshot:
@@ -53,10 +58,12 @@ Render into a texture and capture a detached CPU snapshot:
 cargo run -p wgame-examples --bin render_textures
 ```
 
-The live view and frozen snapshot use the same shape sampling API. A checkerboard
-reveals transparency, and the live texture contains a borrowed viewport. Press S
-to capture again, Space to pause, or Escape to close. The example embeds its font
-and supports `-- --smoke`, including asynchronous readback and re-upload. See
+Six panels show a live target with a clipped inset, a detached snapshot, nearest
+and linear sampling of a low-resolution target, cropped/flipped texture
+coordinates, GPU-to-GPU composition, and grayscale CPU edits to the snapshot.
+Checkerboards reveal transparency. Press S to capture again, Space to pause, or
+Escape to close. The example embeds its font and supports `-- --smoke`, including
+two asynchronous readbacks and re-uploads. See
 [`RenderTexture`](../wgame-gfx-texture/src/render_texture.rs) for ownership and
 submission rules.
 
@@ -102,12 +109,13 @@ If Trunk rejects an inherited `NO_COLOR=1`, set `NO_COLOR=true` or unset it.
 cargo run -p wgame-examples --bin events
 ```
 
-The graphical event example embeds its font and starts idle. Move the pointer,
-resize the window, or change display scale to redraw. The displayed frame count
-stays still otherwise. **Space** toggles a one-second timer, **A** toggles continuous
-animation, and **Escape** closes. Timer deadlines remain fixed while other events
-arrive. Turning both modes off returns to indefinite waiting. Add `-- --smoke`
-for a twelve-frame startup/render/shutdown check.
+The event gallery starts idle. Its panels show pointer coordinates, held buttons
+and modifiers, discrete timer steps, continuous animation, recent events, and
+repaint state. Move the pointer, resize, or change display scale to redraw; the
+frame count settles otherwise. **Space** toggles a one-second timer, **A** toggles
+continuous animation, and **Escape** closes. Timer deadlines remain fixed while
+other events arrive. Turning both modes off returns to indefinite waiting. Add
+`-- --smoke` for a twelve-frame startup/render/shutdown check.
 
 `WindowHost::wait_for_update(None)` sleeps until an event; a duration also allows
 application timers to wake it. Pass zero while animating. Draw the first frame
