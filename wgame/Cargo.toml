@@ -30,6 +30,7 @@ typography = ["dep:wgame-gfx-typography"]
 utils = ["dep:wgame-utils"]
 
 [dependencies]
+futures.workspace = true
 wgpu.workspace = true
 wgame-input.workspace = true
 wgame-app.workspace = true

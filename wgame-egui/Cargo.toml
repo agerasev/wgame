@@ -10,6 +10,7 @@ desktop = ["wgame/desktop", "egui-winit/clipboard", "egui-winit/links", "egui-wi
 web = ["wgame/web"]
 
 [dependencies]
+futures.workspace = true
 wgame.workspace = true
 egui.workspace = true
 egui-wgpu.workspace = true

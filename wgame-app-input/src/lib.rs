@@ -30,7 +30,8 @@ pub struct EventHandler {
 ///
 /// [`Self::try_next`] drains queued events without waiting. With a direct `futures`
 /// dependency, `StreamExt::next()` waits asynchronously. Redraw events are excluded
-/// because the window loop handles them separately.
+/// because the window loop handles them separately. Use
+/// [`Self::set_include_redraws`] for an event-driven drawing loop.
 ///
 /// The default capacity is 1024 events; overflow discards the oldest event.
 /// [`Self::set_capacity`] with `None` makes the queue unbounded. Overflow can lose
@@ -46,6 +47,7 @@ pub struct Input {
 struct State {
     capacity: Cell<Option<NonZero<usize>>>,
     terminated: Cell<bool>,
+    include_redraws: Cell<bool>,
     events: RefCell<VecDeque<Event>>,
     waker: Cell<Waker>,
 }
@@ -59,7 +61,7 @@ impl EventHandler {
         self.states.retain_mut(|state| match state.upgrade() {
             Some(state) => {
                 match &event {
-                    Event::RedrawRequested => (),
+                    Event::RedrawRequested if !state.include_redraws.get() => (),
                     _ => state.push_event(event.clone()),
                 }
                 true
@@ -90,6 +92,13 @@ impl EventHandler {
 }
 
 impl Input {
+    /// Include OS redraw notifications in this stream (disabled by default).
+    /// This also includes redraws requested by your own drawing loop; consume them
+    /// when rendering so they do not keep an otherwise idle loop awake.
+    pub fn set_include_redraws(&mut self, include: bool) {
+        self.state.include_redraws.set(include);
+    }
+
     /// Get the current event capacity for this input stream.
     pub fn capacity(&self) -> Option<NonZero<usize>> {
         self.state.capacity.get()
@@ -135,6 +144,7 @@ impl Default for State {
         Self {
             capacity: Cell::new(Self::DEFAULT_CAPACITY),
             terminated: Cell::new(false),
+            include_redraws: Cell::new(false),
             events: RefCell::new(VecDeque::new()),
             waker: Cell::new(Waker::noop().clone()),
         }
@@ -231,5 +241,27 @@ mod tests {
         handler.push(Event::Focused(false));
         assert!(closed.is_terminated());
         assert_eq!(closed.try_next(), None);
+    }
+}
+
+#[cfg(test)]
+mod redraw_tests {
+    use super::*;
+    use futures::{FutureExt, StreamExt};
+    #[test]
+    fn redraw_notifications_are_opt_in_and_preserve_other_streams() {
+        let mut handler = EventHandler::default();
+        let mut ordinary = handler.input();
+        let mut redraws = handler.input();
+        redraws.set_include_redraws(true);
+        handler.push(Event::RedrawRequested);
+        assert_eq!(redraws.try_next(), Some(Event::RedrawRequested));
+        assert!(ordinary.next().now_or_never().is_none());
+        handler.push(Event::Focused(true));
+        assert_eq!(redraws.try_next(), Some(Event::Focused(true)));
+        assert_eq!(ordinary.try_next(), Some(Event::Focused(true)));
+        redraws.set_include_redraws(false);
+        handler.push(Event::RedrawRequested);
+        assert!(redraws.next().now_or_never().is_none());
     }
 }

@@ -27,6 +27,18 @@ pub trait WindowHost {
     where
         Self: 'a;
     fn graphics(&self) -> &gfx::Graphics;
+    /// Wait for input, a window/UI repaint request, or an application deadline.
+    /// `None` waits indefinitely; `Some(Duration::ZERO)` returns immediately.
+    /// Call before `next_frame` to avoid continuously drawing static content.
+    /// Draw an initial frame before waiting indefinitely.
+    /// It does not consume the next frame's input. Cancellation is safe.
+    /// Hosts without event-driven support may return immediately.
+    fn wait_for_update(
+        &mut self,
+        _timeout: Option<std::time::Duration>,
+    ) -> impl Future<Output = ()> {
+        async {}
+    }
     fn next_frame(&mut self) -> impl Future<Output = Result<Option<Self::Frame<'_>>>>;
 }
 

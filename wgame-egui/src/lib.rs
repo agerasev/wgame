@@ -32,6 +32,11 @@
 //! discard/panic drops all encoded commands (texture uploads may already occur).
 //! A hidden/empty canvas yields a minimal target with `visible() == false`, so
 //! application updates and UI actions can still run.
+//! For static content, call `host.wait_for_update(None).await` between frames.
+//! This wakes on input, OS redraws, and egui repaint deadlines (including animation
+//! and tooltip delays). Pass a timeout for application timers or zero for animation.
+//! After changing application state outside layout, request one more repaint with
+//! `host.context().request_repaint()` so the controls display the new state.
 //!
 //! This integration owns one OS window. Native secondary viewports and viewport
 //! screenshot/clipboard-image requests are not supported. Use embedded egui
@@ -44,8 +49,10 @@
 #![forbid(unsafe_code)]
 
 mod input;
+mod repaint;
 #[cfg(not(target_arch = "wasm32"))]
 use egui_winit as platform;
+use std::sync::Arc;
 #[cfg(any(target_arch = "wasm32", test))]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 mod web;
@@ -174,11 +181,21 @@ pub struct EguiWindow<'w, L> {
     input: CanvasState,
     size: Option<(u32, u32)>,
     closed: bool,
+    repaint: Arc<repaint::Repaint>,
 }
 impl<'w, L: FnMut(&mut egui::Ui, &Canvas) -> egui::Response> EguiWindow<'w, L> {
     pub fn new(window: wgame::Window<'w>, layout: L) -> Self {
         let context = egui::Context::default();
         context.set_embed_viewports(true);
+        let repaint = Arc::new(repaint::Repaint::default());
+        context.set_request_repaint_callback({
+            let repaint = repaint.clone();
+            move |info| {
+                if info.viewport_id == egui::ViewportId::ROOT {
+                    repaint.request(info.delay);
+                }
+            }
+        });
         let mut platform = platform::State::new(
             context.clone(),
             egui::ViewportId::ROOT,
@@ -198,6 +215,7 @@ impl<'w, L: FnMut(&mut egui::Ui, &Canvas) -> egui::Response> EguiWindow<'w, L> {
             input: CanvasState::default(),
             size: None,
             closed: false,
+            repaint,
         }
     }
     pub fn context(&self) -> &egui::Context {
@@ -211,6 +229,15 @@ impl<'w, L: FnMut(&mut egui::Ui, &Canvas) -> egui::Response> WindowHost for Egui
         Self: 'a;
     fn graphics(&self) -> &gfx::Graphics {
         self.painter.target.state()
+    }
+    async fn wait_for_update(&mut self, timeout: Option<std::time::Duration>) {
+        if !self.closed && timeout != Some(std::time::Duration::ZERO) {
+            futures::future::select(
+                Box::pin(self.window.wait_for_update(timeout)),
+                Box::pin(self.repaint.wait()),
+            )
+            .await;
+        }
     }
     async fn next_frame(&mut self) -> wgame::Result<Option<Self::Frame<'_>>> {
         {
@@ -241,6 +268,7 @@ impl<'w, L: FnMut(&mut egui::Ui, &Canvas) -> egui::Response> WindowHost for Egui
             let events = raw.events.clone();
             let focused = raw.focused;
             let mut response = None;
+            self.repaint.clear();
             let mut output = self.context.run_ui(raw, |ui| {
                 response = Some((self.layout)(ui, &self.painter.canvas));
             });
@@ -262,6 +290,7 @@ impl<'w, L: FnMut(&mut egui::Ui, &Canvas) -> egui::Response> WindowHost for Egui
             self.platform
                 .handle_platform_output(raw_window, output.platform_output);
             if let Some(viewport) = output.viewport_output.remove(&egui::ViewportId::ROOT) {
+                self.repaint.request(viewport.repaint_delay);
                 self.closed |= viewport
                     .commands
                     .iter()

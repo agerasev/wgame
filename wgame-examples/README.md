@@ -86,6 +86,15 @@ by the high-level web feature. Use `trunk build --no-default-features --features
 web` for a static build; Cargo's `check` alone does not create browser glue.
 If Trunk rejects an inherited `NO_COLOR=1`, set `NO_COLOR=true` or unset it.
 
+## On-demand repaint
+
+`cargo run -p wgame-egui --example repaint` demonstrates an idle canvas that wakes
+for input and egui repaint deadlines. Add `-- --smoke` for a bounded check that
+it sleeps when settled and wakes for a delayed repaint. Applications can call
+`WindowHost::wait_for_update(None)` between frames, or supply their next timer
+deadline as a duration. Pass zero while animating. The existing `next_frame`
+contract continues to request a frame on every call.
+
 ## Optional egui host
 
 ```sh

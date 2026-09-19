@@ -49,6 +49,7 @@ pub struct Window<'a> {
     app: app::Window<'a>,
     pending_resize: Option<(u32, u32)>,
     host_input: crate::host_input::PlainInput,
+    update_events: Input,
     last_scale: f64,
 }
 
@@ -65,8 +66,11 @@ impl<'a> Window<'a> {
         let pending_resize = Some(app.size());
         let host_input = crate::host_input::PlainInput::new(app.input(), app.raw().has_focus());
         let last_scale = app.scale_factor();
+        let mut update_events = app.input();
+        update_events.set_include_redraws(true);
         Ok(Self {
             host_input,
+            update_events,
             last_scale,
             app,
             gfx,
@@ -91,6 +95,25 @@ impl<'a> Window<'a> {
     /// Create an independent event stream; see [`Input`] for buffering and termination.
     pub fn input(&self) -> Input {
         self.app.input()
+    }
+
+    /// Wait for a window event or the given timeout without consuming frame input.
+    /// `None` sleeps until an event; a zero timeout requests continuous rendering.
+    /// OS redraws, resize, scale changes, input, and close requests all wake it.
+    pub async fn wait_for_update(&mut self, timeout: Option<std::time::Duration>) {
+        use futures::{StreamExt, future};
+        if timeout == Some(std::time::Duration::ZERO) {
+            return;
+        }
+        let deadline = timeout.and_then(|delay| app::time::Instant::now().checked_add(delay));
+        let timer = async {
+            if let Some(deadline) = deadline {
+                app::runtime::sleep_until(deadline).await;
+            } else {
+                future::pending::<()>().await;
+            }
+        };
+        future::select(Box::pin(self.update_events.next()), Box::pin(timer)).await;
     }
 
     /// Wait for a drawable frame, or return `None` when the window closes.
@@ -122,6 +145,8 @@ impl<'a> Window<'a> {
                 input.relative_motion = glam::Vec2::new(x as f32, y as f32);
             }
             self.last_scale = redraw.scale_factor();
+            // This frame handles queued window events, including its own redraw.
+            while self.update_events.try_next().is_some() {}
             return Ok(Some(Frame {
                 input,
                 app: redraw,
@@ -294,6 +319,9 @@ impl<'w> crate::WindowHost for Window<'w> {
         Self: 'a;
     fn graphics(&self) -> &gfx::Graphics {
         self.graphics()
+    }
+    async fn wait_for_update(&mut self, timeout: Option<std::time::Duration>) {
+        self.wait_for_update(timeout).await;
     }
     async fn next_frame(&mut self) -> Result<Option<Self::Frame<'_>>> {
         self.next_frame().await
