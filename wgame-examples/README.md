@@ -55,7 +55,6 @@ The older examples load assets relative to the current directory:
 ```sh
 cd wgame-examples
 cargo run --bin shapes
-cargo run --bin events
 cargo run --bin shapes --features dump
 ```
 
@@ -74,9 +73,10 @@ trunk serve --no-default-features --features web
 Open the URL printed by Trunk. `index.html` selects the shapes example and copies
 `assets/`. To use the playground, change `data-bin="shapes"` to
 `data-bin="playground"` or `data-bin="polylines"`. Both embed their assets.
-The viewport example has its own page:
+Dedicated pages are available for these examples:
 
 ```sh
+trunk serve events.html --no-default-features --features web
 trunk serve viewports.html --no-default-features --features web
 trunk serve render_textures.html --no-default-features --features web
 ```
@@ -88,12 +88,31 @@ If Trunk rejects an inherited `NO_COLOR=1`, set `NO_COLOR=true` or unset it.
 
 ## On-demand repaint
 
-`cargo run -p wgame-egui --example repaint` demonstrates an idle canvas that wakes
-for input and egui repaint deadlines. Add `-- --smoke` for a bounded check that
-it sleeps when settled and wakes for a delayed repaint. Applications can call
-`WindowHost::wait_for_update(None)` between frames, or supply their next timer
-deadline as a duration. Pass zero while animating. The existing `next_frame`
-contract continues to request a frame on every call.
+```sh
+cargo run -p wgame-examples --bin events
+```
+
+The graphical event example embeds its font and starts idle. Move the pointer,
+resize the window, or change display scale to redraw. The displayed frame count
+stays still otherwise. **Space** toggles a one-second timer, **A** toggles continuous
+animation, and **Escape** closes. Timer deadlines remain fixed while other events
+arrive. Turning both modes off returns to indefinite waiting. Add `-- --smoke`
+for a twelve-frame startup/render/shutdown check.
+
+`WindowHost::wait_for_update(None)` sleeps until an event; a duration also allows
+application timers to wake it. Pass zero while animating. Draw the first frame
+before waiting. `next_frame` continues to request a frame on every call.
+
+For the low-level event stream without a renderer:
+
+```sh
+cargo run -p wgame-app --features x11 --example events
+cargo run -p wgame-app --features x11 --example events -- --redraws
+```
+
+The logger uses `Input::next()` directly. `--redraws` opts into OS redraw events,
+which are excluded from ordinary input streams. Close the window to end the
+stream consumer; `--smoke` limits observation to 250 ms.
 
 ## Optional egui host
 
@@ -102,10 +121,16 @@ cargo run -p wgame-egui --example playground
 cargo run -p wgame-egui --example playground -- --plain
 ```
 
-Both use the same canvas input/render loop. Click the canvas to focus it; typing
-in the text field stays in the UI. Add `--smoke` for twelve frames including an
-explicitly discarded frame. The same Mesa/Xvfb setup below applies. Run its
-offscreen composition tests with `cargo test -p wgame-egui --lib -- --ignored`.
+Both hosts use the same event-driven content loop. Move the pointer or resize
+while idle; click the canvas and press **Space** to toggle continuous animation.
+The egui version adds a matching checkbox, a text field that keeps its own keyboard
+focus, a delayed repaint button, and a tooltip that wakes at egui's hover deadline.
+The delayed status updates after one second even without further input.
+
+Add `--smoke` for twelve frames including an explicitly discarded frame. With egui,
+it also checks that the host settles to idle and wakes for delayed and immediate
+repaint requests. The same Mesa/Xvfb setup below applies. Run offscreen composition
+tests with `cargo test -p wgame-egui --lib -- --ignored`.
 
 ## Other examples
 

@@ -1,4 +1,4 @@
-//! Event-driven canvas. Run with `--smoke` for bounded idle/deadline checks.
+//! Bounded window checks shared by the interactive playground's smoke mode.
 use std::time::Duration;
 use wgame::{
     ContentFrame, WindowHost,
@@ -7,37 +7,7 @@ use wgame::{
 };
 use wgame_egui::{EguiWindow, egui};
 
-#[wgame::window(title = "On-demand repaint", logical_size = (640.0, 480.0))]
-async fn main(window: wgame::Window<'_>) -> wgame::Result<()> {
-    let mut count = 0;
-    let mut host = EguiWindow::new(window, move |ui, canvas| {
-        egui::Panel::left("controls").show(ui, |ui| {
-            if ui.button("Increment").clicked() {
-                count += 1;
-            }
-            ui.label(format!("Count: {count}"));
-        });
-        egui::CentralPanel::default()
-            .show(ui, |ui| canvas.show(ui))
-            .inner
-    });
-    if std::env::args().any(|arg| arg == "--smoke") {
-        smoke(&mut host).await?;
-    } else {
-        // Draw once, then sleep until an event or egui repaint deadline.
-        loop {
-            let Some(mut frame) = host.next_frame().await? else {
-                break;
-            };
-            frame.clear(color::BLUE);
-            frame.present();
-            host.wait_for_update(None).await;
-        }
-    }
-    Ok(())
-}
-
-async fn smoke<L: FnMut(&mut egui::Ui, &wgame_egui::Canvas) -> egui::Response>(
+pub async fn smoke<L: FnMut(&mut egui::Ui, &wgame_egui::Canvas) -> egui::Response>(
     host: &mut EguiWindow<'_, L>,
 ) -> wgame::Result<()> {
     use futures::future::{Either, select};

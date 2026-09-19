@@ -1,132 +1,132 @@
+//! On-demand drawing: input/OS redraws, an optional one-second timer, and animation.
+//! Assets are embedded. Space toggles the timer; A toggles animation; Esc closes.
 #![forbid(unsafe_code)]
 
 use std::time::Duration;
-
-use futures::{FutureExt, StreamExt, select_biased};
 use wgame::{
-    Event, Library, Result, Window,
+    Library, Result, Window,
+    app::time::Instant,
+    canvas::{Event, Key},
     gfx::types::color,
-    glam::{Affine2, Vec2},
+    glam::Vec2,
     prelude::*,
-    typography::TextAlign,
-    utils::PeriodicTimer,
+    typography::FontData,
 };
 
-#[wgame::window(title = "Wgame example", size = (1200, 900), resizable = true, vsync = false)]
+#[wgame::window(title = "Events: Space = timer, A = animate, Esc = close", logical_size = (960.0, 640.0), resizable = true)]
 async fn main(mut window: Window<'_>) -> Result<()> {
-    let gfx = Library::new(window.graphics());
-
-    let font = gfx.load_font("assets/free-sans-bold.ttf").await?;
-    let font_size = 32.0;
-    let font_atlas = font.rasterize(font_size);
-    let mut fps_text = "".to_string();
-    let mut mouse_text = "Move your mouse in the window".to_string();
-
-    let ring = &gfx
-        .shapes()
-        .unit_circle()
-        .stroke_texture(
-            0.5,
-            &gfx.texturing().gradient([
-                color::RED,
-                color::YELLOW,
-                color::GREEN,
-                color::CYAN,
-                color::BLUE,
-                color::MAGENTA,
-                color::RED,
-            ]),
-        )
-        .scale(0.5);
-
-    let mut input = window.input();
-    let mut mouse_pos = Vec2::ZERO;
-
-    let mut periodic = PeriodicTimer::new(Duration::from_secs(1));
-    let mut n_frames: u32 = 0;
-    let mut need_redraw = true;
+    let library = Library::new(window.graphics());
+    let font = library.make_font(&FontData::new(
+        include_bytes!("../../assets/free-sans-bold.ttf").to_vec(),
+        0,
+    )?);
+    let mut scale = window.scale_factor();
+    let mut raster = font.rasterize(24.0 * scale as f32);
+    let mut timer = None;
+    let mut ticks = 0;
+    let mut frames = 0;
+    let mut animate = false;
+    let mut phase = 0.0_f32;
+    let mut last = Instant::now();
+    let mut pointer = Vec2::splat(160.0);
+    let smoke = cfg!(not(target_arch = "wasm32")) && std::env::args().any(|arg| arg == "--smoke");
     loop {
-        if !need_redraw {
-            let mut event = select_biased! {
-                event = input.next().fuse() => event,
-                dur = periodic.wait_next().fuse() => {
-                    let fps = n_frames as f32 / dur.as_secs_f32();
-                    n_frames = 0;
-                    fps_text = format!("FPS: {fps}");
-                    println!("{}", fps_text);
-                    need_redraw = true;
-                    None
-                },
+        // The first frame is unconditional. OS redraw/resize/scale/close and input
+        // wake the host independently of this application deadline.
+        if frames > 0 {
+            let delay = if animate || smoke {
+                Some(Duration::ZERO)
+            } else {
+                timer.map(|deadline: Instant| deadline.saturating_duration_since(Instant::now()))
             };
-            while let Some(ev) = event {
-                match ev {
-                    Event::CursorMoved { position, .. } => {
-                        mouse_pos = Vec2::new(position.x as f32, position.y as f32);
-                        mouse_text =
-                            format!("Mouse pos: {},{}", position.x as i32, position.y as i32);
-                        need_redraw = true;
-                    }
-                    Event::CloseRequested => break,
-                    _ => (),
-                }
-                event = input.try_next();
-            }
+            window.wait_for_update(delay).await;
         }
-        if !need_redraw {
-            continue;
-        }
-        need_redraw = false;
-
-        let mut frame = match window.next_frame().await? {
-            Some(frame) => frame,
-            None => break,
+        let Some(mut frame) = window.next_frame().await? else {
+            break;
         };
-        let (width, height) = frame.size();
-
-        while let Some(event) = input.try_next() {
-            if let Event::CursorMoved { position, .. } = event {
-                mouse_pos = Vec2::new(position.x as f32, position.y as f32);
-                mouse_text = format!("Mouse pos: {},{}", position.x as i32, position.y as i32);
+        let now = Instant::now();
+        if animate {
+            phase += (now - last).as_secs_f32().min(0.1);
+        }
+        last = now;
+        let mut close = false;
+        for event in &frame.input().events {
+            if let Event::Key {
+                key,
+                pressed: true,
+                repeat: false,
+            } = event
+            {
+                match key {
+                    Key::Space => {
+                        timer = if timer.is_some() {
+                            None
+                        } else {
+                            Some(now + Duration::from_secs(1))
+                        }
+                    }
+                    Key::Character('a') => animate = !animate,
+                    Key::Escape => close = true,
+                    _ => {}
+                }
             }
         }
-
+        if close {
+            frame.discard();
+            break;
+        }
+        // An absolute deadline prevents frequent pointer events from postponing
+        // the tick. One wake catches up after a long suspension without a burst.
+        if timer.is_some_and(|deadline| now >= deadline) {
+            ticks += 1;
+            timer = Some(now + Duration::from_secs(1));
+        }
+        if let Some(pos) = frame.input().pointer {
+            pointer = pos;
+        }
+        if frame.scale_factor() != scale {
+            scale = frame.scale_factor();
+            raster = font.rasterize(24.0 * scale as f32);
+        }
+        let (width, height) = frame.logical_size();
         frame.clear(color::BLACK);
-
-        let camera = frame.physical_camera();
+        let camera = frame.logical_camera();
         let mut scene = frame.scene();
         scene.camera = camera;
-
         scene.add(
-            &font_atlas
-                .text(&mouse_text)
-                .align(TextAlign::Center)
-                .transform(Affine2::from_scale_angle_translation(
-                    Vec2::splat(font_size),
-                    0.0,
-                    Vec2::new(width as f32 / 2.0, height as f32 / 2.0),
-                )),
+            &library
+                .shapes()
+                .unit_circle()
+                .stroke_color(0.15, color::CYAN)
+                .scale(30.0 + 8.0 * phase.sin())
+                .move_to(pointer),
         );
-
-        scene.add(
-            &ring
-                .transform(
-                    Affine2::from_translation(Vec2::new(mouse_pos.x, mouse_pos.y))
-                        * Affine2::from_scale(Vec2::splat(32.0)),
-                )
-                .order(-1),
-        );
-
-        scene.add(
-            &font_atlas.text(&fps_text).align(TextAlign::Left).transform(
-                Affine2::from_scale_angle_translation(
-                    Vec2::splat(font_size),
-                    0.0,
-                    Vec2::new(0.0, font_size),
-                ),
+        for (row, label) in [
+            "Move the pointer / resize the window / Esc: close".to_owned(),
+            format!(
+                "Space: timer {} | A: animation {}",
+                if timer.is_some() { "on" } else { "off" },
+                if animate { "on" } else { "off" }
             ),
-        );
-
-        n_frames += 1;
+            format!("Frame {} | timer ticks {}", frames + 1, ticks),
+            format!("Canvas {width:.0} x {height:.0} | scale {scale:.2}"),
+        ]
+        .iter()
+        .enumerate()
+        {
+            scene.add(
+                &raster
+                    .text(label)
+                    .scale(24.0)
+                    .move_to(Vec2::new(16.0, 32.0 + row as f32 * 32.0)),
+            );
+        }
+        scene.render();
+        frame.present();
+        frames += 1;
+        if smoke && frames == 12 {
+            break;
+        }
     }
     Ok(())
 }
