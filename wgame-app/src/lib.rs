@@ -3,6 +3,8 @@
 //! Work runs on the event-loop thread: blocking CPU work also blocks input and
 //! rendering. Awaiting file I/O or timers yields control. A [`Runtime`] handle is
 //! local to this thread.
+//! Expired timers schedule another task poll even when there are no window or
+//! input events; idle applications can use timers without continuous redraws.
 //!
 //! [`spawn`] creates a single-consumer [`Task`]. Use [`Task::handle`] for shared
 //! cancellation and [`Task::cancel_on_drop`] for work owned by a window or scope.

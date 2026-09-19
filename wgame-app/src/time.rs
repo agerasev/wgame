@@ -79,7 +79,8 @@ impl TimerQueue {
         timer
     }
 
-    fn wake(&mut self) {
+    fn take_ready(&mut self) -> Vec<Waker> {
+        let mut ready = Vec::new();
         let now = Instant::now();
         while let Some(peek) = self.queue.peek_mut() {
             if peek.0.waker.strong_count() == 0 {
@@ -89,12 +90,13 @@ impl TimerQueue {
             if peek.0.timestamp <= now {
                 log::trace!("timer fired: {:?}", peek.0.timestamp);
                 if let Some(waker) = PeekMut::pop(peek).0.waker.upgrade() {
-                    waker.borrow().wake_by_ref();
+                    ready.push(waker.borrow().clone());
                 }
             } else {
                 break;
             }
         }
+        ready
     }
 
     fn schedule(&self) -> ControlFlow {
@@ -107,9 +109,17 @@ impl TimerQueue {
         }
     }
 
-    pub fn poll(&mut self) -> ControlFlow {
-        self.wake();
-        self.schedule()
+    pub fn poll(&mut self) -> (ControlFlow, Vec<Waker>) {
+        let ready = self.take_ready();
+        // Web event loops can deliver the resulting user events after
+        // AboutToWait, without another AboutToWait in that iteration. A further
+        // poll is needed to run the tasks those events mark ready.
+        let flow = if ready.is_empty() {
+            self.schedule()
+        } else {
+            ControlFlow::Poll
+        };
+        (flow, ready)
     }
 }
 
@@ -139,9 +149,9 @@ mod tests {
     fn dropped_timers_do_not_schedule_spurious_wakes() {
         let mut queue = TimerQueue::default();
         let timer = queue.insert(Instant::now() + std::time::Duration::from_secs(60));
-        assert!(matches!(queue.poll(), ControlFlow::WaitUntil(_)));
+        assert!(matches!(queue.poll().0, ControlFlow::WaitUntil(_)));
         drop(timer);
-        assert!(matches!(queue.poll(), ControlFlow::Wait));
+        assert!(matches!(queue.poll().0, ControlFlow::Wait));
     }
     #[test]
     fn past_deadline_completes_on_first_poll() {
@@ -152,6 +162,40 @@ mod tests {
                 .poll(&mut Context::from_waker(Waker::noop()))
                 .is_ready()
         );
-        assert!(matches!(queue.poll(), ControlFlow::Wait));
+        drop(timer);
+        assert!(matches!(queue.poll().0, ControlFlow::Wait));
+    }
+
+    #[test]
+    fn expired_timer_requests_a_poll_before_returning_to_idle() {
+        use std::{sync::Arc, task::Wake, time::Duration};
+
+        struct Counter(std::sync::atomic::AtomicUsize);
+        impl Wake for Counter {
+            fn wake(self: Arc<Self>) {
+                self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
+        let counter = Arc::new(Counter(Default::default()));
+        let waker = Waker::from(counter.clone());
+        let mut queue = TimerQueue::default();
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let mut timer = queue.insert(deadline);
+        assert!(
+            Pin::new(&mut timer)
+                .poll(&mut Context::from_waker(&waker))
+                .is_pending()
+        );
+        assert!(matches!(queue.poll().0, ControlFlow::WaitUntil(_)));
+        // Advance only the queue's deadline, so the test needs no wall-clock wait.
+        queue.queue.peek_mut().unwrap().0.timestamp = Instant::now();
+        let (flow, ready) = queue.poll();
+        assert_eq!(flow, ControlFlow::Poll);
+        assert_eq!(counter.0.load(std::sync::atomic::Ordering::SeqCst), 0);
+        for waker in ready {
+            waker.wake();
+        }
+        assert_eq!(counter.0.load(std::sync::atomic::Ordering::SeqCst), 1);
+        assert_eq!(queue.poll().0, ControlFlow::Wait);
     }
 }

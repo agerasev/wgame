@@ -218,7 +218,11 @@ impl ApplicationHandler<UserEvent> for AppHandler {
             call(event_loop);
         }
 
-        let next_poll = self.timers.borrow_mut().poll();
+        let (next_poll, ready) = self.timers.borrow_mut().poll();
+        // Wakers may reenter runtime state; release the timer queue borrow first.
+        for waker in ready {
+            waker.wake();
+        }
         event_loop.set_control_flow(next_poll);
     }
 }
