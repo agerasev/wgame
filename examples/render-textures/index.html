@@ -14,8 +14,8 @@
   </style>
 
 <script type="module">
-import init, * as bindings from '/wgame/examples/render-textures/render_textures-dbada37f92c0297a.js';
-const wasm = await init({ module_or_path: '/wgame/examples/render-textures/render_textures-dbada37f92c0297a_bg.wasm' });
+import init, * as bindings from '/wgame/examples/render-textures/render_textures-78a01577f25ae487.js';
+const wasm = await init({ module_or_path: '/wgame/examples/render-textures/render_textures-78a01577f25ae487_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -24,7 +24,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-<link rel="modulepreload" href="/wgame/examples/render-textures/render_textures-dbada37f92c0297a.js" crossorigin="anonymous" integrity="sha384-IGteUQr9mt0k3cmDHK+EtE4GSnKrNSYOPxyHTzE/YIAv+dHz31CEzQ2rBCBNcjou"><link rel="preload" href="/wgame/examples/render-textures/render_textures-dbada37f92c0297a_bg.wasm" crossorigin="anonymous" integrity="sha384-0bd8nk9WgHMPPwW2J3hlGJplc3GhmW0N50bQITvuBbZc7WRNScbVD8TA/LsPpJhN" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/wgame/examples/render-textures/render_textures-78a01577f25ae487.js" crossorigin="anonymous" integrity="sha384-CcqzaHty2JhYxxX8pkjOKeN8hhJtOO6chK1nghMuNyY0OdHpKD0iKtjKrjSHwD/t"><link rel="preload" href="/wgame/examples/render-textures/render_textures-78a01577f25ae487_bg.wasm" crossorigin="anonymous" integrity="sha384-C971t6Oxx12kSH91Rql/KXGdDRxjXD5ACi7VBHXnwToxVpsrkxTXz03zJBIcF6ck" as="fetch" type="application/wasm"></head>
 <body>
   <div id="content"><canvas id="canvas" tabindex="0" aria-label="Render textures interactive graphics example"></canvas></div>
   <a class="back" href="../../">← All examples</a>

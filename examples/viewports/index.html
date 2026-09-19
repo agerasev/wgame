@@ -14,8 +14,8 @@
   </style>
 
 <script type="module">
-import init, * as bindings from '/wgame/examples/viewports/viewports-1dd4232d4e8b94d7.js';
-const wasm = await init({ module_or_path: '/wgame/examples/viewports/viewports-1dd4232d4e8b94d7_bg.wasm' });
+import init, * as bindings from '/wgame/examples/viewports/viewports-a27d2d5f528fddd1.js';
+const wasm = await init({ module_or_path: '/wgame/examples/viewports/viewports-a27d2d5f528fddd1_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -24,7 +24,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-<link rel="modulepreload" href="/wgame/examples/viewports/viewports-1dd4232d4e8b94d7.js" crossorigin="anonymous" integrity="sha384-Ps/z6koA9SCnCMMWICnTeLigRLKQ/G2cPv4+3TnOQXqBnAXP4U5szYECsv2UsOlS"><link rel="preload" href="/wgame/examples/viewports/viewports-1dd4232d4e8b94d7_bg.wasm" crossorigin="anonymous" integrity="sha384-QNkcl0/sLmX8O9m7KOka+6VxiW/lk2rCeKrGynLGRSYKD8AfSEfoL3GDEslqA5wj" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/wgame/examples/viewports/viewports-a27d2d5f528fddd1.js" crossorigin="anonymous" integrity="sha384-eWH3lCDavKWzPbIwmx1QFVcNAo/Lrwl2wIasbO/hZZyUZ1S+4H8uA0Brk0xjc8cK"><link rel="preload" href="/wgame/examples/viewports/viewports-a27d2d5f528fddd1_bg.wasm" crossorigin="anonymous" integrity="sha384-5nZa2sjodDj+7b1fUVWoYR7yY+stIBst2EAm6EXKjU2YPNOMfvJ3ALjKWrMFwT5g" as="fetch" type="application/wasm"></head>
 <body>
   <div id="content"><canvas id="canvas" tabindex="0" aria-label="Viewports interactive graphics example"></canvas></div>
   <a class="back" href="../../">← All examples</a>

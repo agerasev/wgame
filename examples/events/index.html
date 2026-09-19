@@ -14,8 +14,8 @@
   </style>
 
 <script type="module">
-import init, * as bindings from '/wgame/examples/events/events-e7509505a2b398d7.js';
-const wasm = await init({ module_or_path: '/wgame/examples/events/events-e7509505a2b398d7_bg.wasm' });
+import init, * as bindings from '/wgame/examples/events/events-5261933cb2d2199b.js';
+const wasm = await init({ module_or_path: '/wgame/examples/events/events-5261933cb2d2199b_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -24,7 +24,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-<link rel="modulepreload" href="/wgame/examples/events/events-e7509505a2b398d7.js" crossorigin="anonymous" integrity="sha384-M8J+KQ+uC+iNmTRV2enupvaqfOdnqyiHgfIRZbGZ7zImn/+XtO4nLI6Znm4iOeTy"><link rel="preload" href="/wgame/examples/events/events-e7509505a2b398d7_bg.wasm" crossorigin="anonymous" integrity="sha384-iisH3RSXt+i6Hq03MxyAAHKsLhzAHdoR36excHNHifwj6Oth2b5d1SrKu4BMixHd" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/wgame/examples/events/events-5261933cb2d2199b.js" crossorigin="anonymous" integrity="sha384-IN/SAz1adByACucIH1dc5UTqzItZNaD8u2FNZ8uQWUSSb4/R15sned5crtD4voz8"><link rel="preload" href="/wgame/examples/events/events-5261933cb2d2199b_bg.wasm" crossorigin="anonymous" integrity="sha384-pjTwAIvfY45kg19TGYwwuZLkLoTGNWga8D9GN3ZlIgw3JTDIopmQOIdeJdLhNx8P" as="fetch" type="application/wasm"></head>
 <body>
   <div id="content"><canvas id="canvas" tabindex="0" aria-label="On-demand events interactive graphics example"></canvas></div>
   <a class="back" href="../../">← All examples</a>
