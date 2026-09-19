@@ -73,5 +73,5 @@ web-sys = "0.3.105"
 web-time = "1.1.0"
 js-sys = "0.3.105"
 proc-macro2 = "1.0.107"
-syn = { version = "3.0.5", features = ["full"] }
+syn = { version = "3.0.6", features = ["full"] }
 quote = "1.0.47"
