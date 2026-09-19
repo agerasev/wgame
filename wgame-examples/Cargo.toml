@@ -20,3 +20,7 @@ wgame = { workspace = true, features = [
 ] }
 futures.workspace = true
 log.workspace = true
+
+[dev-dependencies]
+futures = { workspace = true, features = ["executor"] }
+wgpu.workspace = true

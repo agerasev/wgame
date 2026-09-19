@@ -11,6 +11,7 @@ use wgame::{
     prelude::*,
     texture::{RenderTexture, SampledTexture, Texture, TextureSettings},
 };
+use wgame_examples::Labels;
 
 fn draw_preview(
     target: &mut RenderTexture,
@@ -62,12 +63,7 @@ fn draw_preview(
 #[wgame::window(title = "wgame: render textures", logical_size = (1000.0, 650.0))]
 async fn main(mut window: Window<'_>) -> Result<()> {
     let library = Library::new(window.graphics());
-    let font = library.make_font(&wgame::typography::FontData::new(
-        include_bytes!("../../assets/free-sans-bold.ttf").to_vec(),
-        0,
-    )?);
-    let mut scale = window.scale_factor() as f32;
-    let mut raster = font.rasterize(20.0 * scale);
+    let mut labels = Labels::new(&library)?;
     let tile = library.make_texture(
         &Image::with_data(
             (2, 2),
@@ -151,10 +147,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             // Queue order makes this drawing visible when the window samples it.
             live.submit();
         }
-        if scale != frame.scale_factor() as f32 {
-            scale = frame.scale_factor() as f32;
-            raster = font.rasterize(20.0 * scale);
-        }
+        let scale = frame.scale_factor() as f32;
+        labels.set_scale(scale);
         let (width, height) = frame.logical_size();
         let (width, height) = (width as f32, height as f32);
         frame.clear(Vec4::new(0.025, 0.035, 0.055, 1.0));
@@ -195,9 +189,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 scene.add(&quad.fill_texture(&checker));
                 scene.add(&quad.fill_texture(texture));
                 scene.add(
-                    &raster
-                        .text(&label)
-                        .scale(18.0)
+                    &labels
+                        .text(&label, 18.0)
                         .move_to(origin - Vec2::new(0.0, 12.0)),
                 );
             }
@@ -219,7 +212,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 14.0,
             ),
         ] {
-            scene.add(&raster.text(text).scale(size).move_to(Vec2::new(24.0, y)));
+            scene.add(&labels.text(text, size).move_to(Vec2::new(24.0, y)));
         }
         scene.render();
         frame.present();

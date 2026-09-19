@@ -14,6 +14,7 @@ use wgame::{
     shapes::{PolylinePoint, ShapesLibrary},
     texture::{Texture, TextureSettings},
 };
+use wgame_examples::Labels;
 
 const SIZE: Vec2 = Vec2::new(1200.0, 900.0);
 
@@ -83,11 +84,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let library = Library::new(window.graphics());
     let shapes = library.shapes();
     let texture = grid_texture(&library);
-    let font = library.make_font(&wgame::typography::FontData::new(
-        include_bytes!("../../assets/free-sans-bold.ttf").to_vec(),
-        0,
-    )?);
-    let raster = font.rasterize(20.0);
+    let mut labels = Labels::new(&library)?;
     let captions = [
         ("Quads and polylines", 30.0, 37.0, 30.0),
         (
@@ -144,8 +141,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             879.0,
             17.0,
         ),
-    ]
-    .map(|(text, x, y, size)| raster.text(text).scale(size).move_to(Vec2::new(x, y)));
+    ];
+    let mut caption_text = Vec::new();
 
     let mut input = window.input();
     let mut paused = false;
@@ -182,6 +179,12 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         let angle = 26.0 + 14.0 * (time * 0.6).sin();
         let viewport = Vec2::new(frame.size().0 as f32, frame.size().1 as f32);
         let scale = (viewport / SIZE).min_element();
+        if labels.set_scale(scale) || caption_text.is_empty() {
+            caption_text = captions
+                .iter()
+                .map(|&(text, x, y, size)| labels.text(text, size).move_to(Vec2::new(x, y)))
+                .collect();
+        }
         let camera = frame
             .physical_camera()
             .transform(Affine2::from_scale_angle_translation(
@@ -201,7 +204,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                 );
             }
         }
-        for caption in &captions {
+        for caption in &caption_text {
             scene.add(caption);
         }
 
@@ -256,17 +259,19 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             markers,
         );
         scene.add(
-            &raster
-                .text(&format!(
-                    "{angle:.1} degrees  |  {}{}",
-                    if angle < 2.0 * 0.25_f32.asin().to_degrees() {
-                        "bevel"
-                    } else {
-                        "miter"
-                    },
-                    if paused { "  (paused)" } else { "" }
-                ))
-                .scale(18.0)
+            &labels
+                .text(
+                    &format!(
+                        "{angle:.1} degrees  |  {}{}",
+                        if angle < 2.0 * 0.25_f32.asin().to_degrees() {
+                            "bevel"
+                        } else {
+                            "miter"
+                        },
+                        if paused { "  (paused)" } else { "" }
+                    ),
+                    18.0,
+                )
                 .move_to(Vec2::new(60.0, 590.0)),
         );
         ribbon(

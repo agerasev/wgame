@@ -1,5 +1,15 @@
 # Examples
 
+Gallery labels use a separate glyph raster for each displayed font size. The
+shared `Labels` helper accounts for physical pixels per drawing unit, including
+display scaling and fitted cameras, and refreshes its cache when that scale
+changes. Text objects created before a scale change should be rebuilt. Run its
+offscreen size/scale regression check with an available GPU or Mesa adapter:
+
+```sh
+cargo test --locked -p wgame-examples --lib -- --ignored
+```
+
 ## Desktop
 
 From the repository root, run the self-contained playground:

@@ -7,6 +7,7 @@ use wgame::{
     prelude::*,
     rgb::Rgba,
 };
+use wgame_examples::Labels;
 
 fn draw_view(
     target: &mut impl Target,
@@ -91,12 +92,7 @@ fn local_pointer<T: Target>(viewport: &Viewport<'_, T>, pointer: Option<Vec2>) -
 #[wgame::window(title = "wgame: borrowed viewports", logical_size = (1000.0, 680.0))]
 async fn main(mut window: Window<'_>) -> Result<()> {
     let library = Library::new(window.graphics());
-    let font = library.make_font(&wgame::typography::FontData::new(
-        include_bytes!("../../assets/free-sans-bold.ttf").to_vec(),
-        0,
-    )?);
-    let mut scale = window.scale_factor() as f32;
-    let mut raster = font.rasterize(18.0 * scale);
+    let mut labels = Labels::new(&library)?;
     let mut paused = false;
     let mut angle = 0.0;
     let mut last = wgame::app::time::Instant::now();
@@ -129,10 +125,8 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             angle += (now - last).as_secs_f32().min(0.1);
         }
         last = now;
-        if scale != frame.scale_factor() as f32 {
-            scale = frame.scale_factor() as f32;
-            raster = font.rasterize(18.0 * scale);
-        }
+        let scale = frame.scale_factor() as f32;
+        labels.set_scale(scale);
         let pointer = frame
             .input()
             .pointer
@@ -142,7 +136,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         let margin = (18.0 * scale).round() as u32;
         let top = (100.0 * scale).round() as u32;
         frame.clear(Rgba::new(0.025, 0.035, 0.055, 1.0));
-        let mut labels = Vec::new();
+        let mut captions = Vec::new();
         // Skip areas too small to fit nonempty viewports, including minimized layouts.
         if width > 3 * margin + 2 && height > top + 3 * margin + 2 {
             let side_by_side = width >= height;
@@ -171,12 +165,12 @@ async fn main(mut window: Window<'_>) -> Result<()> {
                     nested.clear(Rgba::new(0.12, 0.08, 0.16, 1.0));
                     let local = local_pointer(&nested, pointer);
                     draw_view(&mut nested, &library, -angle, false, local);
-                    labels.push((
+                    captions.push((
                         "Nested view",
                         Vec2::new((origin.0 + offset.0) as f32, (origin.1 + offset.1) as f32),
                     ));
                 }
-                labels.push((
+                captions.push((
                     if i == 0 {
                         "2D camera"
                     } else {
@@ -191,11 +185,11 @@ async fn main(mut window: Window<'_>) -> Result<()> {
         let camera = frame.physical_camera();
         let mut scene = frame.scene();
         scene.camera = camera;
-        for (label, pos) in labels {
+        for (label, pos) in captions {
             scene.add(
-                &raster
-                    .text(label)
-                    .scale(15.0 * scale)
+                &labels
+                    .text(label, 15.0)
+                    .scale(scale)
                     .move_to(pos + Vec2::new(10.0, 24.0) * scale),
             );
         }
@@ -217,9 +211,9 @@ async fn main(mut window: Window<'_>) -> Result<()> {
             ),
         ] {
             scene.add(
-                &raster
-                    .text(label)
-                    .scale(size * scale)
+                &labels
+                    .text(label, size)
+                    .scale(scale)
                     .transform(Affine2::from_translation(Vec2::new(18.0, y) * scale)),
             );
         }
