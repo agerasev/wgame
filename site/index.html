@@ -3,37 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore wgame, an async Rust framework for 2D and 3D graphics. Try interactive browser examples and games built with it.">
+  <meta name="description" content="Browser games and graphics examples built with wgame, an async Rust framework.">
   <meta name="theme-color" content="#111719">
-  <title>wgame — graphics, in motion</title>
+  <title>wgame — games and examples</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="page-shell">
-    <header class="site-header">
-      <a class="wordmark" href="./" aria-label="wgame home"><span class="brand-mark" aria-hidden="true">w</span>wgame<span class="wordmark-dot">.</span></a>
+    <header>
+      <div><h1>wgame</h1><p>An async Rust framework for 2D and 3D graphics.</p></div>
       <nav aria-label="Main navigation">
-        <a href="#examples">Examples</a>
         <a href="#games">Games</a>
-        <a href="https://github.com/agerasev/wgame">GitHub <span aria-hidden="true">↗</span></a>
+        <a href="#examples">Examples</a>
+        <a href="https://github.com/agerasev/wgame">GitHub</a>
       </nav>
     </header>
-
     <main id="main">
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Rust / wgpu / WebGL2</p>
-          <h1 id="hero-title">Graphics,<br><span>in motion.</span></h1>
-          <p class="hero-description">A modular Rust framework for async 2D and 3D graphics. Shapes, textures, text, and a window into what you can build.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="examples/playground/">Open the playground <span aria-hidden="true">↗</span></a>
-            <a class="text-link" href="https://github.com/agerasev/wgame#readme">Explore the framework <span aria-hidden="true">→</span></a>
-          </div>
-        </div>
-        <aside class="code-note" aria-label="A minimal wgame window loop">
-          <div class="code-heading"><span>One window. A little Rust.</span><span aria-hidden="true">↙</span></div>
+      <div class="collection">
+        <section id="games" aria-labelledby="games-title">
+          <h2 id="games-title">Games</h2>
+          <ul class="link-grid">
+            <li><a href="https://agerasev.github.io/games/">Games</a><p>Puzzles, parking, a moon lander, and other games.</p></li>
+            <li><a href="https://agerasev.github.io/bounce/">Bounce</a><p>A sandbox for rigid-body collisions.</p></li>
+            <li><a href="https://agerasev.github.io/gravity/">Gravity</a><p>An orbital simulation with interactive bodies.</p></li>
+            <li><a href="https://agerasev.github.io/run/">Run</a><p>An animated character in a generated forest.</p></li>
+            <li><a href="https://agerasev.github.io/drive/">Drive</a><p>A 3D driving simulation.</p></li>
+          </ul>
+        </section>
+        <section id="examples" aria-labelledby="examples-title">
+          <h2 id="examples-title">Examples</h2>
+          <ul class="link-grid">
+            <li><a href="examples/polylines/">Polylines</a><p>Widths, joins, textures, and transparency.</p></li>
+            <li><a href="examples/playground/">Playground</a><p>Shapes, textures, text, and animation.</p></li>
+            <li><a href="examples/events/">On-demand events</a><p>Input, timers, and continuous redraws.</p></li>
+            <li><a href="examples/viewports/">Viewports</a><p>Cameras, clipping, nested views, and picking.</p></li>
+            <li><a href="examples/render-textures/">Render textures</a><p>Offscreen rendering and CPU snapshots.</p></li>
+          </ul>
+        </section>
+        <p class="browser-note">Runs in your browser with WebAssembly and WebGL2. Click the canvas to use keyboard controls.</p>
+      </div>
+      <aside class="code-note" aria-label="A minimal wgame window loop">
+        <h2>A window in Rust</h2>
           <pre><code><span class="syntax-dim">#[wgame::window(size = (800, 600))]</span>
 <span class="syntax-accent">async fn</span> main(
     <span class="syntax-accent">mut</span> window: Window&lt;'_&gt;
@@ -46,76 +58,13 @@
     }
     Ok(())
 }</code></pre>
-          <a href="https://github.com/agerasev/wgame/blob/master/wgame/src/lib.rs">Start with the API guide <span aria-hidden="true">↗</span></a>
-        </aside>
-      </section>
-
-      <section id="examples" class="section" aria-labelledby="examples-title">
-        <div class="section-heading">
-          <div><p class="eyebrow">The example collection</p><h2 id="examples-title">Open. Interact. Explore.</h2></div>
-          <p>Real rendering, right in your browser.<br> Click the canvas to use keyboard controls.</p>
-        </div>
-        <div class="demo-grid">
-          <a class="demo-card featured" href="examples/playground/">
-            <div class="card-top"><span class="card-number">01 / START HERE</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <div><p class="card-category">Shapes · textures · text</p><h3>Playground</h3><p>A little of everything. Move the pointer, pause the animation, and resize the canvas to explore the basics.</p></div>
-            <div class="card-bottom"><span><kbd>Space</kbd> pause / resume</span><span>Launch example <span aria-hidden="true">→</span></span></div>
-          </a>
-          <a class="demo-card" href="examples/polylines/">
-            <div class="card-top"><span class="card-number">02 / GEOMETRY</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <div><h3>Polylines</h3><p>Tapered strokes, textured quads, and the small details where lines meet.</p></div>
-            <div class="card-bottom"><span><kbd>P</kbd> junction markers</span></div>
-          </a>
-          <a class="demo-card" href="examples/events/">
-            <div class="card-top"><span class="card-number">03 / INTERACTION</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <div><h3>On-demand events</h3><p>Watch redraws follow your input. Switch between an idle canvas, a timer, and continuous animation.</p></div>
-            <div class="card-bottom"><span><kbd>Space</kbd> timer <span class="control-separator">/</span> <kbd>A</kbd> animate</span></div>
-          </a>
-          <a class="demo-card" href="examples/viewports/">
-            <div class="card-top"><span class="card-number">04 / PERSPECTIVE</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <div><h3>Viewports</h3><p>2D and perspective cameras share a canvas. Explore nested views, clipping, and pointer picking.</p></div>
-            <div class="card-bottom"><span><kbd>Space</kbd> pause / resume</span></div>
-          </a>
-          <a class="demo-card" href="examples/render-textures/">
-            <div class="card-top"><span class="card-number">05 / RENDERING</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <div><h3>Render textures</h3><p>A live scene inside a texture. Capture a snapshot and compare the frozen image with its moving source.</p></div>
-            <div class="card-bottom"><span><kbd>S</kbd> capture snapshot</span></div>
-          </a>
-        </div>
-        <p class="browser-note">Examples use WebAssembly and WebGL2. A keyboard brings out all the controls; loading a demo may take a moment.</p>
-      </section>
-
-      <section id="games" class="section games-section" aria-labelledby="games-title">
-        <div class="section-heading">
-          <div><p class="eyebrow">Built with wgame</p><h2 id="games-title">Take it for a spin.</h2></div>
-          <p>From small puzzles to simulated worlds.</p>
-        </div>
-        <div class="game-grid">
-          <a class="game-card" href="https://agerasev.github.io/games/">
-            <div class="card-top"><span class="card-category">A collection to explore</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <h3>Games</h3><p>Puzzles, parking, a moon lander, and more — all in one place.</p><span class="game-action">Choose a game <span aria-hidden="true">→</span></span>
-          </a>
-          <a class="game-card" href="https://agerasev.github.io/bounce/">
-            <div class="card-top"><span class="card-category">Rigid-body playground</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <h3>Bounce</h3><p>Set shapes in motion and experiment with collisions and physics.</p><span class="game-action">Start experimenting <span aria-hidden="true">→</span></span>
-          </a>
-          <a class="game-card" href="https://agerasev.github.io/gravity/">
-            <div class="card-top"><span class="card-category">Orbital sandbox</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <h3>Gravity</h3><p>Launch bodies, trace their paths, and see gravity shape a system.</p><span class="game-action">Explore the system <span aria-hidden="true">→</span></span>
-          </a>
-          <a class="game-card" href="https://agerasev.github.io/run/">
-            <div class="card-top"><span class="card-category">A walk in the woods</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <h3>Run</h3><p>Wander through a seeded forest with an animated character and room to roam.</p><span class="game-action">Head into the forest <span aria-hidden="true">→</span></span>
-          </a>
-          <a class="game-card" href="https://agerasev.github.io/drive/">
-            <div class="card-top"><span class="card-category">3D car playground</span><span class="card-arrow" aria-hidden="true">↗</span></div>
-            <h3>Drive</h3><p>Get behind the wheel, explore the terrain, and find a new perspective.</p><span class="game-action">Take the wheel <span aria-hidden="true">→</span></span>
-          </a>
-        </div>
-      </section>
+        <a href="https://github.com/agerasev/wgame/blob/master/wgame/src/lib.rs">API guide</a>
+      </aside>
     </main>
-
-    <footer class="site-footer"><p><strong>wgame.</strong> Made with Rust. Open source.</p><div><a href="https://github.com/agerasev/wgame/blob/master/wgame-examples/README.md">Example guide</a><a href="https://github.com/agerasev/wgame/blob/master/LICENSE">MIT license</a><a href="https://github.com/agerasev/wgame">Source <span aria-hidden="true">↗</span></a></div></footer>
+    <footer>
+      <a href="https://github.com/agerasev/wgame/blob/master/wgame-examples/README.md">Example guide</a>
+      <a href="https://github.com/agerasev/wgame/blob/master/LICENSE">MIT license</a>
+    </footer>
   </div>
 </body>
 </html>
