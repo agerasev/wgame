@@ -4,8 +4,10 @@
 //! code generic over [`WindowHost`]. The callback returns the response from
 //! [`Canvas::show`]; its widget ID stays stable across frames. Input and camera
 //! coordinates are local logical pixels, including egui zoom. Clicking the canvas
-//! gives it keyboard focus. UI controls own their events; a captured canvas drag
-//! retains its release outside the canvas. Geometry/focus loss cancels gestures.
+//! gives it keyboard focus. While focused, arrows control the canvas; Tab and
+//! Shift+Tab still move focus to UI controls. UI controls own their events; a
+//! captured canvas drag retains its release outside the canvas. Geometry/focus
+//! loss cancels gestures.
 //! Lifting a touch preserves its completed release and clears pointer hover;
 //! a cancelled touch aborts the gesture instead.
 //!
@@ -270,7 +272,11 @@ impl<'w, L: FnMut(&mut egui::Ui, &Canvas) -> egui::Response> WindowHost for Egui
             let mut response = None;
             self.repaint.clear();
             let mut output = self.context.run_ui(raw, |ui| {
-                response = Some((self.layout)(ui, &self.painter.canvas));
+                let canvas = (self.layout)(ui, &self.painter.canvas);
+                // Layout may request focus after Canvas::show, so install the
+                // filter after the entire callback (including repeated passes).
+                input::configure_canvas_focus(&canvas);
+                response = Some(canvas);
             });
             // Drain first: TexturesDelta requires explicit handling even on discard.
             let updates = std::mem::take(&mut output.textures_delta.set);

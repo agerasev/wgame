@@ -2,6 +2,26 @@ use egui::{PointerButton, Response};
 use wgame::canvas::{Button, CanvasInput, Event, InputState, Key, Modifiers};
 use wgame::glam::Vec2;
 
+pub(crate) fn configure_canvas_focus(response: &Response) {
+    let ctx = &response.ctx;
+    if response.has_focus() {
+        ctx.memory_mut(|m| {
+            // Arrow navigation is queued before layout and applied after it.
+            // Cancel that pending move too: a newly focused canvas may not have
+            // had its filter installed yet. Tab traversal runs during layout.
+            m.move_focus(egui::FocusDirection::None);
+            m.set_focus_lock_filter(
+                response.id,
+                egui::EventFilter {
+                    horizontal_arrows: true,
+                    vertical_arrows: true,
+                    ..Default::default()
+                },
+            );
+        });
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct CanvasState {
     state: InputState,

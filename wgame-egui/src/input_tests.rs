@@ -5,6 +5,7 @@ struct Harness {
     ctx: egui::Context,
     state: CanvasState,
     text: String,
+    request_focus: bool,
 }
 impl Harness {
     fn new() -> Self {
@@ -12,6 +13,7 @@ impl Harness {
             ctx: Default::default(),
             state: Default::default(),
             text: String::new(),
+            request_focus: false,
         };
         this.frame(Vec::new(), 1.0, true, 100.0);
         this.frame(Vec::new(), 1.0, true, 100.0);
@@ -56,6 +58,11 @@ impl Harness {
                     })
                     .inner,
             );
+            let canvas = response.as_ref().unwrap();
+            if self.request_focus {
+                canvas.request_focus();
+            }
+            configure_canvas_focus(canvas);
         });
         output.drop_without_applying_deltas();
         self.state.collect(
@@ -221,5 +228,77 @@ fn page_keys_reach_the_canvas() {
         (egui::Key::PageDown, Key::PageDown),
     ] {
         assert_eq!(super::logical_key(source), Some(expected));
+    }
+}
+
+#[test]
+fn focused_canvas_keeps_arrow_presses_repeats_and_releases() {
+    for request_focus in [false, true] {
+        for (source, target) in [
+            (egui::Key::ArrowLeft, Key::ArrowLeft),
+            (egui::Key::ArrowRight, Key::ArrowRight),
+            (egui::Key::ArrowUp, Key::ArrowUp),
+            (egui::Key::ArrowDown, Key::ArrowDown),
+        ] {
+            let mut h = Harness::new();
+            h.request_focus = request_focus;
+            if request_focus {
+                h.frame(Vec::new(), 1.0, true, 100.0);
+            } else {
+                h.frame(mouse(200.0, 150.0, true), 1.0, true, 100.0);
+                h.frame(mouse(200.0, 150.0, false), 1.0, true, 100.0);
+            }
+            for (pressed, repeat) in [(true, false), (true, true), (false, false)] {
+                let input = h.frame(
+                    vec![egui::Event::Key {
+                        key: source,
+                        physical_key: None,
+                        pressed,
+                        repeat,
+                        modifiers: Default::default(),
+                    }],
+                    1.0,
+                    true,
+                    100.0,
+                );
+                assert!(input.focused, "{source:?} moved focus to a UI control");
+                assert_eq!(input.key_down(target), pressed);
+                assert!(input.events.contains(&Event::Key {
+                    key: target,
+                    pressed,
+                    repeat
+                }));
+                assert!(!input.events.contains(&Event::Cancelled));
+                assert!(h.frame(Vec::new(), 1.0, true, 100.0).focused);
+            }
+        }
+    }
+}
+
+#[test]
+fn tab_still_leaves_the_canvas_for_ui_controls() {
+    for shift in [false, true] {
+        let mut h = Harness::new();
+        h.frame(mouse(200.0, 150.0, true), 1.0, true, 100.0);
+        h.frame(mouse(200.0, 150.0, false), 1.0, true, 100.0);
+        h.frame(vec![key(true)], 1.0, true, 100.0);
+        h.frame(
+            vec![egui::Event::Key {
+                key: egui::Key::Tab,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers {
+                    shift,
+                    ..Default::default()
+                },
+            }],
+            1.0,
+            true,
+            100.0,
+        );
+        let input = h.frame(Vec::new(), 1.0, true, 100.0);
+        assert!(!input.focused);
+        assert!(!input.key_down(Key::Space));
     }
 }
