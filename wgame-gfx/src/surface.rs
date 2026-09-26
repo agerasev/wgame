@@ -63,10 +63,7 @@ impl<'a> Surface<'a> {
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
                 required_features: config.required_features,
-                required_limits: config
-                    .required_limits
-                    .clone()
-                    .using_resolution(adapter.limits()),
+                required_limits: device_limits(&config, adapter.limits()),
                 memory_hints: wgpu::MemoryHints::Performance,
                 trace: wgpu::Trace::Off,
                 experimental_features: Default::default(),
@@ -182,6 +179,15 @@ impl<'a> Surface<'a> {
     }
 }
 
+fn device_limits(config: &Config, adapter: wgpu::Limits) -> wgpu::Limits {
+    let mut required = config.required_limits.clone();
+    if config.use_adapter_buffer_limits {
+        required.max_storage_buffer_binding_size = adapter.max_storage_buffer_binding_size;
+        required.max_buffer_size = adapter.max_buffer_size;
+    }
+    required.using_resolution(adapter)
+}
+
 #[derive(Debug, PartialEq)]
 enum SurfaceAction {
     Render,
@@ -205,8 +211,51 @@ fn surface_action(result: &wgpu::CurrentSurfaceTexture) -> SurfaceAction {
 }
 #[cfg(test)]
 mod tests {
-    use super::{SurfaceAction, surface_action};
+    use super::{SurfaceAction, device_limits, surface_action};
+    use crate::Config;
     use wgpu::CurrentSurfaceTexture;
+
+    #[test]
+    fn default_buffer_limits_are_preserved() {
+        let config = Config::default();
+        let adapter = wgpu::Limits {
+            max_storage_buffer_binding_size: 512 << 20,
+            max_buffer_size: 1 << 30,
+            max_texture_dimension_2d: 16384,
+            ..wgpu::Limits::default()
+        };
+        assert!(!config.use_adapter_buffer_limits);
+        assert_eq!(
+            device_limits(&config, adapter.clone()),
+            config.required_limits.using_resolution(adapter)
+        );
+    }
+
+    #[test]
+    fn adapter_buffer_limits_override_only_buffer_requirements() {
+        let adapter = wgpu::Limits {
+            max_storage_buffer_binding_size: 512 << 20,
+            max_buffer_size: 1 << 30,
+            max_texture_dimension_2d: 16384,
+            ..wgpu::Limits::default()
+        };
+        let required_limits = wgpu::Limits {
+            max_storage_buffer_binding_size: 32 << 20,
+            max_buffer_size: 64 << 20,
+            max_compute_workgroups_per_dimension: 128,
+            max_uniform_buffer_binding_size: 16384,
+            ..wgpu::Limits::default()
+        };
+        let config = Config {
+            required_limits: required_limits.clone(),
+            use_adapter_buffer_limits: true,
+            ..Default::default()
+        };
+        let mut expected = required_limits.using_resolution(adapter.clone());
+        expected.max_storage_buffer_binding_size = adapter.max_storage_buffer_binding_size;
+        expected.max_buffer_size = adapter.max_buffer_size;
+        assert_eq!(device_limits(&config, adapter), expected);
+    }
 
     #[test]
     fn transient_acquisition_failures_retry_or_reconfigure() {

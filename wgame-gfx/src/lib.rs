@@ -88,9 +88,17 @@ pub struct Config {
     /// Required device limits. Defaults to WebGL2-compatible limits.
     ///
     /// The three texture-dimension limits use the adapter's supported maxima so
-    /// render targets can match the window resolution. All other limits are
-    /// requested as supplied.
+    /// render targets can match the window resolution. Other limits are
+    /// requested as supplied, except buffer limits when
+    /// [`Self::use_adapter_buffer_limits`] is enabled.
     pub required_limits: wgpu::Limits,
+    /// Request the adapter's maximum storage-binding and buffer-allocation sizes.
+    ///
+    /// Defaults to false. When enabled, replaces `max_storage_buffer_binding_size`
+    /// and `max_buffer_size` in [`Self::required_limits`] with the adapter's
+    /// supported values. This permits larger buffers without allocating memory;
+    /// individual allocations still depend on available resources.
+    pub use_adapter_buffer_limits: bool,
 }
 
 impl Default for Config {
@@ -99,6 +107,7 @@ impl Default for Config {
             present_mode: wgpu::PresentMode::AutoVsync,
             required_features: wgpu::Features::empty(),
             required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
+            use_adapter_buffer_limits: false,
         }
     }
 }

@@ -81,6 +81,23 @@ impl WindowConfig {
         self
     }
 
+    /// Request the adapter's buffer limits instead of the configured sizes.
+    ///
+    /// This opt-in permits buffers larger than WebGPU's baseline limits without
+    /// allocating memory. It leaves compute and other requirements unchanged:
+    ///
+    /// ```
+    /// let config = wgame::WindowConfig::default()
+    ///     .required_limits(wgpu::Limits::default())
+    ///     .use_adapter_buffer_limits(true);
+    /// ```
+    ///
+    /// See [`gfx::Config::use_adapter_buffer_limits`] for allocation constraints.
+    pub fn use_adapter_buffer_limits(mut self, enabled: bool) -> Self {
+        self.gfx.use_adapter_buffer_limits = enabled;
+        self
+    }
+
     /// Sets whether vsync is enabled, preserving GPU device requirements.
     pub fn vsync(self, vsync: bool) -> Self {
         Self {
@@ -108,19 +125,29 @@ mod tests {
             ..wgpu::Limits::default()
         };
         let features = wgpu::Features::TIMESTAMP_QUERY;
+        assert!(!WindowConfig::default().gfx.use_adapter_buffer_limits);
         let config = WindowConfig::default()
             .required_limits(limits.clone())
             .required_features(features)
+            .use_adapter_buffer_limits(true)
             .vsync(false)
             .title("compute")
             .size((640, 480))
             .resizable(false);
         assert_eq!(config.gfx.required_limits, limits);
         assert_eq!(config.gfx.required_features, features);
+        assert!(config.gfx.use_adapter_buffer_limits);
         assert_eq!(config.gfx.present_mode, wgpu::PresentMode::AutoNoVsync);
         let config = config.vsync(true);
         assert_eq!(config.gfx.required_limits, limits);
         assert_eq!(config.gfx.required_features, features);
+        assert!(config.gfx.use_adapter_buffer_limits);
         assert_eq!(config.gfx.present_mode, wgpu::PresentMode::AutoVsync);
+        assert!(
+            !config
+                .use_adapter_buffer_limits(false)
+                .gfx
+                .use_adapter_buffer_limits
+        );
     }
 }
