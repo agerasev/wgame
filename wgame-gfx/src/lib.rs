@@ -66,15 +66,39 @@ pub mod prelude {
     pub use crate::{Object, Renderer, Target, modifiers::*};
 }
 
+/// Surface presentation and GPU device requirements.
+///
+/// Defaults support WebGL2 graphics without compute or storage bindings. Request
+/// compute-capable limits explicitly on a backend that supports them:
+///
+/// ```
+/// let config = wgame_gfx::Config {
+///     required_limits: wgpu::Limits::default(),
+///     ..Default::default()
+/// };
+/// ```
+///
+/// Surface creation fails if the selected adapter cannot satisfy the requested
+/// features and non-texture limits.
 #[derive(Clone, Debug)]
 pub struct Config {
     pub present_mode: wgpu::PresentMode,
+    /// Optional GPU features to enable. Defaults to none.
+    pub required_features: wgpu::Features,
+    /// Required device limits. Defaults to WebGL2-compatible limits.
+    ///
+    /// The three texture-dimension limits use the adapter's supported maxima so
+    /// render targets can match the window resolution. All other limits are
+    /// requested as supplied.
+    pub required_limits: wgpu::Limits,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             present_mode: wgpu::PresentMode::AutoVsync,
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
         }
     }
 }

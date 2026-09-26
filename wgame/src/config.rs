@@ -55,7 +55,33 @@ impl WindowConfig {
         }
     }
 
-    /// Sets whether vsync is enabled.
+    /// Sets the optional GPU features required by the application.
+    ///
+    /// Unsupported features cause window graphics initialization to fail. This
+    /// does not change the selected native or browser backend.
+    pub fn required_features(mut self, features: wgpu::Features) -> Self {
+        self.gfx.required_features = features;
+        self
+    }
+
+    /// Sets device limits, including compute and storage-buffer capabilities.
+    ///
+    /// Defaults are WebGL2-compatible and exclude compute. Use a compute-capable
+    /// backend with the ordinary WebGPU limits for a compute application:
+    ///
+    /// ```
+    /// let config = wgame::WindowConfig::default()
+    ///     .required_limits(wgpu::Limits::default())
+    ///     .vsync(false);
+    /// ```
+    ///
+    /// See [`gfx::Config::required_limits`] for texture-resolution handling.
+    pub fn required_limits(mut self, limits: wgpu::Limits) -> Self {
+        self.gfx.required_limits = limits;
+        self
+    }
+
+    /// Sets whether vsync is enabled, preserving GPU device requirements.
     pub fn vsync(self, vsync: bool) -> Self {
         Self {
             gfx: gfx::Config {
@@ -64,8 +90,37 @@ impl WindowConfig {
                 } else {
                     PresentMode::AutoNoVsync
                 },
+                ..self.gfx
             },
             ..self
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WindowConfig;
+
+    #[test]
+    fn graphics_requirements_survive_window_builders() {
+        let limits = wgpu::Limits {
+            max_compute_workgroups_per_dimension: 128,
+            ..wgpu::Limits::default()
+        };
+        let features = wgpu::Features::TIMESTAMP_QUERY;
+        let config = WindowConfig::default()
+            .required_limits(limits.clone())
+            .required_features(features)
+            .vsync(false)
+            .title("compute")
+            .size((640, 480))
+            .resizable(false);
+        assert_eq!(config.gfx.required_limits, limits);
+        assert_eq!(config.gfx.required_features, features);
+        assert_eq!(config.gfx.present_mode, wgpu::PresentMode::AutoNoVsync);
+        let config = config.vsync(true);
+        assert_eq!(config.gfx.required_limits, limits);
+        assert_eq!(config.gfx.required_features, features);
+        assert_eq!(config.gfx.present_mode, wgpu::PresentMode::AutoVsync);
     }
 }

@@ -62,8 +62,10 @@ impl<'a> Surface<'a> {
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::downlevel_webgl2_defaults()
+                required_features: config.required_features,
+                required_limits: config
+                    .required_limits
+                    .clone()
                     .using_resolution(adapter.limits()),
                 memory_hints: wgpu::MemoryHints::Performance,
                 trace: wgpu::Trace::Off,
