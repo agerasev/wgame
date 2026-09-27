@@ -67,15 +67,44 @@ pub enum NormalY {
     /// Flip the green channel for maps authored with the opposite convention.
     Negative,
 }
-/// Blinn–Phong surface parameters. Vertex/instance tints are linear multipliers.
+/// Coordinate frame used by the RGB normal map.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum NormalSpace {
+    /// XYZ is relative to the surface's UV tangent frame.
+    #[default]
+    Tangent,
+    /// XYZ is in mesh coordinates, before the instance transform. This avoids
+    /// tangent-frame seams on rigid meshes. Deforming a mesh requires updating
+    /// its normal map as well; UV transforms only change where it is sampled.
+    Object,
+}
+/// How linear vertex/instance RGB combines with the base color texture.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum AlbedoMode {
+    /// Multiply the base color by the tint.
+    #[default]
+    Tint,
+    /// Replace base color with the tint where normal-map alpha is one; retain
+    /// base color where it is zero. Fractional masks blend in linear RGB.
+    /// The mask is raw data, independent of base-color opacity and normal strength.
+    /// Upload straight (unpremultiplied) normal RGB, including at mask zero.
+    /// A missing map supplies mask one and leaves geometric normals unchanged.
+    MaskedPaint,
+}
+/// Blinn–Phong surface parameters. Vertex/instance colors are linear RGB.
 #[derive(Clone, Copy, Debug)]
 pub struct MaterialSettings {
     pub specular: f32,
     pub shininess: f32,
+    /// Tangent mode scales XY perturbation. Object mode blends from the mesh
+    /// normal to the mapped normal, clamping the blend weight to `0..1`.
     pub normal_strength: f32,
+    /// Green-channel convention; ignored for object-space maps.
     pub normal_y: NormalY,
+    pub normal_space: NormalSpace,
     /// Decode the base color texture from sRGB. Normal maps are always raw data.
     pub albedo_srgb: bool,
+    pub albedo_mode: AlbedoMode,
 }
 impl Default for MaterialSettings {
     fn default() -> Self {
@@ -84,7 +113,9 @@ impl Default for MaterialSettings {
             shininess: 32.0,
             normal_strength: 1.0,
             normal_y: NormalY::Positive,
+            normal_space: NormalSpace::Tangent,
             albedo_srgb: true,
+            albedo_mode: AlbedoMode::Tint,
         }
     }
 }
@@ -107,15 +138,18 @@ impl MaterialSettings {
 pub struct LightingAttributes {
     normal_tex: TextureAttribute,
     settings: Vec4,
-    surface: glam::Vec2,
+    surface: Vec3,
 }
 #[derive(Attribute)]
 struct Varyings {
     world_position: Vec3,
     world_normal: Vec3,
+    normal_transform_x: Vec3,
+    normal_transform_y: Vec3,
+    normal_transform_z: Vec3,
     normal_coord: glam::Vec2,
     settings: Vec4,
-    surface: glam::Vec2,
+    surface: Vec3,
 }
 pub type LitMaterial = MeshMaterial<LightingAttributes>;
 pub type LitMesh = MaterialMesh<LightingAttributes>;
@@ -127,10 +161,16 @@ pub type LitMesh = MaterialMesh<LightingAttributes>;
 /// directions come from position/UV derivatives; mirrored UVs work without a
 /// tangent vertex stream. Degenerate UVs fall back to the mesh normal.
 ///
-/// Normal maps encode XYZ as RGB in `0..1`, with `(0.5,0.5,1)` neutral. Upload
+/// Normal maps encode XYZ as RGB in `0..1`. Tangent-space maps use `(0.5,0.5,1)`
+/// as neutral; object-space maps store mesh-coordinate directions and transform
+/// by the same inverse transpose as mesh normals. Upload
 /// their raw decoded pixels without sRGB conversion. Their UV transform is
 /// independent of the base color texture. Derivative tangents need UV seams and
 /// hard edges split; they are not a MikkTSpace tangent import path.
+/// With [`AlbedoMode::MaskedPaint`], alpha carries paint coverage. Keep masks
+/// separate from opacity: painted and unpainted surfaces can both be opaque.
+/// Render-target normal maps use premultiplied storage and cannot preserve RGB
+/// at zero alpha; use a CPU texture for a packed normal/paint map.
 ///
 /// Mesh positions must be affine points (`w = 1`).
 /// Lighting is computed in linear space. sRGB targets encode the output; other
@@ -143,9 +183,17 @@ pub type LitMesh = MaterialMesh<LightingAttributes>;
 /// # base: &wgame_gfx_texture::Texture, normal: &wgame_gfx_texture::Texture) -> anyhow::Result<()> {
 /// use wgame_gfx_3d::{Lighting, LightParameters, MaterialSettings, Shapes3d};
 /// use wgame_gfx_shapes::prelude::*;
+/// use wgame_gfx::prelude::*;
 /// let lighting = Lighting::new(shapes, textures, LightParameters::default())?;
 /// let material = lighting.material(Some(normal), MaterialSettings::default())?;
 /// let object = shapes.sphere(32,16).fill_texture(base).with_material(&material);
+/// // For paint, normal RGB stays unchanged; its alpha is the paint mask.
+/// let paint = lighting.material(Some(normal), MaterialSettings {
+///     albedo_mode: wgame_gfx_3d::AlbedoMode::MaskedPaint,
+///     ..Default::default()
+/// })?;
+/// let painted = shapes.sphere(32,16).fill_texture(base).with_material(&paint)
+///     .multiply_color(wgame_gfx::types::color::RED);
 /// let mut scene = wgame_gfx::Scene::default();
 /// scene.add(&object);
 /// # Ok(()) }
@@ -244,7 +292,7 @@ impl Lighting {
             .write_buffer(&self.buffer, 0, bytemuck::cast_slice(&params.packed()?));
         Ok(())
     }
-    /// Material with an optional normal map. A missing map uses a neutral normal.
+    /// Material with an optional normal map. A missing map uses mesh normals.
     /// The normal texture's color multiplier is ignored; only its UVs/data matter.
     /// Accepts both CPU textures and render textures. Submit GPU normal-map
     /// drawing before submitting a scene which samples it. Normal data must be
@@ -255,6 +303,11 @@ impl Lighting {
         settings: MaterialSettings,
     ) -> anyhow::Result<LitMaterial> {
         settings.validate()?;
+        let normal_strength = if normal.is_some() {
+            settings.normal_strength
+        } else {
+            0.0
+        };
         let normal = normal.unwrap_or(&self.neutral).sample();
         self.shader.material(
             vec![
@@ -264,16 +317,20 @@ impl Lighting {
             LightingAttributes {
                 normal_tex: normal.attribute(),
                 settings: Vec4::new(
-                    settings.normal_strength,
+                    normal_strength,
                     if matches!(settings.normal_y, NormalY::Positive) {
                         1.0
                     } else {
                         -1.0
                     },
                     f32::from(settings.albedo_srgb),
-                    0.0,
+                    f32::from(matches!(settings.normal_space, NormalSpace::Object)),
                 ),
-                surface: glam::Vec2::new(settings.specular, settings.shininess),
+                surface: Vec3::new(
+                    settings.specular,
+                    settings.shininess,
+                    f32::from(matches!(settings.albedo_mode, AlbedoMode::MaskedPaint)),
+                ),
             },
         )
     }

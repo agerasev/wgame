@@ -9,6 +9,9 @@ let cofactors = mat3x3<f32>(
 );
 let orientation = select(-1.0, 1.0, dot(model_matrix[0].xyz, cofactors[0]) >= 0.0);
 output.world_normal = orientation * (cofactors * vertex.normal);
+output.normal_transform_x = orientation * cofactors[0];
+output.normal_transform_y = orientation * cofactors[1];
+output.normal_transform_z = orientation * cofactors[2];
 output.normal_coord = mat3x2<f32>(
     instance.normal_tex_xform_m.xy,
     instance.normal_tex_xform_m.zw,

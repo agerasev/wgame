@@ -8,7 +8,12 @@ let normal_sample = normal_rgba.rgb / select(1.0, max(normal_rgba.a, 1e-20), nor
 var normal = safe_unit(input.world_normal, vec3(0.0, 0.0, 1.0));
 let uv_det = uv_x.x * uv_y.y - uv_x.y * uv_y.x;
 let uv_scale = sqrt(dot(uv_x, uv_x) * dot(uv_y, uv_y));
-if input.settings.x > 0.0 && abs(uv_det) > 1e-6 * uv_scale {
+if input.settings.x > 0.0 && input.settings.w > 0.5 {
+    let decoded = 2.0 * normal_sample - vec3(1.0);
+    let transform = mat3x3<f32>(input.normal_transform_x, input.normal_transform_y, input.normal_transform_z);
+    let mapped = safe_unit(transform * decoded, normal);
+    normal = safe_unit(mix(normal, mapped, min(input.settings.x, 1.0)), normal);
+} else if input.settings.x > 0.0 && abs(uv_det) > 1e-6 * uv_scale {
     let tangent_raw = (dp_x * uv_y.y - dp_y * uv_x.y) / uv_det;
     let bitangent_raw = (dp_y * uv_x.x - dp_x * uv_y.x) / uv_det;
     let tangent_plane = tangent_raw - normal * dot(normal, tangent_raw);
@@ -23,7 +28,11 @@ if input.settings.x > 0.0 && abs(uv_det) > 1e-6 * uv_scale {
 }
 var albedo = sampled_color.rgb;
 if input.settings.z > 0.5 { albedo = srgb_to_linear(albedo); }
-albedo *= input.color.rgb;
+if input.surface.z > 0.5 {
+    albedo = mix(albedo, input.color.rgb, clamp(normal_rgba.a, 0.0, 1.0));
+} else {
+    albedo *= input.color.rgb;
+}
 let diffuse = max(dot(normal, lighting.direction.xyz), 0.0);
 let view_direction = safe_unit(lighting.eye.xyz - input.world_position, normal);
 let halfway = safe_unit(view_direction + lighting.direction.xyz, normal);

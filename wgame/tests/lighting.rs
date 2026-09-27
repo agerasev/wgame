@@ -11,7 +11,7 @@ use wgame::{
     image::Image,
     prelude::*,
     shapes::{Mesh, PolygonFill, shader::Vertex},
-    shapes3d::{LightParameters, Lighting, MaterialSettings, NormalY},
+    shapes3d::{LightParameters, Lighting, MaterialSettings, NormalSpace, NormalY},
 };
 
 fn center(target: &mut Offscreen) -> [u8; 4] {
@@ -405,4 +405,164 @@ fn rendered_normal_maps_remain_live_in_baked_materials() {
     target.clear(color::BLACK);
     target.render(&camera, &baked);
     assert_eq!(center(&mut target), [0, 0, 0, 255]);
+}
+
+/// A mapped object direction must not change with UV orientation, triangle
+/// frames or nonuniform/reflected instance transforms.
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn object_normals_follow_mesh_transforms_independently_of_uvs() {
+    let gfx = support::graphics();
+    let lib = Library::new(&gfx);
+    let mut target = Offscreen::new(&gfx, (32, 32));
+    let camera = Camera::new(&gfx, Mat4::IDENTITY);
+    let lighting = Lighting::new(lib.shapes(), lib.texturing(), sunlight(Vec3::Z)).unwrap();
+    let n = Vec3::new(0.4, 0.3, 0.8).normalize();
+    let map = lib.make_texture(
+        &Image::with_color(
+            (1, 1),
+            (n * 0.5 + Vec3::splat(0.5)).extend(1.0).to_rgba_f16(),
+        ),
+        Default::default(),
+    );
+    let settings = MaterialSettings {
+        normal_space: NormalSpace::Object,
+        ..matte()
+    };
+    for uv in [
+        Affine2::IDENTITY,
+        Affine2::from_angle(1.2),
+        Affine2::from_scale(Vec2::new(-1.0, 1.0)),
+    ] {
+        for transform in [
+            Mat4::IDENTITY,
+            Mat4::from_scale(Vec3::new(2.0, 1.0, 0.5)),
+            Mat4::from_scale(Vec3::new(-2.0, 1.0, 0.5)),
+            Mat4::from_rotation_z(1.0),
+        ] {
+            for (present, degenerate, strength) in [
+                (true, false, 1.0),
+                (true, true, 1.0),
+                (false, false, 1.0),
+                (true, false, 0.0),
+                (true, false, 0.5),
+            ] {
+                let texture = map.transform_coord(uv);
+                let material = lighting
+                    .material(
+                        present.then_some(&texture as &dyn wgame::texture::SampledTexture),
+                        MaterialSettings {
+                            normal_strength: strength,
+                            normal_y: NormalY::Negative,
+                            ..settings
+                        },
+                    )
+                    .unwrap();
+                let mut scene = Scene::default();
+                scene.add(
+                    &quad(&lib, Vec3::Z, degenerate)
+                        .with_material(&material)
+                        .transform(wgame::glam::Affine3A::from_mat4(transform)),
+                );
+                for direction in [Vec3::Z, Vec3::X, -Vec3::X] {
+                    lighting.update(sunlight(direction)).unwrap();
+                    target.clear(color::BLACK);
+                    target.render_iter(&camera, scene.iter());
+                    let actual = center(&mut target);
+                    let normal_transform = transform.inverse().transpose();
+                    let geometric = normal_transform.transform_vector3(Vec3::Z).normalize();
+                    let mapped = normal_transform.transform_vector3(n).normalize();
+                    let normal = if present {
+                        geometric.lerp(mapped, strength).normalize()
+                    } else {
+                        geometric
+                    };
+                    let expected = encoded(normal.dot(direction).max(0.0));
+                    assert!(
+                        actual[0].abs_diff(expected) <= 2,
+                        "{actual:?} != {expected}: {uv:?}/{transform:?}/{present}/{degenerate}/{strength}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Mask zero retains opaque trim and its normal; mask one replaces only albedo.
+/// Two differently painted instances must still share one material batch.
+#[test]
+#[ignore = "requires a GPU adapter; run with --ignored"]
+fn masked_paint_blends_linear_albedo_without_changing_opacity_or_normals() {
+    use wgame::shapes3d::AlbedoMode;
+    let original = support::graphics();
+    for format in [
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+    ] {
+        let gfx = wgame::gfx::Graphics::new(
+            original.adapter().clone(),
+            original.device().clone(),
+            original.queue().clone(),
+            format,
+        );
+        let lib = Library::new(&gfx);
+        let lighting = Lighting::new(lib.shapes(), lib.texturing(), sunlight(Vec3::Z)).unwrap();
+        let base = lib.make_texture(
+            &Image::with_color((1, 1), Vec4::new(0.5, 0.25, 0.75, 1.0).to_rgba_f16()),
+            Default::default(),
+        );
+        let mut target = Offscreen::new(&gfx, (32, 32));
+        let camera = Camera::new(&gfx, Mat4::IDENTITY);
+        let decode = |v: f32| ((v + 0.055) / 1.055).powf(2.4);
+        let base_linear = Vec3::new(decode(0.5), decode(0.25), decode(0.75));
+        for space in [NormalSpace::Tangent, NormalSpace::Object] {
+            for mask in [0.0, 0.5, 1.0] {
+                let map = lib.make_texture(
+                    &Image::with_color((1, 1), Vec4::new(0.5, 0.5, 1.0, mask).to_rgba_f16()),
+                    Default::default(),
+                );
+                let material = lighting
+                    .material(
+                        Some(&map),
+                        MaterialSettings {
+                            albedo_mode: AlbedoMode::MaskedPaint,
+                            normal_space: space,
+                            specular: 0.0,
+                            ..Default::default()
+                        },
+                    )
+                    .unwrap();
+                let shape = lib
+                    .shapes()
+                    .unit_quad()
+                    .fill_texture(&base)
+                    .with_material(&material)
+                    .transform(wgame::glam::Affine2::from_scale(Vec2::new(0.5, 1.0)));
+                let mut scene = Scene::default();
+                let colors = [Vec3::new(0.1, 0.7, 0.2), Vec3::new(0.8, 0.05, 0.1)];
+                for (x, paint) in [-0.5, 0.5].into_iter().zip(colors) {
+                    scene.add(
+                        &shape
+                            .multiply_color(paint.extend(1.0))
+                            .move_to(Vec2::new(x, 0.0)),
+                    );
+                }
+                assert_eq!(scene.len(), 1);
+                target.clear(color::GREEN);
+                target.render(&camera, &scene.bake());
+                let pixels = support::pixels(&mut target);
+                for (x, paint) in [8, 24].into_iter().zip(colors) {
+                    let actual = &pixels[(16 * 32 + x) * 4..][..4];
+                    let expected = base_linear.lerp(paint, mask).to_array().map(encoded);
+                    for i in 0..3 {
+                        assert!(
+                            actual[i].abs_diff(expected[i]) <= 2,
+                            "{format:?}/{space:?}/{mask}: {actual:?} vs {expected:?}"
+                        );
+                    }
+                    assert_eq!(actual[3], 255, "paint mask is not opacity");
+                }
+            }
+        }
+    }
 }

@@ -13,6 +13,7 @@ dump = []
 [dependencies]
 wgame = { workspace = true, features = [
     "shapes",
+    "3d",
     "fs",
     "image",
     "typography",

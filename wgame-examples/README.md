@@ -169,3 +169,27 @@ no display. For a window smoke check on headless Linux with Mesa Vulkan and Xvfb
 ```sh
 WGPU_BACKEND=vulkan xvfb-run -a cargo run --locked -p wgame-examples --bin playground -- --smoke
 ```
+
+## 3D materials
+
+```sh
+cargo run --locked -p wgame-examples --bin solids
+```
+
+The self-contained gallery demonstrates spheres, capped cylinders and a custom
+mesh with recalculated face normals; ambient/directional lighting and specular
+highlights; tangent and object-space normal maps; nonuniform and reflected
+transforms; independently colored instances using a paint mask; and custom WGSL
+alongside unlit and transparent geometry with depth testing. Assets are generated
+in memory. Space pauses the light and object motion, P cycles paint colors, M
+switches normal maps, O switches perspective/orthographic projection, and Escape
+closes. Add `-- --smoke` for twelve frames. On the web:
+
+```sh
+cd wgame-examples
+trunk serve solids.html --no-default-features --features web
+```
+
+See [material contracts](../wgame-gfx-3d/src/lighting.rs) for color space, mask
+packing and normal-map conventions. Lighting does not simulate cast shadows or
+physically based reflections.
