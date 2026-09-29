@@ -1,7 +1,4 @@
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
+use std::{fs::File, io::Write};
 
 use wgame_image::{Atlas, Encoding, ImageReadExt};
 use wgame_typography::{Font, FontAtlas};
@@ -10,11 +7,8 @@ const CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456
 const SIZES: &[f32] = &[7.0, 64.0, 49.0, 8.0, 13.0, 27.0, 36.0, 1.0, 24.0];
 
 fn main() {
-    let mut contents = Vec::new();
-    File::open("../wgame-examples/assets/free-sans-bold.ttf")
-        .unwrap()
-        .read_to_end(&mut contents)
-        .unwrap();
+    std::fs::create_dir_all("output").unwrap();
+    let contents = include_bytes!("assets/free-sans-bold.ttf").to_vec();
     let font = Font::new(contents, 0).unwrap();
 
     let atlas = Atlas::default();

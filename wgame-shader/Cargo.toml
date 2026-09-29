@@ -3,6 +3,13 @@ name = "wgame-shader"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Typed shader attributes, bindings, and WGSL templates for wgame"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-shader"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [dependencies]
 wgame-shader-macros.workspace = true

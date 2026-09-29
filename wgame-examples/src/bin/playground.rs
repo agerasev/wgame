@@ -18,7 +18,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let library = Library::new(window.graphics());
     let shapes = library.shapes();
     let mut labels = Labels::new(&library)?;
-    let image = Image::decode_auto(include_bytes!("../../assets/lenna.png"))?;
+    let image = Image::decode_auto(include_bytes!("../../assets/sample.png"))?;
     let photo = library.make_texture(&image, TextureSettings::linear());
     let pixels = Image::with_data(
         (8, 8),

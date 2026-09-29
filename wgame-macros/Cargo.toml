@@ -3,6 +3,13 @@ name = "wgame-macros"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Application and window entry point macros for wgame"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-macros"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [lib]
 proc-macro = true
@@ -13,4 +20,5 @@ syn.workspace = true
 quote.workspace = true
 
 [dev-dependencies]
-wgame = { workspace = true, features = ["desktop"] }
+# Keep consumer doctests local to avoid a publication dependency cycle.
+wgame = { path = "../wgame", default-features = false, features = ["desktop"] }

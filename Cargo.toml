@@ -25,6 +25,8 @@ resolver = "3"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
+repository = "https://github.com/agerasev/wgame"
+homepage = "https://agerasev.github.io/wgame/"
 
 [workspace.dependencies]
 wgame-input = { version = "0.1.0", path = "wgame-input" }

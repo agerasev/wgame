@@ -79,7 +79,7 @@ fn logical_text_matches_native_resolution_raster() {
     let gfx = support::graphics();
     let library = Library::new(&gfx);
     let data = crate::typography::FontData::new(
-        include_bytes!("../../../wgame-examples/assets/free-sans-bold.ttf").to_vec(),
+        include_bytes!("../../tests/assets/free-sans-bold.ttf").to_vec(),
         0,
     )
     .unwrap();

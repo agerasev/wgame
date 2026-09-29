@@ -5,8 +5,9 @@ wgpu. It provides an async window loop, composable shapes, texture atlases, and 
 
 ## Get started
 
-Build and open the [facade crate documentation](wgame/src/lib.rs) for the
-quickstart, feature selection, and links to API contracts:
+Add `wgame = "0.1.0"` to your dependencies. The
+[crate documentation](https://docs.rs/wgame/0.1.0/wgame/) contains the quickstart,
+feature selection, and API contracts. To build the documentation locally:
 
 ```sh
 cargo doc --locked --workspace --no-deps --open
@@ -20,6 +21,7 @@ cargo run --locked -p wgame-examples --bin playground
 
 See [example instructions](wgame-examples/README.md) for controls and desktop/web
 launch commands, and [AGENTS.md](AGENTS.md) for contributor practices and checks.
+See [release notes](CHANGELOG.md) for published changes.
 
 Explore the [browser gallery](https://agerasev.github.io/wgame/) or
 [build the gallery locally](site/README.md).
@@ -49,4 +51,4 @@ download detached CPU snapshots when needed.
 
 ## License
 
-MIT. Example font and image assets are used only by examples and tests.
+MIT. Example and test assets have [separate notices](wgame-examples/assets/README.md).

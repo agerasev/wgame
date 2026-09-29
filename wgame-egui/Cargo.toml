@@ -3,6 +3,13 @@ name = "wgame-egui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "An egui window host for wgame graphics applications"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-egui"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [features]
 default = ["desktop"]

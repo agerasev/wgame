@@ -25,7 +25,7 @@ async fn main(mut window: Window<'_>) -> Result<()> {
     let gfx = Library::new(window.graphics());
 
     let texture = &gfx
-        .load_texture("assets/lenna.png", TextureSettings::linear())
+        .load_texture("assets/sample.png", TextureSettings::linear())
         .await?;
 
     let font = gfx.load_font("assets/free-sans-bold.ttf").await?;

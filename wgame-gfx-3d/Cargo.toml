@@ -3,6 +3,13 @@ name = "wgame-gfx-3d"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Solid primitives, lighting, and normal maps for wgame"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-gfx-3d"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [dependencies]
 glam.workspace = true

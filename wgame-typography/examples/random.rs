@@ -4,21 +4,15 @@ use rand::{
     rngs::SmallRng,
     seq::IteratorRandom,
 };
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
+use std::{fs::File, io::Write};
 use wgame_image::{Atlas, Encoding, ImageReadExt};
 use wgame_typography::{Font, FontAtlas};
 
 const CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890";
 
 fn main() {
-    let mut contents = Vec::new();
-    File::open("../wgame-examples/assets/free-sans-bold.ttf")
-        .unwrap()
-        .read_to_end(&mut contents)
-        .unwrap();
+    std::fs::create_dir_all("output").unwrap();
+    let contents = include_bytes!("assets/free-sans-bold.ttf").to_vec();
     let font = Font::new(contents, 0).unwrap();
 
     let mut rng = SmallRng::seed_from_u64(0xdeadbeef);

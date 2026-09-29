@@ -57,21 +57,32 @@ impl<Q: ImageWrite + ?Sized> ImageWrite for &mut Q {
 fn into_range(range: impl RangeBounds<u32>, size: u32) -> Range<u32> {
     let start = match range.start_bound() {
         Bound::Included(x) => *x,
-        Bound::Excluded(_) => unimplemented!("Excluded start bound is not supported"),
+        Bound::Excluded(x) => x.checked_add(1).expect("Image range start overflows u32"),
         Bound::Unbounded => 0,
     };
     let end = match range.end_bound() {
-        Bound::Included(x) => *x + 1,
+        Bound::Included(x) => x.checked_add(1).expect("Image range end overflows u32"),
         Bound::Excluded(x) => *x,
         Bound::Unbounded => size,
     };
-    assert!((0..size).contains(&start));
-    assert!((0..=size).contains(&end));
-    assert!(start <= end);
+    assert!(start <= size, "Image range start is out of bounds");
+    assert!(end <= size, "Image range end is out of bounds");
+    assert!(start <= end, "Image range start exceeds its end");
     start..end
 }
 
+/// A rectangular region expressed as two coordinate ranges.
+///
+/// Range pairs accept all standard included, excluded, and unbounded bounds.
+/// Empty ranges are valid, including at the image's right and bottom edges.
+/// Rectangles and boxes use an inclusive origin and exclusive end.
 pub trait RectRange<T> {
+    /// Returns ranges within `size`, with each start no greater than its end.
+    ///
+    /// # Panics
+    ///
+    /// The provided implementations panic if a bound is outside `size`, a range
+    /// is reversed, or normalizing a bound overflows.
     fn into_ranges(self, size: Size2D<T>) -> (Range<T>, Range<T>);
 }
 
@@ -86,7 +97,17 @@ impl<X: RangeBounds<u32>, Y: RangeBounds<u32>> RectRange<u32> for (X, Y) {
 
 impl RectRange<u32> for Rect<u32> {
     fn into_ranges(self, size: Size2D<u32>) -> (Range<u32>, Range<u32>) {
-        (self.x_range(), self.y_range()).into_ranges(size)
+        let end_x = self
+            .origin
+            .x
+            .checked_add(self.size.width)
+            .expect("Image rectangle x bound overflows u32");
+        let end_y = self
+            .origin
+            .y
+            .checked_add(self.size.height)
+            .expect("Image rectangle y bound overflows u32");
+        (self.origin.x..end_x, self.origin.y..end_y).into_ranges(size)
     }
 }
 
@@ -96,20 +117,41 @@ impl RectRange<u32> for Box2D<u32> {
     }
 }
 
+fn slice_data_range(x: Range<u32>, y: Range<u32>, stride: u32) -> Range<usize> {
+    // An empty region at an image edge can have an origin beyond its storage,
+    // especially when slicing a view whose last row omits trailing padding.
+    if x.is_empty() || y.is_empty() {
+        0..0
+    } else {
+        (x.start as usize + stride as usize * y.start as usize)
+            ..((x.end - 1) as usize + stride as usize * (y.end - 1) as usize + 1)
+    }
+}
+
 pub trait ImageReadExt: ImageRead {
+    /// Borrows a rectangular region, retaining the source row stride.
+    ///
+    /// An empty region has empty data and yields no rows or pixels.
+    ///
+    /// ```
+    /// use std::ops::Bound::{Excluded, Included};
+    /// use wgame_image::{Image, prelude::*};
+    ///
+    /// let image = Image::<u8>::with_data((3, 2), [0, 1, 2, 3, 4, 5]);
+    /// assert_eq!(image.slice(((Excluded(0), Included(2)), 1..)).data(), [4, 5]);
+    /// assert!(image.slice((3..3, 2..2)).data().is_empty());
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics for invalid bounds as described by [`RectRange::into_ranges`].
     fn slice(&self, range: impl RectRange<u32>) -> ImageSlice<'_, Self::Pixel> {
         let size = self.size();
         let (x_range, y_range) = range.into_ranges(size);
-        let data_start = x_range.start as usize + self.stride() as usize * y_range.start as usize;
-        let data_end = if x_range.is_empty() || y_range.is_empty() {
-            data_start
-        } else {
-            (x_range.end - 1) as usize + self.stride() as usize * (y_range.end - 1) as usize + 1
-        };
         ImageSlice {
             size: Size2D::new(x_range.end - x_range.start, y_range.end - y_range.start),
             stride: self.stride(),
-            data: &self.data()[data_start..data_end],
+            data: &self.data()[slice_data_range(x_range, y_range, self.stride())],
         }
     }
 
@@ -127,7 +169,7 @@ pub trait ImageReadExt: ImageRead {
         let size = self.size();
         let stride = self.stride();
         self.data()
-            .chunks(stride as usize)
+            .chunks((stride as usize).max(1))
             .enumerate()
             .map(move |(j, row)| (j as u32, row.split_at(size.width as usize).0))
     }
@@ -148,19 +190,20 @@ pub trait ImageReadExt: ImageRead {
 }
 
 pub trait ImageWriteMut: ImageWrite {
+    /// Mutably borrows a region with the same bounds and empty-region behavior
+    /// as [`ImageReadExt::slice`].
+    ///
+    /// # Panics
+    ///
+    /// Panics for invalid bounds as described by [`RectRange::into_ranges`].
     fn slice_mut(&mut self, range: impl RectRange<u32>) -> ImageSliceMut<'_, Self::Pixel> {
         let size = self.size();
         let (x_range, y_range) = range.into_ranges(size);
-        let data_start = x_range.start as usize + self.stride() as usize * y_range.start as usize;
-        let data_end = if x_range.is_empty() || y_range.is_empty() {
-            data_start
-        } else {
-            (x_range.end - 1) as usize + self.stride() as usize * (y_range.end - 1) as usize + 1
-        };
+        let data_range = slice_data_range(x_range.clone(), y_range.clone(), self.stride());
         ImageSliceMut {
             size: Size2D::new(x_range.end - x_range.start, y_range.end - y_range.start),
             stride: self.stride(),
-            data: &mut self.data_mut()[data_start..data_end],
+            data: &mut self.data_mut()[data_range],
         }
     }
 
@@ -178,7 +221,7 @@ pub trait ImageWriteMut: ImageWrite {
         let size = self.size();
         let stride = self.stride();
         self.data_mut()
-            .chunks_mut(stride as usize)
+            .chunks_mut((stride as usize).max(1))
             .enumerate()
             .map(move |(j, row)| (j as u32, row.split_at_mut(size.width as usize).0))
     }

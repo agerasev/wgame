@@ -3,6 +3,13 @@ name = "wgame-gfx-texture"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "GPU texture atlases, render textures, and readback for wgame"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-gfx-texture"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [dependencies]
 wgame-gfx.workspace = true

@@ -1,5 +1,3 @@
-use std::{fs::File, io::Read};
-
 use image::GrayImage;
 use swash::{
     FontRef,
@@ -7,11 +5,8 @@ use swash::{
 };
 
 fn main() {
-    let mut contents = Vec::new();
-    File::open("../wgame-examples/assets/free-sans-bold.ttf")
-        .unwrap()
-        .read_to_end(&mut contents)
-        .unwrap();
+    std::fs::create_dir_all("output").unwrap();
+    let contents = include_bytes!("assets/free-sans-bold.ttf").to_vec();
     let font = FontRef::from_index(&contents, 0).expect("Font data validation error");
     let mut context = ScaleContext::new();
     let mut scaler = context.builder(font).size(64.0).hint(false).build();

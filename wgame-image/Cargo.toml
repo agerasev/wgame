@@ -3,6 +3,13 @@ name = "wgame-image"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "CPU images, pixel formats, and texture atlases for wgame"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-image"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [features]
 default = ["png"]

@@ -1,13 +1,12 @@
-//! A modular framework for async 2D graphics applications.
+//! A modular framework for async 2D and 3D graphics applications.
 //!
 //! # Getting started
 //!
-//! Until a release is published, use a path dependency on the `wgame` crate in
-//! this checkout:
+//! Add the published crate to your application:
 //!
 //! ```toml
 //! [dependencies]
-//! wgame = { path = "/path/to/checkout/wgame" }
+//! wgame = "0.1.0"
 //! ```
 //!
 //! ```no_run

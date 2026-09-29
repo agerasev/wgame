@@ -3,6 +3,13 @@ name = "wgame-shader-macros"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Shader attribute derive macros for wgame"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-shader-macros"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [lib]
 proc-macro = true
@@ -13,6 +20,7 @@ syn.workspace = true
 quote.workspace = true
 
 [dev-dependencies]
-wgame = { workspace = true, features = ["desktop"] }
-wgame-shader.workspace = true
+# Keep consumer doctests local to avoid publication dependency cycles.
+wgame = { path = "../wgame", default-features = false, features = ["desktop"] }
+wgame-shader = { path = "../wgame-shader" }
 glam.workspace = true

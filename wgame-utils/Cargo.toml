@@ -3,7 +3,17 @@ name = "wgame-utils"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Timing helpers for wgame applications"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-utils"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [dependencies]
 wgame-app.workspace = true
 futures.workspace = true
+
+[package.metadata.docs.rs]
+features = ["wgame-app/x11"]

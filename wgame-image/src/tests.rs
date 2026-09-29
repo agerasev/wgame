@@ -53,6 +53,85 @@ fn empty_slice() {
 }
 
 #[test]
+fn excluded_start_bounds_select_pixels_and_allow_empty_edges() {
+    use std::ops::Bound::{Excluded, Included, Unbounded};
+
+    let mut image = Image::<u8>::with_data((3, 2), [0, 1, 2, 3, 4, 5]);
+    let range = ((Excluded(0), Included(2)), (Excluded(0), Unbounded));
+    assert_eq!(image.slice(range).data(), [4, 5]);
+    image.slice_mut(range).fill(9);
+    assert_eq!(image.data(), [0, 1, 2, 3, 9, 9]);
+    assert_eq!(
+        image.slice(((Excluded(2), Unbounded), ..)).size(),
+        Size2D::new(0, 2)
+    );
+    assert_eq!(
+        ((Excluded(u32::MAX - 1), Unbounded), ..).into_ranges(Size2D::new(u32::MAX, 0)),
+        (u32::MAX..u32::MAX, 0..0)
+    );
+}
+
+#[test]
+fn empty_slices_support_edges_zero_dimensions_and_nested_views() {
+    for size in [(0, 0), (0, 2), (2, 0), (2, 2)] {
+        let mut image = Image::<u8>::new(size);
+        for x in [0..size.0, size.0..size.0] {
+            for y in [0..size.1, size.1..size.1] {
+                if !x.is_empty() && !y.is_empty() {
+                    continue;
+                }
+                let range = (x.clone(), y.clone());
+                let expected = Size2D::new(x.end - x.start, y.end - y.start);
+                let slice = image.slice(range.clone());
+                assert_eq!(slice.size(), expected);
+                assert!(slice.data().is_empty());
+                assert_eq!(slice.rows().len(), 0);
+                assert_eq!(slice.pixels().next(), None);
+                assert_eq!(slice.to_image().size(), expected);
+
+                let mut slice = image.slice_mut(range);
+                assert_eq!(slice.size(), expected);
+                assert!(slice.data().is_empty());
+                assert_eq!(slice.rows_mut().len(), 0);
+                assert_eq!(slice.pixels_mut().next(), None);
+                slice.fill(1);
+            }
+        }
+    }
+
+    let mut image = Image::<u8>::new((4, 4));
+    let view = image.slice((1..3, 1..3));
+    assert!(view.slice((2..2, 2..2)).data().is_empty());
+    let mut view = image.slice_mut((1..3, 1..3));
+    assert!(view.slice_mut((2..2, 2..2)).data().is_empty());
+}
+
+#[test]
+fn range_bounds_reject_overflow_reversed_and_out_of_bounds_ranges() {
+    use std::ops::Bound::{Excluded, Included, Unbounded};
+
+    for invalid in [
+        (Excluded(u32::MAX), Unbounded),
+        (Unbounded, Included(u32::MAX)),
+        (Included(2), Excluded(1)),
+        (Included(4), Unbounded),
+        (Unbounded, Excluded(4)),
+    ] {
+        let size = Size2D::new(3, 3);
+        assert!(std::panic::catch_unwind(|| (invalid, ..).into_ranges(size)).is_err());
+        assert!(std::panic::catch_unwind(|| (.., invalid).into_ranges(size)).is_err());
+    }
+    for rect in [
+        euclid::rect(u32::MAX, 0, 1, 0),
+        euclid::rect(0, u32::MAX, 0, 1),
+    ] {
+        assert!(
+            std::panic::catch_unwind(|| rect.into_ranges(Size2D::new(u32::MAX, u32::MAX))).is_err()
+        );
+    }
+}
+
+#[test]
 fn slice_mut() {
     let mut img = Image::<u8>::with_data(
         (4, 4),

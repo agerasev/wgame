@@ -2,5 +2,5 @@
 
 Ordered rendering, cameras, targets, and reusable renderers.
 
-See the [crate documentation](src/lib.rs) for usage and contracts, and the
-[workspace README](../README.md) for building the documentation.
+See the [crate documentation](https://docs.rs/wgame-gfx) for usage and contracts, and the
+[workspace README](https://github.com/agerasev/wgame#readme) for building the documentation.

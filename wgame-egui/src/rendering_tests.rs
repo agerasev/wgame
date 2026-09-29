@@ -1,8 +1,9 @@
 //! Explicit Mesa/GPU checks: `cargo test -p wgame-egui --lib -- --ignored`.
 use super::*;
 
-// The shared readback helper keeps identical adapter requirements and timeouts.
-#[path = "../../wgame/tests/support/mod.rs"]
+// Keep the package-local helper's adapter requirements and timeouts aligned with
+// the facade rendering tests.
+#[path = "../tests/support/mod.rs"]
 mod support;
 
 #[test]

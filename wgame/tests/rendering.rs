@@ -120,7 +120,7 @@ fn text_survives_glyph_growth_and_target_resize() {
     let lib = Library::new(&gfx);
     let font = lib.make_font(
         &wgame::typography::FontData::new(
-            include_bytes!("../../wgame-examples/assets/free-sans-bold.ttf").to_vec(),
+            include_bytes!("../tests/assets/free-sans-bold.ttf").to_vec(),
             0,
         )
         .unwrap(),
@@ -340,7 +340,7 @@ fn baked_text_survives_glyph_repacking_without_outer_atlas_growth() {
     let lib = Library::new(&gfx);
     let font = lib.make_font(
         &wgame::typography::FontData::new(
-            include_bytes!("../../wgame-examples/assets/free-sans-bold.ttf").to_vec(),
+            include_bytes!("../tests/assets/free-sans-bold.ttf").to_vec(),
             0,
         )
         .unwrap(),

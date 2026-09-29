@@ -3,8 +3,18 @@ name = "wgame-app-input"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Window event streams for wgame applications"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/wgame-app-input"
+readme = "README.md"
+keywords = ["graphics", "gamedev", "async"]
+categories = ["graphics", "game-development"]
 
 [dependencies]
 futures.workspace = true
 winit.workspace = true
 log.workspace = true
+
+[package.metadata.docs.rs]
+features = ["winit/x11"]
