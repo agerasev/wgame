@@ -1,0 +1,81 @@
+{
+  "playground": {
+    "repository": "https://github.com/agerasev/wgame",
+    "source_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot"
+  },
+  "polylines": {
+    "repository": "https://github.com/agerasev/wgame",
+    "source_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot"
+  },
+  "events": {
+    "repository": "https://github.com/agerasev/wgame",
+    "source_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot"
+  },
+  "viewports": {
+    "repository": "https://github.com/agerasev/wgame",
+    "source_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot"
+  },
+  "render-textures": {
+    "repository": "https://github.com/agerasev/wgame",
+    "source_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot"
+  },
+  "solids": {
+    "repository": "https://github.com/agerasev/wgame",
+    "source_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot"
+  },
+  "hypertrace": {
+    "repository": "https://github.com/agerasev/hypertrace",
+    "source_commit": "292dfc2103052d476412eea5a618a1b16f7e5939",
+    "capture": "native wgpu compute render",
+    "source_url": "https://agerasev.github.io/hypertrace/previews/hy.webp",
+    "samples": 4096
+  },
+  "bounce": {
+    "repository": "https://github.com/agerasev/bounce",
+    "source_commit": "6f2383a24de4f56aac9289067b5ec9dc549c9422",
+    "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot",
+    "library_version": "0.1.0"
+  },
+  "run": {
+    "repository": "https://github.com/agerasev/run",
+    "source_commit": "9ca849c48583946a04871cb467e15f1f871bb4d8",
+    "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot",
+    "library_version": "0.1.0"
+  },
+  "gravity": {
+    "repository": "https://github.com/agerasev/gravity",
+    "source_commit": "7a0483763f3a7637bbc4a876923f484bfb9f9a4e",
+    "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot",
+    "library_version": "0.1.0"
+  },
+  "drive": {
+    "repository": "https://github.com/agerasev/drive",
+    "source_commit": "7c063eedc4e731c20ab37c59b64f4a5c2a914d51",
+    "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot",
+    "library_version": "0.1.0"
+  },
+  "games": {
+    "repository": "https://github.com/agerasev/games",
+    "source_commit": "fbb9b6a54518e7930110df266d6a6b06e96af29c",
+    "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot",
+    "library_version": "0.1.0"
+  },
+  "moss-and-mere": {
+    "repository": "https://github.com/agerasev/moss-and-mere",
+    "source_commit": "dda4e664c043e97be463b4f7b610deb27d52be2c",
+    "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+    "capture": "browser WebGL2 screenshot",
+    "library_version": "0.1.0"
+  }
+}

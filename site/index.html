@@ -24,25 +24,28 @@
       <div class="collection">
         <section id="games" aria-labelledby="games-title">
           <h2 id="games-title">Games</h2>
-          <ul class="link-grid">
-            <li><a href="https://agerasev.github.io/games/">Games</a><p>Puzzles, parking, a moon lander, and other games.</p></li>
-            <li><a href="https://agerasev.github.io/bounce/">Bounce</a><p>A sandbox for rigid-body collisions.</p></li>
-            <li><a href="https://agerasev.github.io/gravity/">Gravity</a><p>An orbital simulation with interactive bodies.</p></li>
-            <li><a href="https://agerasev.github.io/run/">Run</a><p>An animated character in a generated forest.</p></li>
-            <li><a href="https://agerasev.github.io/drive/">Drive</a><p>A 3D driving simulation.</p></li>
+          <ul class="link-grid preview-grid">
+            <li><a href="https://agerasev.github.io/run/"><img src="previews/run.jpg" alt="A running character in a generated forest" width="1280" height="720">Run</a><p>An animated character in a generated forest.</p></li>
+            <li><a href="https://agerasev.github.io/bounce/"><img src="previews/bounce.jpg" alt="Rigid bodies in the Bounce physics sandbox" width="1280" height="720" loading="lazy">Bounce</a><p>A sandbox for rigid-body collisions.</p></li>
+            <li><a href="https://agerasev.github.io/gravity/"><img src="previews/gravity.jpg" alt="Bodies and orbital paths in Gravity" width="1280" height="720" loading="lazy">Gravity</a><p>An orbital simulation with interactive bodies.</p></li>
+            <li><a href="https://agerasev.github.io/drive/"><img src="previews/drive.jpg" alt="A vehicle in the Drive 3D simulation" width="1280" height="720" loading="lazy">Drive</a><p>A 3D driving simulation.</p></li>
+            <li><a href="https://agerasev.github.io/games/"><img src="previews/games.jpg" alt="The Games collection launcher" width="1280" height="720" loading="lazy">Games</a><p>Puzzles, parking, a moon lander, and other games.</p></li>
+            <li><a href="https://agerasev.github.io/moss-and-mere/"><img src="previews/moss-and-mere.jpg" alt="The village and woodland in Moss &amp; Mere" width="1280" height="720" loading="lazy">Moss &amp; Mere</a><p>A fantasy RPG with exploration, villagers, combat, and quests.</p></li>
+            <li><a href="https://agerasev.github.io/hypertrace/viewer/?scene=hy"><img src="previews/hypertrace.webp" alt="Hypertrace's native compute rendering of hyperbolic space" width="1280" height="960" loading="lazy">Hypertrace</a><p>A non-Euclidean space renderer. <strong>Requires a WebGPU-capable browser and GPU.</strong></p></li>
           </ul>
         </section>
         <section id="examples" aria-labelledby="examples-title">
           <h2 id="examples-title">Examples</h2>
-          <ul class="link-grid">
-            <li><a href="examples/polylines/">Polylines</a><p>Widths, joins, textures, and transparency.</p></li>
-            <li><a href="examples/playground/">Playground</a><p>Shapes, textures, text, and animation.</p></li>
-            <li><a href="examples/events/">On-demand events</a><p>Input, timers, and continuous redraws.</p></li>
-            <li><a href="examples/viewports/">Viewports</a><p>Cameras, clipping, nested views, and picking.</p></li>
-            <li><a href="examples/render-textures/">Render textures</a><p>Offscreen rendering, sampling, composition, and snapshots.</p></li>
+          <ul class="link-grid preview-grid">
+            <li><a href="examples/playground/"><img src="previews/playground.jpg" alt="The six-panel shapes, textures, and text playground" width="1280" height="720" loading="lazy">Playground</a><p>Shapes, textures, text, and animation.</p></li>
+            <li><a href="examples/polylines/"><img src="previews/polylines.jpg" alt="Polyline widths, joins, and texture interpolation" width="1280" height="720" loading="lazy">Polylines</a><p>Widths, joins, textures, and transparency.</p></li>
+            <li><a href="examples/events/"><img src="previews/events.jpg" alt="Input and repaint state in the event gallery" width="1280" height="720" loading="lazy">On-demand events</a><p>Input, timers, and continuous redraws.</p></li>
+            <li><a href="examples/viewports/"><img src="previews/viewports.jpg" alt="Four camera views and a nested viewport" width="1280" height="720" loading="lazy">Viewports</a><p>Cameras, clipping, nested views, and picking.</p></li>
+            <li><a href="examples/render-textures/"><img src="previews/render-textures.jpg" alt="Live render textures and captured CPU snapshots" width="1280" height="720" loading="lazy">Render textures</a><p>Offscreen rendering, sampling, composition, and snapshots.</p></li>
+            <li><a href="examples/solids/"><img src="previews/solids.jpg" alt="Lit 3D solids with normal maps and colored paint masks" width="1280" height="720" loading="lazy">3D materials</a><p>Lighting, normal maps, and masked paint materials.</p></li>
           </ul>
         </section>
-        <p class="browser-note">Runs in your browser with WebAssembly and WebGL2. Click the canvas to use keyboard controls.</p>
+        <p class="browser-note">These demos run with WebAssembly. Hypertrace requires WebGPU; the other games and examples use WebGL2. Click the canvas to use keyboard controls.</p>
       </div>
       <aside class="code-note" aria-label="A minimal wgame window loop">
         <h2>A window in Rust</h2>
@@ -54,11 +57,10 @@
         window.next_frame().<span class="syntax-accent">await</span>?
     {
         frame.clear(color::BLACK);
-        frame.present();
     }
     Ok(())
 }</code></pre>
-        <a href="https://github.com/agerasev/wgame/blob/master/wgame/src/lib.rs">API guide</a>
+        <a href="https://docs.rs/wgame/0.1.0/wgame/">API guide</a>
       </aside>
     </main>
     <footer>

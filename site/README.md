@@ -29,6 +29,15 @@ python3 -m http.server --directory /tmp/wgame-gallery 8080
 Open `http://localhost:8080/` to inspect the gallery and run the demos. Artifact
 generation alone does not verify browser execution.
 
+Every game and example has a screenshot in `previews/`, copied into the generated site.
+Capture them from the same browser builds that will be deployed, after checking
+rendering and input. Keep their source revisions in `previews/sources.json`.
+The game links point to separate deployments; rebuild and deploy each game's
+`dist/` using its own `scripts/build-web.sh /repository-name/` before publishing
+the updated gallery. The gallery build only builds the framework examples.
+Hypertrace is linked as a separate WebGPU compute renderer; its native-render
+preview retains the source provenance recorded alongside the screenshots.
+
 To publish at `https://agerasev.github.io/wgame/`, build with `/wgame/` and copy the
 contents of `target/pages/` to the root of the `gh-pages` branch. Preserve any
 existing deployment history with an ordinary commit, then push that branch.

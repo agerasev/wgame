@@ -37,6 +37,7 @@ staging=$(mktemp -d "${TMPDIR:-/tmp}/wgame-pages.XXXXXX")
 trap 'rm -rf "$staging"' EXIT
 mkdir -p "$staging/site/examples"
 cp "$repo/site/"{index.html,styles.css,favicon.svg} "$staging/site/"
+cp -a "$repo/site/previews" "$staging/site/"
 touch "$staging/site/.nojekyll" "$staging/site/.wgame-pages"
 
 # Trunk resolves Rust asset hrefs relative to the external wrapper directory.
@@ -64,6 +65,7 @@ polylines|polylines|Polylines
 events|events|On-demand events
 viewports|viewports|Viewports
 render_textures|render-textures|Render textures
+solids|solids|3D materials
 EXAMPLES
 
 # Only replace a recognized build output, after every example succeeds.
