@@ -1,5 +1,9 @@
 {
-  "source_commit": "725580b08ab1de37d7aa1fffe99835c7d04f8753",
+  "source_commit": "b3ef0cf3ba9f6b34682a53a84dbe9cb6c05eb0e8",
   "source_branch": "master",
-  "public_url": "/wgame/"
+  "public_url": "/wgame/",
+  "package_source_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
+  "version": "0.1.0",
+  "built_at": "2026-09-29T09:20:34.493862+00:00",
+  "build_command": "./scripts/build-pages.sh /wgame/"
 }

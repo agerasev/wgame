@@ -12,10 +12,10 @@
     .back:focus-visible { outline: 3px solid #d0f58a; outline-offset: 3px; }
     noscript { position: fixed; inset: 24px; color: white; font-family: system-ui, sans-serif; }
   </style>
-
+  
 <script type="module">
-import init, * as bindings from '/wgame/examples/polylines/polylines-70568f03ac7739f6.js';
-const wasm = await init({ module_or_path: '/wgame/examples/polylines/polylines-70568f03ac7739f6_bg.wasm' });
+import init, * as bindings from '/wgame/examples/polylines/polylines-ef3c1735c0797e64.js';
+const wasm = await init({ module_or_path: '/wgame/examples/polylines/polylines-ef3c1735c0797e64_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -24,7 +24,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-<link rel="modulepreload" href="/wgame/examples/polylines/polylines-70568f03ac7739f6.js" crossorigin="anonymous" integrity="sha384-ffsusdDaHGmgXvei6RPXsuJ7ANkuhvcpl1j5wvJTex0BR6K7YIszkrH1FVOBZOd7"><link rel="preload" href="/wgame/examples/polylines/polylines-70568f03ac7739f6_bg.wasm" crossorigin="anonymous" integrity="sha384-g5o4TaOAULb27NYbO3ANagsPnCS0iJGVE+G2zcvVGqFWfFHNfUHPlLEkEnDf7anL" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/wgame/examples/polylines/polylines-ef3c1735c0797e64.js" crossorigin="anonymous" integrity="sha384-/w6s1vfGYUO8B8G8o6APbcF9NGqflSBQ9LVCPLdGk2E5hbGuJgaAKgFfSirzCUsD"><link rel="preload" href="/wgame/examples/polylines/polylines-ef3c1735c0797e64_bg.wasm" crossorigin="anonymous" integrity="sha384-K0mQWPh0FRfp7kvzB8vrwBR5xiGQSB5dIMFJB5MsU3nxwyJRqdWFfzXszWZGsQ1w" as="fetch" type="application/wasm"></head>
 <body>
   <div id="content"><canvas id="canvas" tabindex="0" aria-label="Polylines interactive graphics example"></canvas></div>
   <a class="back" href="../../">← All examples</a>

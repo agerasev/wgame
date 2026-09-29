@@ -12,10 +12,10 @@
     .back:focus-visible { outline: 3px solid #d0f58a; outline-offset: 3px; }
     noscript { position: fixed; inset: 24px; color: white; font-family: system-ui, sans-serif; }
   </style>
-
+  
 <script type="module">
-import init, * as bindings from '/wgame/examples/playground/playground-6663baaa38b4065d.js';
-const wasm = await init({ module_or_path: '/wgame/examples/playground/playground-6663baaa38b4065d_bg.wasm' });
+import init, * as bindings from '/wgame/examples/playground/playground-e76efb59d76bb721.js';
+const wasm = await init({ module_or_path: '/wgame/examples/playground/playground-e76efb59d76bb721_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -24,7 +24,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-<link rel="modulepreload" href="/wgame/examples/playground/playground-6663baaa38b4065d.js" crossorigin="anonymous" integrity="sha384-mtv2llnSTpwFYhLENpgsGJcKdVE9P6PVsx+CfDYe87J3dZco6uxIbYRnG3K4EBjY"><link rel="preload" href="/wgame/examples/playground/playground-6663baaa38b4065d_bg.wasm" crossorigin="anonymous" integrity="sha384-TSn8+GTRTu/f2cMnVLX8eAVCJKZZjPu3uwd3A2zUOom0xrSda+ibr288l/mhwAsc" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/wgame/examples/playground/playground-e76efb59d76bb721.js" crossorigin="anonymous" integrity="sha384-JqBBad/B7L1Gpwa05nkM0Iy9Tbx4j6sM3WHvMjChEAqkKPQkcliVC4qzy/4G+Srq"><link rel="preload" href="/wgame/examples/playground/playground-e76efb59d76bb721_bg.wasm" crossorigin="anonymous" integrity="sha384-HEAiYXhkk4rxn6dvLOwMrxB9HmTCC9ocPiGp3Y+zRZuLiKZLYe1gVhVh9Lz65lzV" as="fetch" type="application/wasm"></head>
 <body>
   <div id="content"><canvas id="canvas" tabindex="0" aria-label="Playground interactive graphics example"></canvas></div>
   <a class="back" href="../../">← All examples</a>

@@ -12,10 +12,10 @@
     .back:focus-visible { outline: 3px solid #d0f58a; outline-offset: 3px; }
     noscript { position: fixed; inset: 24px; color: white; font-family: system-ui, sans-serif; }
   </style>
-
+  
 <script type="module">
-import init, * as bindings from '/wgame/examples/render-textures/render_textures-78a01577f25ae487.js';
-const wasm = await init({ module_or_path: '/wgame/examples/render-textures/render_textures-78a01577f25ae487_bg.wasm' });
+import init, * as bindings from '/wgame/examples/render-textures/render_textures-178fef75e9cbce7b.js';
+const wasm = await init({ module_or_path: '/wgame/examples/render-textures/render_textures-178fef75e9cbce7b_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -24,7 +24,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-<link rel="modulepreload" href="/wgame/examples/render-textures/render_textures-78a01577f25ae487.js" crossorigin="anonymous" integrity="sha384-CcqzaHty2JhYxxX8pkjOKeN8hhJtOO6chK1nghMuNyY0OdHpKD0iKtjKrjSHwD/t"><link rel="preload" href="/wgame/examples/render-textures/render_textures-78a01577f25ae487_bg.wasm" crossorigin="anonymous" integrity="sha384-C971t6Oxx12kSH91Rql/KXGdDRxjXD5ACi7VBHXnwToxVpsrkxTXz03zJBIcF6ck" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/wgame/examples/render-textures/render_textures-178fef75e9cbce7b.js" crossorigin="anonymous" integrity="sha384-hbcp1uNLow1F0c9szVJLzEStmKOsnFGXxlioOgewXNoSAQ8jRfRN8STaODyx/l9b"><link rel="preload" href="/wgame/examples/render-textures/render_textures-178fef75e9cbce7b_bg.wasm" crossorigin="anonymous" integrity="sha384-sa3Rw4CkE2/b5fVeOWu9muDN4OvaVwD2KriyJtiiALEA/u2gO1loDSfm4ec1EBbV" as="fetch" type="application/wasm"></head>
 <body>
   <div id="content"><canvas id="canvas" tabindex="0" aria-label="Render textures interactive graphics example"></canvas></div>
   <a class="back" href="../../">← All examples</a>
