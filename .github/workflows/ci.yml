@@ -30,16 +30,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers xvfb
+      - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers xvfb libxkbcommon-x11-0
       - run: cargo test --locked -p wgame --features 3d --lib --test rendering --test lighting -- --ignored
         env:
           WGPU_BACKEND: vulkan
-      - run: xvfb-run -a cargo run --locked -p wgame-examples --bin playground -- --smoke
+          RUST_BACKTRACE: 1
+      - run: timeout 120s xvfb-run -a cargo run --locked -p wgame-examples --bin playground -- --smoke
         env:
           WGPU_BACKEND: vulkan
+          RUST_BACKTRACE: 1
       - run: cargo test --locked -p wgame-egui --lib -- --ignored
         env:
           WGPU_BACKEND: vulkan
-      - run: xvfb-run -a cargo run --locked -p wgame-egui --example playground -- --smoke
+          RUST_BACKTRACE: 1
+      - run: timeout 120s xvfb-run -a cargo run --locked -p wgame-egui --example playground -- --smoke
         env:
           WGPU_BACKEND: vulkan
+          RUST_BACKTRACE: 1
