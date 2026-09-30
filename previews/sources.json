@@ -59,7 +59,7 @@
   },
   "games": {
     "repository": "https://github.com/agerasev/games",
-    "source_commit": "a032cd7fe5782dda3cb894ec0cc560b9a28b028d",
+    "source_commit": "ff5a99feb43b6ed869cbb9d551b0489db967c446",
     "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
     "capture": "browser WebGL2 screenshot",
     "library_version": "0.1.0"
