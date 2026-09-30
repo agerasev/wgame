@@ -43,13 +43,6 @@
     "capture": "browser WebGL2 screenshot",
     "library_version": "0.1.0"
   },
-  "run": {
-    "repository": "https://github.com/agerasev/run",
-    "source_commit": "9ca849c48583946a04871cb467e15f1f871bb4d8",
-    "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
-    "capture": "browser WebGL2 screenshot",
-    "library_version": "0.1.0"
-  },
   "gravity": {
     "repository": "https://github.com/agerasev/gravity",
     "source_commit": "7a0483763f3a7637bbc4a876923f484bfb9f9a4e",
@@ -66,7 +59,7 @@
   },
   "games": {
     "repository": "https://github.com/agerasev/games",
-    "source_commit": "fbb9b6a54518e7930110df266d6a6b06e96af29c",
+    "source_commit": "a032cd7fe5782dda3cb894ec0cc560b9a28b028d",
     "library_commit": "ccc6bef42970be83eb688dfa00013036d58bc96e",
     "capture": "browser WebGL2 screenshot",
     "library_version": "0.1.0"
